@@ -5,13 +5,13 @@ package main
 
 import (
 	"github.com/google/wire"
-	"github.com/yourusername/testgen-backend/internal/infrastructure/llm"
-	"github.com/yourusername/testgen-backend/internal/infrastructure/moodle"
-	"github.com/yourusername/testgen-backend/internal/infrastructure/parser"
-	"github.com/yourusername/testgen-backend/internal/infrastructure/persistence/postgres"
-	"github.com/yourusername/testgen-backend/internal/interfaces/http/handler"
-	"github.com/yourusername/testgen-backend/pkg/config"
-	"github.com/yourusername/testgen-backend/pkg/utils"
+	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
+	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
+	"github.com/shester1kov/testgen-backend/internal/infrastructure/parser"
+	"github.com/shester1kov/testgen-backend/internal/infrastructure/persistence/postgres"
+	"github.com/shester1kov/testgen-backend/internal/interfaces/http/handler"
+	"github.com/shester1kov/testgen-backend/pkg/config"
+	"github.com/shester1kov/testgen-backend/pkg/utils"
 	"gorm.io/gorm"
 )
 
