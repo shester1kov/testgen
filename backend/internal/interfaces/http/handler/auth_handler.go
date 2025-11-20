@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
@@ -160,14 +161,38 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 // @Failure 404 {object} map[string]string
 // @Router /auth/me [get]
 func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
-	userID := c.Locals("userID")
-	if userID == nil {
+	rawUserID := c.Locals("userID")
+	if rawUserID == nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "unauthorized",
 		})
 	}
 
-	user, err := h.userRepo.FindByID(c.Context(), userID.(entity.User).ID)
+	var userID uuid.UUID
+	switch v := rawUserID.(type) {
+	case uuid.UUID:
+		userID = v
+	case string:
+		parsedID, err := uuid.Parse(v)
+		if err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "unauthorized",
+			})
+		}
+		userID = parsedID
+	default:
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "unauthorized",
+		})
+	}
+
+	if userID == uuid.Nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "unauthorized",
+		})
+	}
+
+	user, err := h.userRepo.FindByID(c.Context(), userID)
 	if err != nil {
 		appErr := apperrors.NotFound("user not found")
 		return c.Status(appErr.Code).JSON(fiber.Map{
