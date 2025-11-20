@@ -1,22 +1,20 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: testgen_postgres
     environment:
-      POSTGRES_USER: testgen_user
-      POSTGRES_PASSWORD: testgen_password
-      POSTGRES_DB: testgen_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5432:5432"
+      - "${DB_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - testgen_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U testgen_user -d testgen_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -41,22 +39,24 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: testgen_backend
+    env_file:
+      - .env
     environment:
-      - ENV=development
-      - PORT=8080
+      - ENV=${ENV}
+      - PORT=${PORT}
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=testgen_user
-      - DB_PASSWORD=testgen_password
-      - DB_NAME=testgen_db
-      - DB_SSLMODE=disable
-      - JWT_SECRET=your-secret-key-change-in-production
-      - JWT_EXPIRATION=24h
-      - MAX_FILE_SIZE=52428800
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_SSLMODE=${DB_SSLMODE}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE}
       - UPLOAD_DIR=/app/uploads
-      - ENABLE_METRICS=true
+      - ENABLE_METRICS=${ENABLE_METRICS}
     ports:
-      - "8080:8080"
+      - "${PORT}:${PORT}"
     volumes:
       - ./backend:/app
       - backend_uploads:/app/uploads
@@ -75,10 +75,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: testgen_frontend
+    env_file:
+      - .env
     environment:
-      - VITE_API_BASE_URL=http://localhost:8080/api/v1
-      - VITE_MAX_FILE_SIZE=52428800
-      - VITE_SUPPORTED_FORMATS=pdf,docx,pptx,txt
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+      - VITE_MAX_FILE_SIZE=${VITE_MAX_FILE_SIZE}
+      - VITE_SUPPORTED_FORMATS=${VITE_SUPPORTED_FORMATS}
     ports:
       - "5173:5173"
     volumes:
@@ -128,10 +130,12 @@ services:
     image: grafana/grafana:latest
     container_name: testgen_grafana
     ports:
-      - "3000:3000"
+      - "3001:3000"
+    env_file:
+      - .env
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=${GF_USERS_ALLOW_SIGN_UP}
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
