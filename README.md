@@ -79,7 +79,7 @@ cd course-work
 2. **Настроить переменные окружения**
 ```bash
 cp .env.example .env
-# Отредактировать .env файл
+# Отредактировать .env файл (настроить DB_PASSWORD, JWT_SECRET, LLM API keys)
 ```
 
 3. **Запустить все сервисы**
@@ -87,16 +87,30 @@ cp .env.example .env
 docker-compose up -d
 ```
 
-4. **Применить миграции базы данных**
-```bash
-docker-compose exec backend migrate -path /app/internal/infrastructure/persistence/migrations -database "postgres://testgen_user:testgen_password@postgres:5432/testgen_db?sslmode=disable" up
-```
+**Миграции БД применяются автоматически при запуске backend!** ✅
 
-5. **Открыть приложение**
+4. **Открыть приложение**
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8080
+- Swagger UI: http://localhost:8080/swagger/index.html
 - Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000
+- Grafana: http://localhost:3001 (admin/admin)
+
+### Быстрый старт для Windows (без Docker)
+
+Используйте готовый батник:
+
+```bash
+start-backend.bat
+```
+
+Батник автоматически:
+- Проверит Go и Docker
+- Установит зависимости
+- Запустит PostgreSQL в Docker
+- **Применит миграции автоматически** при старте backend
+- Сгенерирует Swagger документацию
+- Запустит backend сервер
 
 ### Локальная разработка
 
