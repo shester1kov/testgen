@@ -59,3 +59,4 @@ Thumbs.db
 *.crt
 nginx/ssl/*
 !nginx/ssl/.gitkeep
+.claude
