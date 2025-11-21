@@ -20,17 +20,16 @@
 package main
 
 import (
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/swagger"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 
 	_ "github.com/shester1kov/testgen-backend/docs"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
@@ -40,17 +39,34 @@ import (
 	"github.com/shester1kov/testgen-backend/internal/interfaces/http/handler"
 	"github.com/shester1kov/testgen-backend/internal/interfaces/http/router"
 	"github.com/shester1kov/testgen-backend/pkg/config"
+	"github.com/shester1kov/testgen-backend/pkg/logger"
 	"github.com/shester1kov/testgen-backend/pkg/utils"
 )
 
 func main() {
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using system environment variables")
+		// Silently continue if .env file not found
 	}
 
 	// Load configuration
 	cfg := config.Load()
+
+	// Initialize logger
+	appLogger, err := logger.New(logger.Config{
+		Level:      cfg.Logger.Level,
+		OutputPath: "stdout",
+		Format:     cfg.Logger.Format,
+	})
+	if err != nil {
+		panic("Failed to initialize logger: " + err.Error())
+	}
+	defer appLogger.Sync()
+
+	appLogger.Info("Starting Test Generation System API",
+		zap.String("version", "1.0"),
+		zap.String("environment", cfg.Server.Environment),
+	)
 
 	// Initialize database
 	db, err := postgres.NewDatabase(&postgres.DatabaseConfig{
@@ -62,8 +78,9 @@ func main() {
 		SSLMode:  cfg.Database.SSLMode,
 	})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		appLogger.Fatal("Failed to connect to database", zap.Error(err))
 	}
+	appLogger.Info("Database connection established")
 
 	// Initialize repositories
 	userRepo := postgres.NewUserRepository(db)
@@ -76,7 +93,7 @@ func main() {
 	// Initialize JWT manager
 	jwtManager, err := utils.NewJWTManager(cfg.JWT.Secret, cfg.JWT.Expiration)
 	if err != nil {
-		log.Fatalf("Failed to initialize JWT manager: %v", err)
+		appLogger.Fatal("Failed to initialize JWT manager", zap.Error(err))
 	}
 
 	// Initialize document parser factory (Factory Pattern)
@@ -132,7 +149,8 @@ func main() {
 
 	// Middleware
 	app.Use(recover.New())
-	app.Use(logger.New())
+	app.Use(logger.RequestIDMiddleware())
+	app.Use(logger.HTTPMiddleware(appLogger))
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
@@ -172,23 +190,26 @@ func main() {
 	// Graceful shutdown
 	go func() {
 		if err := app.Listen(":" + port); err != nil {
-			log.Fatalf("Failed to start server: %v", err)
+			appLogger.Fatal("Failed to start server", zap.Error(err))
 		}
 	}()
 
-	log.Printf("Server started on port %s", port)
+	appLogger.Info("Server started successfully",
+		zap.String("port", port),
+		zap.String("environment", cfg.Server.Environment),
+	)
 
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down server...")
+	appLogger.Info("Shutting down server...")
 	if err := app.Shutdown(); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
+		appLogger.Fatal("Server forced to shutdown", zap.Error(err))
 	}
 
-	log.Println("Server exited")
+	appLogger.Info("Server exited successfully")
 }
 
 func customErrorHandler(c *fiber.Ctx, err error) error {

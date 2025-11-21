@@ -14,6 +14,7 @@ type Config struct {
 	File     FileConfig
 	LLM      LLMConfig
 	Moodle   MoodleConfig
+	Logger   LoggerConfig
 }
 
 // ServerConfig holds server configuration
@@ -69,6 +70,12 @@ type MoodleConfig struct {
 	Token string
 }
 
+// LoggerConfig holds logger configuration
+type LoggerConfig struct {
+	Level  string
+	Format string
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
@@ -110,6 +117,10 @@ func Load() *Config {
 		Moodle: MoodleConfig{
 			URL:   getEnv("MOODLE_URL", ""),
 			Token: getEnv("MOODLE_TOKEN", ""),
+		},
+		Logger: LoggerConfig{
+			Level:  getEnv("LOG_LEVEL", "info"),
+			Format: getEnv("LOG_FORMAT", "console"),
 		},
 	}
 }
