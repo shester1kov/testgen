@@ -51,7 +51,12 @@ func NewMoodleHandler(
 // @Failure 500 {object} dto.ErrorResponse "Export failed"
 // @Router /tests/{id}/export-xml [get]
 func (h *MoodleHandler) ExportToXML(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
 	testID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
@@ -124,7 +129,12 @@ func (h *MoodleHandler) ExportToXML(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Sync failed"
 // @Router /tests/{id}/sync-moodle [post]
 func (h *MoodleHandler) SyncToMoodle(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
 	testID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(

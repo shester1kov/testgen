@@ -33,7 +33,12 @@ func NewTestHandler(testRepo repository.TestRepository, documentRepo repository.
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /tests [post]
 func (h *TestHandler) Create(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
 	var req dto.CreateTestRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
@@ -74,7 +79,12 @@ func (h *TestHandler) Create(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Generation failed"
 // @Router /tests/generate [post]
 func (h *TestHandler) Generate(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
 	var req dto.GenerateTestRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
@@ -158,7 +168,12 @@ func (h *TestHandler) Generate(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /tests [get]
 func (h *TestHandler) List(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
 	page, pageSize := c.QueryInt("page", 1), c.QueryInt("page_size", 20)
 	offset := (page - 1) * pageSize
 
@@ -187,7 +202,12 @@ func (h *TestHandler) List(c *fiber.Ctx) error {
 // @Failure 404 {object} dto.ErrorResponse "Test not found"
 // @Router /tests/{id} [get]
 func (h *TestHandler) GetByID(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
 	testID, _ := uuid.Parse(c.Params("id"))
 	test, err := h.testRepo.FindByID(c.Context(), testID)
 	if err != nil || test.UserID != userID {
@@ -214,7 +234,12 @@ func (h *TestHandler) GetByID(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /tests/{id} [delete]
 func (h *TestHandler) Delete(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
 	testID, _ := uuid.Parse(c.Params("id"))
 	test, err := h.testRepo.FindByID(c.Context(), testID)
 	if err != nil || test.UserID != userID {
