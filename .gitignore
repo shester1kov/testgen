@@ -27,9 +27,6 @@ frontend/.pnpm-debug.log*
 frontend/.yarn-debug.log*
 frontend/.yarn-error.log*
 
-.claude
-CLAUDE.md
-
 # IDE
 .vscode/
 .idea/
