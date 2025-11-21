@@ -7,14 +7,15 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
+      PGPORT: ${DB_PORT}
     ports:
-      - "${DB_PORT}:5432"
+      - "${DB_PORT}:${DB_PORT}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - testgen_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME} -p ${DB_PORT}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -45,7 +46,7 @@ services:
       - ENV=${ENV}
       - PORT=${PORT}
       - DB_HOST=postgres
-      - DB_PORT=5432
+      - DB_PORT=${DB_PORT}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
