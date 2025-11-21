@@ -1,0 +1,67 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Backend (Go)
+backend/bin/
+backend/tmp/
+backend/uploads/
+backend/*.exe
+backend/*.exe~
+backend/*.dll
+backend/*.so
+backend/*.dylib
+backend/*.test
+backend/*.out
+backend/coverage.out
+backend/wire_gen.go
+
+# Frontend (Node.js / Vue)
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.vite/
+frontend/.pnpm-debug.log*
+frontend/.yarn-debug.log*
+frontend/.yarn-error.log*
+
+.claude
+CLAUDE.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+
+# Docker
+docker-compose.override.yml
+
+# Temporary files
+tmp/
+temp/
+
+# OS
+Thumbs.db
+
+# Certificates
+*.pem
+*.key
+*.crt
+nginx/ssl/*
+!nginx/ssl/.gitkeep
+
+.claude
+CLAUDE.md
