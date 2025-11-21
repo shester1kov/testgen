@@ -1,16 +1,17 @@
 import api from './api'
 import type { LoginRequest, RegisterRequest, AuthResponse, User } from '@/features/auth/types/auth.types'
-import type { ApiResponse } from '@/types/api.types'
 
 export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const response = await api.post<ApiResponse<AuthResponse>>('/auth/login', credentials)
-    return response.data as AuthResponse
+    // api.post returns data directly due to response interceptor
+    const response = await api.post('/auth/login', credentials)
+    return response as AuthResponse
   },
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', data)
-    return response.data as AuthResponse
+    // api.post returns data directly due to response interceptor
+    const response = await api.post('/auth/register', data)
+    return response as AuthResponse
   },
 
   async logout(): Promise<void> {
@@ -18,7 +19,8 @@ export const authService = {
   },
 
   async getMe(): Promise<User> {
-    const response = await api.get<ApiResponse<User>>('/auth/me')
-    return response.data as User
+    // api.get returns data directly due to response interceptor
+    const response = await api.get('/auth/me')
+    return response as User
   },
 }

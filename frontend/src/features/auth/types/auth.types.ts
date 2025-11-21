@@ -3,8 +3,6 @@ export interface User {
   email: string
   full_name: string
   role: UserRole
-  created_at: string
-  updated_at: string
 }
 
 export enum UserRole {
@@ -22,7 +20,6 @@ export interface RegisterRequest {
   email: string
   password: string
   full_name: string
-  role: UserRole
 }
 
 export interface AuthResponse {

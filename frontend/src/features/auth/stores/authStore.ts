@@ -6,12 +6,11 @@ import { authService } from '@/services/authService'
 export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref<User | null>(null)
-  const token = ref<string | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
 
   // Getters
-  const isAuthenticated = computed(() => !!token.value)
+  const isAuthenticated = computed(() => !!user.value)
   const userRole = computed(() => user.value?.role || null)
   const isAdmin = computed(() => user.value?.role === 'admin')
   const isTeacher = computed(() => user.value?.role === 'teacher')
@@ -24,10 +23,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authService.login(credentials)
       user.value = response.user
-      token.value = response.token
 
-      // Save to localStorage
-      localStorage.setItem('auth_token', response.token)
+      // Save only user data to localStorage (token is in HTTP-only cookie)
       localStorage.setItem('user', JSON.stringify(response.user))
 
       return response
@@ -46,10 +43,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authService.register(data)
       user.value = response.user
-      token.value = response.token
 
-      // Save to localStorage
-      localStorage.setItem('auth_token', response.token)
+      // Save only user data to localStorage (token is in HTTP-only cookie)
       localStorage.setItem('user', JSON.stringify(response.user))
 
       return response
@@ -72,8 +67,6 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       // Clear state regardless of API call result
       user.value = null
-      token.value = null
-      localStorage.removeItem('auth_token')
       localStorage.removeItem('user')
       loading.value = false
     }
@@ -90,6 +83,9 @@ export const useAuthStore = defineStore('auth', () => {
       return userData
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch user'
+      // Clear user if token is invalid
+      user.value = null
+      localStorage.removeItem('user')
       throw err
     } finally {
       loading.value = false
@@ -97,19 +93,22 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function initializeAuth() {
-    const storedToken = localStorage.getItem('auth_token')
     const storedUser = localStorage.getItem('user')
 
-    if (storedToken && storedUser) {
-      token.value = storedToken
+    if (storedUser) {
       user.value = JSON.parse(storedUser)
+      // Verify token is still valid by fetching user data
+      fetchUser().catch(() => {
+        // Token is invalid, clear user
+        user.value = null
+        localStorage.removeItem('user')
+      })
     }
   }
 
   return {
     // State
     user,
-    token,
     loading,
     error,
     // Getters

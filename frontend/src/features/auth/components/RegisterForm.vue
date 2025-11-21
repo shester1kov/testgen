@@ -39,19 +39,6 @@
         />
       </div>
 
-      <div>
-        <label for="role" class="block text-sm font-medium text-text-secondary mb-2">Role</label>
-        <select
-          id="role"
-          v-model="formData.role"
-          required
-          class="input-neon w-full"
-        >
-          <option value="teacher">Teacher</option>
-          <option value="student">Student</option>
-        </select>
-      </div>
-
       <div v-if="error" class="text-sm text-cyber-pink bg-cyber-pink/10 border border-cyber-pink/20 rounded-lg px-4 py-3">
         {{ error }}
       </div>
@@ -85,7 +72,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
-import { UserRole } from '../types/auth.types'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -94,7 +80,6 @@ const formData = ref({
   full_name: '',
   email: '',
   password: '',
-  role: UserRole.TEACHER,
 })
 
 const loading = ref(false)
