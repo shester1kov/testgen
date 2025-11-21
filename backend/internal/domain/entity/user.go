@@ -7,20 +7,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserRole string
-
-const (
-	RoleAdmin   UserRole = "admin"
-	RoleTeacher UserRole = "teacher"
-	RoleStudent UserRole = "student"
-)
-
 type User struct {
 	ID           uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
 	Email        string     `json:"email" gorm:"type:varchar(255);uniqueIndex;not null"`
 	PasswordHash string     `json:"-" gorm:"type:varchar(255);not null"`
 	FullName     string     `json:"full_name" gorm:"type:varchar(255);not null"`
-	Role         UserRole   `json:"role" gorm:"type:varchar(50);not null"`
+	RoleID       uuid.UUID  `json:"role_id" gorm:"type:uuid;not null"`
+	Role         *Role      `json:"role" gorm:"foreignKey:RoleID;constraint:OnDelete:RESTRICT"`
 	CreatedAt    time.Time  `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt    time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt    *time.Time `json:"deleted_at,omitempty" gorm:"index"`
@@ -49,15 +42,23 @@ func (u *User) CheckPassword(password string) bool {
 
 // IsAdmin checks if the user has admin role
 func (u *User) IsAdmin() bool {
-	return u.Role == RoleAdmin
+	return u.Role != nil && u.Role.IsAdmin()
 }
 
 // IsTeacher checks if the user has teacher role
 func (u *User) IsTeacher() bool {
-	return u.Role == RoleTeacher
+	return u.Role != nil && u.Role.IsTeacher()
 }
 
 // IsStudent checks if the user has student role
 func (u *User) IsStudent() bool {
-	return u.Role == RoleStudent
+	return u.Role != nil && u.Role.IsStudent()
+}
+
+// GetRoleName returns the role name as string
+func (u *User) GetRoleName() string {
+	if u.Role != nil {
+		return string(u.Role.Name)
+	}
+	return ""
 }

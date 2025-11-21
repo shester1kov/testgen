@@ -10,6 +10,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	JWT      JWTConfig
+	Cookie   CookieConfig
 	File     FileConfig
 	LLM      LLMConfig
 	Moodle   MoodleConfig
@@ -36,6 +37,16 @@ type DatabaseConfig struct {
 type JWTConfig struct {
 	Secret     string
 	Expiration string
+}
+
+// CookieConfig holds cookie configuration
+type CookieConfig struct {
+	Name     string
+	Domain   string
+	Path     string
+	Secure   bool
+	HTTPOnly bool
+	SameSite string
 }
 
 // FileConfig holds file upload configuration
@@ -77,6 +88,14 @@ func Load() *Config {
 		JWT: JWTConfig{
 			Secret:     getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 			Expiration: getEnv("JWT_EXPIRATION", "24h"),
+		},
+		Cookie: CookieConfig{
+			Name:     getEnv("COOKIE_NAME", "testgen_token"),
+			Domain:   getEnv("COOKIE_DOMAIN", ""),
+			Path:     getEnv("COOKIE_PATH", "/"),
+			Secure:   getEnvBool("COOKIE_SECURE", false),
+			HTTPOnly: getEnvBool("COOKIE_HTTP_ONLY", true),
+			SameSite: getEnv("COOKIE_SAME_SITE", "Lax"),
 		},
 		File: FileConfig{
 			MaxFileSize: getEnvInt64("MAX_FILE_SIZE", 52428800), // 50MB

@@ -56,7 +56,40 @@ type TestListResponse struct {
 	PageSize int            `json:"page_size"`
 }
 
+// GenerateQuestionsResponse represents the response after generating questions
+type GenerateQuestionsResponse struct {
+	Message   string        `json:"message"`
+	Count     int           `json:"count"`
+	Questions []QuestionDTO `json:"questions"`
+}
+
 // SyncMoodleRequest represents Moodle sync request
 type SyncMoodleRequest struct {
 	CourseName string `json:"course_name" validate:"required"`
+}
+
+// MoodleSyncResponse represents the response after syncing with Moodle
+type MoodleSyncResponse struct {
+	Message  string `json:"message"`
+	MoodleID string `json:"moodle_id"`
+	CourseID string `json:"course_id"`
+}
+
+// MoodleCoursesResponse represents the response for getting Moodle courses
+type MoodleCoursesResponse struct {
+	Courses []MoodleCourse `json:"courses"`
+}
+
+// MoodleCourse represents a Moodle course
+type MoodleCourse struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	ShortName string `json:"short_name,omitempty"`
+}
+
+// MoodleConnectionResponse represents the response for Moodle connection validation
+type MoodleConnectionResponse struct {
+	Connected bool   `json:"connected"`
+	Message   string `json:"message,omitempty"`
+	Error     string `json:"error,omitempty"`
 }

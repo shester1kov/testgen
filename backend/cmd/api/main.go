@@ -1,3 +1,22 @@
+// @title Test Generation System API
+// @version 1.0
+// @description API for test generation system with LLM integration and Moodle export
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@testgen.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
+
 package main
 
 import (
@@ -48,6 +67,7 @@ func main() {
 
 	// Initialize repositories
 	userRepo := postgres.NewUserRepository(db)
+	roleRepo := postgres.NewRoleRepository(db)
 	documentRepo := postgres.NewDocumentRepository(db)
 	testRepo := postgres.NewTestRepository(db)
 	questionRepo := postgres.NewQuestionRepository(db)
@@ -77,7 +97,19 @@ func main() {
 	}
 
 	// Initialize handlers
-	authHandler := handler.NewAuthHandler(userRepo, jwtManager)
+	authHandler := handler.NewAuthHandler(
+		userRepo,
+		roleRepo,
+		jwtManager,
+		cfg.Cookie.Name,
+		cfg.Cookie.Domain,
+		cfg.Cookie.Path,
+		cfg.Cookie.SameSite,
+		cfg.JWT.Expiration,
+		cfg.Cookie.Secure,
+		cfg.Cookie.HTTPOnly,
+	)
+	userHandler := handler.NewUserHandler(userRepo, roleRepo)
 	documentHandler := handler.NewDocumentHandler(
 		documentRepo,
 		parserFactory,
@@ -119,7 +151,7 @@ func main() {
 	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	// Setup routes
-	router.SetupRoutes(app, authHandler, documentHandler, testHandler, moodleHandler, jwtManager)
+	router.SetupRoutes(app, authHandler, userHandler, documentHandler, testHandler, moodleHandler, jwtManager, cfg.Cookie.Name)
 
 	// Root endpoint
 	app.Get("/api/v1", func(c *fiber.Ctx) error {

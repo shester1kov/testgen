@@ -24,7 +24,7 @@ func (r *userRepository) Create(ctx context.Context, user *entity.User) error {
 
 func (r *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.User, error) {
 	var user entity.User
-	err := r.db.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", id).First(&user).Error
+	err := r.db.WithContext(ctx).Preload("Role").Where("id = ? AND deleted_at IS NULL", id).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (r *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.Us
 
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*entity.User, error) {
 	var user entity.User
-	err := r.db.WithContext(ctx).Where("email = ? AND deleted_at IS NULL", email).First(&user).Error
+	err := r.db.WithContext(ctx).Preload("Role").Where("email = ? AND deleted_at IS NULL", email).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +51,7 @@ func (r *userRepository) Delete(ctx context.Context, id uuid.UUID) error {
 func (r *userRepository) List(ctx context.Context, limit, offset int) ([]*entity.User, error) {
 	var users []*entity.User
 	err := r.db.WithContext(ctx).
+		Preload("Role").
 		Where("deleted_at IS NULL").
 		Limit(limit).
 		Offset(offset).

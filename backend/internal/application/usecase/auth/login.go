@@ -41,7 +41,7 @@ func (uc *LoginUseCase) Execute(ctx context.Context, req dto.LoginRequest) (*dto
 	}
 
 	// Generate JWT token
-	token, err := uc.jwtManager.GenerateToken(user.ID, user.Email, string(user.Role))
+	token, err := uc.jwtManager.GenerateToken(user.ID, user.Email, user.GetRoleName())
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
@@ -53,7 +53,7 @@ func (uc *LoginUseCase) Execute(ctx context.Context, req dto.LoginRequest) (*dto
 			ID:       user.ID.String(),
 			Email:    user.Email,
 			FullName: user.FullName,
-			Role:     string(user.Role),
+			Role:     user.GetRoleName(),
 		},
 	}, nil
 }

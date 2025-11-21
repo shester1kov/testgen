@@ -5,7 +5,6 @@ type RegisterRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
 	FullName string `json:"full_name" validate:"required,min=2"`
-	Role     string `json:"role" validate:"required,oneof=admin teacher student"`
 }
 
 // LoginRequest represents user login request

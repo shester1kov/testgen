@@ -1,10 +1,122 @@
+basePath: /api/v1
 definitions:
+  dto.AnswerDTO:
+    properties:
+      answer_text:
+        type: string
+      id:
+        type: string
+      is_correct:
+        type: boolean
+      order_num:
+        type: integer
+    type: object
   dto.AuthResponse:
     properties:
       token:
         type: string
       user:
         $ref: '#/definitions/dto.UserDTO'
+    type: object
+  dto.CreateTestRequest:
+    properties:
+      description:
+        type: string
+      document_id:
+        type: string
+      title:
+        minLength: 3
+        type: string
+    required:
+    - title
+    type: object
+  dto.DocumentListResponse:
+    properties:
+      documents:
+        items:
+          $ref: '#/definitions/dto.DocumentUploadResponse'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.DocumentUploadResponse:
+    properties:
+      created_at:
+        type: string
+      file_name:
+        type: string
+      file_size:
+        type: integer
+      file_type:
+        type: string
+      id:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.ErrorDetail:
+    properties:
+      code:
+        example: VALIDATION_ERROR
+        type: string
+      message:
+        example: Invalid input data
+        type: string
+    type: object
+  dto.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/dto.ErrorDetail'
+    type: object
+  dto.GenerateQuestionsResponse:
+    properties:
+      count:
+        type: integer
+      message:
+        type: string
+      questions:
+        items:
+          $ref: '#/definitions/dto.QuestionDTO'
+        type: array
+    type: object
+  dto.GenerateTestRequest:
+    properties:
+      difficulty:
+        enum:
+        - easy
+        - medium
+        - hard
+        type: string
+      document_id:
+        type: string
+      llm_provider:
+        enum:
+        - perplexity
+        - openai
+        - yandexgpt
+        type: string
+      num_questions:
+        maximum: 50
+        minimum: 1
+        type: integer
+      question_types:
+        items:
+          type: string
+        type: array
+      title:
+        minLength: 3
+        type: string
+    required:
+    - difficulty
+    - document_id
+    - num_questions
+    - title
     type: object
   dto.LoginRequest:
     properties:
@@ -16,6 +128,76 @@ definitions:
     - email
     - password
     type: object
+  dto.MessageResponse:
+    properties:
+      message:
+        example: Operation completed successfully
+        type: string
+    type: object
+  dto.MoodleConnectionResponse:
+    properties:
+      connected:
+        type: boolean
+      error:
+        type: string
+      message:
+        type: string
+    type: object
+  dto.MoodleCourse:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      short_name:
+        type: string
+    type: object
+  dto.MoodleCoursesResponse:
+    properties:
+      courses:
+        items:
+          $ref: '#/definitions/dto.MoodleCourse'
+        type: array
+    type: object
+  dto.MoodleSyncResponse:
+    properties:
+      course_id:
+        type: string
+      message:
+        type: string
+      moodle_id:
+        type: string
+    type: object
+  dto.ParseDocumentResponse:
+    properties:
+      id:
+        type: string
+      parsed_text:
+        type: string
+      status:
+        type: string
+      text_preview:
+        type: string
+    type: object
+  dto.QuestionDTO:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/dto.AnswerDTO'
+        type: array
+      difficulty:
+        type: string
+      id:
+        type: string
+      order_num:
+        type: integer
+      points:
+        type: number
+      question_text:
+        type: string
+      question_type:
+        type: string
+    type: object
   dto.RegisterRequest:
     properties:
       email:
@@ -26,17 +208,62 @@ definitions:
       password:
         minLength: 8
         type: string
-      role:
+    required:
+    - email
+    - full_name
+    - password
+    type: object
+  dto.SyncMoodleRequest:
+    properties:
+      course_name:
+        type: string
+    required:
+    - course_name
+    type: object
+  dto.TestListResponse:
+    properties:
+      page:
+        type: integer
+      page_size:
+        type: integer
+      tests:
+        items:
+          $ref: '#/definitions/dto.TestResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.TestResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      moodle_synced:
+        type: boolean
+      questions:
+        items:
+          $ref: '#/definitions/dto.QuestionDTO'
+        type: array
+      status:
+        type: string
+      title:
+        type: string
+      total_questions:
+        type: integer
+    type: object
+  dto.UpdateUserRoleRequest:
+    properties:
+      role_name:
         enum:
         - admin
         - teacher
         - student
         type: string
     required:
-    - email
-    - full_name
-    - password
-    - role
+    - role_name
     type: object
   dto.UserDTO:
     properties:
@@ -49,8 +276,31 @@ definitions:
       role:
         type: string
     type: object
+  dto.UserListResponse:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/dto.UserDTO'
+        type: array
+    type: object
+host: localhost:8080
 info:
-  contact: {}
+  contact:
+    email: support@testgen.com
+    name: API Support
+  description: API for test generation system with LLM integration and Moodle export
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Test Generation System API
+  version: "1.0"
 paths:
   /auth/login:
     post:
@@ -74,22 +324,27 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       summary: Login user
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Clear authentication cookie
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+      summary: Logout user
       tags:
       - auth
   /auth/me:
@@ -105,15 +360,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get current user
@@ -123,7 +374,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Register a new user account
+      description: Register a new user account with default student role
       parameters:
       - description: Register request
         in: body
@@ -141,22 +392,614 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       summary: Register a new user
       tags:
       - auth
+  /documents:
+    get:
+      description: Get paginated list of documents uploaded by the current user
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DocumentListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List user's documents
+      tags:
+      - documents
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a document file (PDF, DOCX, PPTX, TXT) for processing
+      parameters:
+      - description: Document file
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Document title
+        in: formData
+        name: title
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.DocumentUploadResponse'
+        "400":
+          description: Invalid input or unsupported file type
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload a document
+      tags:
+      - documents
+  /documents/{id}:
+    delete:
+      description: Delete a document and its associated file
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Invalid document ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Document not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a document
+      tags:
+      - documents
+    get:
+      description: Get details of a specific document by its ID
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DocumentUploadResponse'
+        "400":
+          description: Invalid document ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Document not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get document by ID
+      tags:
+      - documents
+  /documents/{id}/parse:
+    post:
+      description: Extract text content from an uploaded document
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ParseDocumentResponse'
+        "400":
+          description: Invalid document ID or file type
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Document not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Parsing failed
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Parse a document
+      tags:
+      - documents
+  /moodle/courses:
+    get:
+      description: Retrieve list of available courses from Moodle
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MoodleCoursesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Failed to retrieve courses
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Moodle courses
+      tags:
+      - moodle
+  /moodle/validate:
+    get:
+      description: Check if the Moodle server connection is working properly
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MoodleConnectionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: Connection failed
+          schema:
+            $ref: '#/definitions/dto.MoodleConnectionResponse'
+      security:
+      - BearerAuth: []
+      summary: Validate Moodle connection
+      tags:
+      - moodle
+  /tests:
+    get:
+      description: Get paginated list of tests created by the current user
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TestListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List user's tests
+      tags:
+      - tests
+    post:
+      consumes:
+      - application/json
+      description: Create a new test with optional document association
+      parameters:
+      - description: Create test request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateTestRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.TestResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new test
+      tags:
+      - tests
+  /tests/{id}:
+    delete:
+      description: Delete a test and all its associated questions
+      parameters:
+      - description: Test ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Invalid test ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Test not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a test
+      tags:
+      - tests
+    get:
+      description: Get details of a specific test by its ID
+      parameters:
+      - description: Test ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TestResponse'
+        "400":
+          description: Invalid test ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Test not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get test by ID
+      tags:
+      - tests
+  /tests/{id}/export-xml:
+    get:
+      description: Export a test and its questions to Moodle XML format for download
+      parameters:
+      - description: Test ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/xml
+      responses:
+        "200":
+          description: XML file
+          schema:
+            type: string
+        "400":
+          description: Invalid test ID or test has no questions
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Test not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Export failed
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export test to Moodle XML format
+      tags:
+      - moodle
+  /tests/{id}/sync-moodle:
+    post:
+      consumes:
+      - application/json
+      description: Synchronize a test with Moodle by uploading it as a quiz to a specified
+        course
+      parameters:
+      - description: Test ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Sync request with course name
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SyncMoodleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MoodleSyncResponse'
+        "400":
+          description: Invalid input or test has no questions
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Test not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Sync failed
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Sync test to Moodle
+      tags:
+      - moodle
+  /tests/generate:
+    post:
+      consumes:
+      - application/json
+      description: Generate test questions from a document using LLM
+      parameters:
+      - description: Generate test request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.GenerateTestRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.GenerateQuestionsResponse'
+        "400":
+          description: Invalid input or document not parsed
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Document not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Generation failed
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Generate test questions
+      tags:
+      - tests
+  /users:
+    get:
+      description: Get paginated list of all users (admin only)
+      parameters:
+      - default: 10
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all users
+      tags:
+      - users
+  /users/{id}/role:
+    put:
+      consumes:
+      - application/json
+      description: Update a user's role (admin only)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user role
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

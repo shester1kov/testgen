@@ -3,6 +3,7 @@ package entity
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -36,21 +37,42 @@ func TestUser_CheckPassword(t *testing.T) {
 }
 
 func TestUser_IsTeacher(t *testing.T) {
-	user := &User{Role: RoleTeacher}
+	teacherRole := &Role{
+		ID:   uuid.New(),
+		Name: RoleNameTeacher,
+	}
+	user := &User{
+		RoleID: teacherRole.ID,
+		Role:   teacherRole,
+	}
 	assert.True(t, user.IsTeacher())
 	assert.False(t, user.IsStudent())
 	assert.False(t, user.IsAdmin())
 }
 
 func TestUser_IsStudent(t *testing.T) {
-	user := &User{Role: RoleStudent}
+	studentRole := &Role{
+		ID:   uuid.New(),
+		Name: RoleNameStudent,
+	}
+	user := &User{
+		RoleID: studentRole.ID,
+		Role:   studentRole,
+	}
 	assert.False(t, user.IsTeacher())
 	assert.True(t, user.IsStudent())
 	assert.False(t, user.IsAdmin())
 }
 
 func TestUser_IsAdmin(t *testing.T) {
-	user := &User{Role: RoleAdmin}
+	adminRole := &Role{
+		ID:   uuid.New(),
+		Name: RoleNameAdmin,
+	}
+	user := &User{
+		RoleID: adminRole.ID,
+		Role:   adminRole,
+	}
 	assert.False(t, user.IsTeacher())
 	assert.False(t, user.IsStudent())
 	assert.True(t, user.IsAdmin())

@@ -7,25 +7,34 @@ import (
 	"github.com/shester1kov/testgen-backend/pkg/utils"
 )
 
-// AuthMiddleware creates authentication middleware
-func AuthMiddleware(jwtManager *utils.JWTManager) fiber.Handler {
+// AuthMiddleware creates authentication middleware that supports both cookie and Authorization header
+func AuthMiddleware(jwtManager *utils.JWTManager, cookieName string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		authHeader := c.Get("Authorization")
-		if authHeader == "" {
+		var token string
+
+		// Try to get token from cookie first
+		token = c.Cookies(cookieName)
+
+		// If no cookie, try Authorization header
+		if token == "" {
+			authHeader := c.Get("Authorization")
+			if authHeader != "" {
+				// Extract token from "Bearer <token>"
+				parts := strings.Split(authHeader, " ")
+				if len(parts) == 2 && parts[0] == "Bearer" {
+					token = parts[1]
+				}
+			}
+		}
+
+		// If still no token found
+		if token == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "missing authorization header",
+				"error": "missing authentication token",
 			})
 		}
 
-		// Extract token from "Bearer <token>"
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "invalid authorization header format",
-			})
-		}
-
-		token := parts[1]
+		// Validate token
 		claims, err := jwtManager.ValidateToken(token)
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{

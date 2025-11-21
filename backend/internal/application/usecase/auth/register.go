@@ -15,13 +15,15 @@ import (
 // RegisterUseCase handles user registration
 type RegisterUseCase struct {
 	userRepo   repository.UserRepository
+	roleRepo   repository.RoleRepository
 	jwtManager *utils.JWTManager
 }
 
 // NewRegisterUseCase creates a new register use case
-func NewRegisterUseCase(userRepo repository.UserRepository, jwtManager *utils.JWTManager) *RegisterUseCase {
+func NewRegisterUseCase(userRepo repository.UserRepository, roleRepo repository.RoleRepository, jwtManager *utils.JWTManager) *RegisterUseCase {
 	return &RegisterUseCase{
 		userRepo:   userRepo,
+		roleRepo:   roleRepo,
 		jwtManager: jwtManager,
 	}
 }
@@ -37,12 +39,19 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, req dto.RegisterRequest)
 		return nil, fmt.Errorf("failed to check existing user: %w", err)
 	}
 
+	// Get default student role
+	studentRole, err := uc.roleRepo.FindByName(ctx, entity.RoleNameStudent)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find student role: %w", err)
+	}
+
 	// Create new user entity
 	user := &entity.User{
 		ID:       uuid.New(),
 		Email:    req.Email,
 		FullName: req.FullName,
-		Role:     entity.UserRole(req.Role),
+		RoleID:   studentRole.ID,
+		Role:     studentRole,
 	}
 
 	// Set password hash
@@ -56,7 +65,7 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, req dto.RegisterRequest)
 	}
 
 	// Generate JWT token
-	token, err := uc.jwtManager.GenerateToken(user.ID, user.Email, string(user.Role))
+	token, err := uc.jwtManager.GenerateToken(user.ID, user.Email, user.GetRoleName())
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
@@ -68,7 +77,7 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, req dto.RegisterRequest)
 			ID:       user.ID.String(),
 			Email:    user.Email,
 			FullName: user.FullName,
-			Role:     string(user.Role),
+			Role:     user.GetRoleName(),
 		},
 	}, nil
 }
