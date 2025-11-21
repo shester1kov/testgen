@@ -13,19 +13,19 @@ export const documentService = {
         'Content-Type': 'multipart/form-data',
       },
     })
-    return response.data as Document
+    return response as Document
   },
 
   async getDocuments(page = 1, limit = 10): Promise<PaginatedResponse<Document>> {
     const response = await api.get<ApiResponse<PaginatedResponse<Document>>>('/documents', {
       params: { page, limit },
     })
-    return response.data as PaginatedResponse<Document>
+    return response as PaginatedResponse<Document>
   },
 
   async getDocument(id: string): Promise<Document> {
     const response = await api.get<ApiResponse<Document>>(`/documents/${id}`)
-    return response.data as Document
+    return response as Document
   },
 
   async deleteDocument(id: string): Promise<void> {
@@ -34,6 +34,6 @@ export const documentService = {
 
   async parseDocument(id: string): Promise<Document> {
     const response = await api.post<ApiResponse<Document>>(`/documents/${id}/parse`)
-    return response.data as Document
+    return response as Document
   },
 }

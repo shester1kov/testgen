@@ -65,29 +65,6 @@ export const useTestsStore = defineStore('tests', () => {
     }
   }
 
-  async function updateTest(id: string, data: Partial<Test>) {
-    loading.value = true
-    error.value = null
-
-    try {
-      const test = await testService.updateTest(id, data)
-      // Update test in list
-      const index = tests.value.findIndex(t => t.id === id)
-      if (index !== -1) {
-        tests.value[index] = test
-      }
-      if (currentTest.value?.id === id) {
-        currentTest.value = test
-      }
-      return test
-    } catch (err: any) {
-      error.value = err.message || 'Failed to update test'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
   async function deleteTest(id: string) {
     loading.value = true
     error.value = null
@@ -175,7 +152,6 @@ export const useTestsStore = defineStore('tests', () => {
     createTest,
     fetchTests,
     fetchTest,
-    updateTest,
     deleteTest,
     generateTest,
     exportTest,
