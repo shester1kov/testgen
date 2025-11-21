@@ -92,7 +92,7 @@ docker-compose up -d
 4. **Открыть приложение**
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8080
-- Swagger UI: http://localhost:8080/swagger/index.html
+- **Swagger UI**: http://localhost:8080/swagger/index.html
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3001 (admin/admin)
 
@@ -122,9 +122,9 @@ cd backend
 # Установить зависимости
 go mod download
 
-# Сгенерировать Wire DI
-go install github.com/google/wire/cmd/wire@latest
-wire
+# Сгенерировать Swagger документацию
+go install github.com/swaggo/swag/cmd/swag@latest
+swag init -g cmd/api/main.go -o docs
 
 # Запустить сервер
 go run cmd/api/main.go
@@ -148,30 +148,54 @@ npm run dev
 npm run test
 ```
 
-## API Endpoints
+## API Documentation
 
-### Authentication
-- `POST /api/v1/auth/register` - Регистрация
-- `POST /api/v1/auth/login` - Вход
-- `POST /api/v1/auth/logout` - Выход
-- `GET /api/v1/auth/me` - Текущий пользователь
+### Swagger UI
 
-### Documents
-- `POST /api/v1/documents` - Загрузка документа
-- `GET /api/v1/documents` - Список документов
-- `GET /api/v1/documents/:id` - Детали документа
-- `DELETE /api/v1/documents/:id` - Удаление документа
+Полная интерактивная документация API доступна через Swagger UI:
 
-### Tests
-- `POST /api/v1/tests` - Создание теста
-- `GET /api/v1/tests` - Список тестов
-- `GET /api/v1/tests/:id` - Детали теста
-- `PUT /api/v1/tests/:id` - Обновление теста
-- `DELETE /api/v1/tests/:id` - Удаление теста
-- `POST /api/v1/tests/:id/generate` - Генерация вопросов (LLM)
-- `POST /api/v1/tests/:id/export` - Экспорт в Moodle XML
+- **URL**: <http://localhost:8080/swagger/index.html>
+- **Формат**: OpenAPI 2.0 (Swagger)
+- **Файлы**: `backend/docs/swagger.json`, `backend/docs/swagger.yaml`
 
-Полная документация: см. [CLAUDE.md](CLAUDE.md)
+### Основные эндпоинты
+
+#### Authentication (`/auth`)
+
+- `POST /auth/register` - Регистрация (автоматически назначается роль student)
+- `POST /auth/login` - Вход (JWT токен в HTTP-only cookie)
+- `POST /auth/logout` - Выход (очистка cookie)
+- `GET /auth/me` - Текущий пользователь
+
+#### User Management (`/users`) - Admin only
+
+- `GET /users` - Список пользователей с пагинацией
+- `PUT /users/{id}/role` - Изменение роли пользователя
+
+#### Documents (`/documents`)
+
+- `POST /documents` - Загрузка документа (PDF, DOCX, PPTX, TXT)
+- `GET /documents` - Список документов с пагинацией
+- `GET /documents/{id}` - Детали документа
+- `POST /documents/{id}/parse` - Парсинг текста из документа
+- `DELETE /documents/{id}` - Удаление документа
+
+#### Tests (`/tests`)
+
+- `POST /tests` - Создание теста
+- `POST /tests/generate` - Генерация вопросов с помощью LLM
+- `GET /tests` - Список тестов с пагинацией
+- `GET /tests/{id}` - Детали теста
+- `DELETE /tests/{id}` - Удаление теста
+
+#### Moodle Integration (`/moodle`)
+
+- `GET /tests/{id}/export-xml` - Экспорт теста в Moodle XML формат
+- `POST /tests/{id}/sync-moodle` - Синхронизация теста с Moodle
+- `GET /moodle/courses` - Получение списка курсов Moodle
+- `GET /moodle/validate` - Проверка подключения к Moodle
+
+**Все эндпоинты (кроме `/auth/register` и `/auth/login`) требуют аутентификации через JWT токен.**
 
 ## Тестирование
 
@@ -197,13 +221,13 @@ npm run test:ui
 
 ## Безопасность
 
-- JWT аутентификация
-- RBAC (Role-Based Access Control)
-- Bcrypt hashing для паролей
-- HTTPS/TLS шифрование
-- Валидация входных данных
-- SQL injection защита (GORM)
-- XSS защита
+- **JWT аутентификация** - HTTP-only cookies + Authorization header
+- **RBAC** (Role-Based Access Control) - система управления ролями с таблицей в БД
+- **Bcrypt hashing** для паролей
+- **HTTPS/TLS** шифрование
+- **Валидация** входных данных
+- **SQL injection** защита (GORM prepared statements)
+- **XSS защита** (HTTP-only cookies, CSP headers)
 
 ## Структура проекта
 
@@ -246,6 +270,31 @@ course-work/
 
 ## Роли пользователей
 
-- **Admin**: Управление пользователями, просмотр всех данных
-- **Teacher**: Загрузка документов, генерация и редактирование тестов
-- **Student**: Прохождение тестов (для будущего расширения)
+Система управления ролями реализована с использованием таблицы `roles` в БД:
+
+- **Admin**: Управление пользователями (назначение ролей), просмотр всех данных
+- **Teacher**: Загрузка документов, генерация и редактирование тестов, экспорт в Moodle
+- **Student**: Роль по умолчанию при регистрации (для будущего расширения)
+
+**Важно**: При регистрации пользователь автоматически получает роль `student`. Только администратор может изменять роли через API `/api/v1/users/:id/role`.
+
+## Основные возможности
+
+### Аутентификация
+
+- Регистрация с автоматическим назначением роли student
+- Вход с JWT токеном в HTTP-only cookie (защита от XSS)
+- Поддержка двух способов авторизации: Cookie (приоритет) и Authorization header
+- Выход с очисткой cookie
+
+### Управление пользователями (Admin)
+
+- Просмотр списка всех пользователей с пагинацией
+- Изменение ролей пользователей (admin/teacher/student)
+- Защита endpoint'ов middleware для проверки роли администратора
+
+### Генерация тестов
+
+- Загрузка документов (PDF, DOCX, PPTX, TXT)
+- Автоматическая генерация вопросов с использованием LLM
+- Редактирование и экспорт тестов в формат Moodle XML
