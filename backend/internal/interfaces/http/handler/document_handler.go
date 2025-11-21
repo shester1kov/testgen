@@ -55,7 +55,12 @@ func NewDocumentHandler(
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /documents [post]
 func (h *DocumentHandler) Upload(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
 
 	// Parse multipart form
 	file, err := c.FormFile("file")
@@ -157,7 +162,12 @@ func (h *DocumentHandler) Upload(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /documents [get]
 func (h *DocumentHandler) List(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
 
 	page := c.QueryInt("page", 1)
 	pageSize := c.QueryInt("page_size", 20)
@@ -220,7 +230,12 @@ func (h *DocumentHandler) List(c *fiber.Ctx) error {
 // @Failure 404 {object} dto.ErrorResponse "Document not found"
 // @Router /documents/{id} [get]
 func (h *DocumentHandler) GetByID(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
 	documentID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
@@ -268,7 +283,12 @@ func (h *DocumentHandler) GetByID(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /documents/{id} [delete]
 func (h *DocumentHandler) Delete(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
 	documentID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
@@ -318,7 +338,12 @@ func (h *DocumentHandler) Delete(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Parsing failed"
 // @Router /documents/{id}/parse [post]
 func (h *DocumentHandler) Parse(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
 	documentID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(

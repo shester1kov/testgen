@@ -54,7 +54,13 @@ func AuthMiddleware(jwtManager *utils.JWTManager, cookieName string) fiber.Handl
 // RoleMiddleware creates role-based authorization middleware
 func RoleMiddleware(allowedRoles ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		userRole := c.Locals("userRole").(string)
+		rawRole := c.Locals("userRole")
+		userRole, ok := rawRole.(string)
+		if !ok || userRole == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "missing user role",
+			})
+		}
 
 		for _, role := range allowedRoles {
 			if userRole == role {
