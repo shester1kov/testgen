@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User, LoginRequest, RegisterRequest } from '../types/auth.types'
 import { authService } from '@/services/authService'
+import { logger } from '@/utils/logger'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -17,6 +18,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Actions
   async function login(credentials: LoginRequest) {
+    logger.logStoreAction('authStore', 'login', { email: credentials.email })
     loading.value = true
     error.value = null
 
@@ -27,9 +29,14 @@ export const useAuthStore = defineStore('auth', () => {
       // Save only user data to localStorage (token is in HTTP-only cookie)
       localStorage.setItem('user', JSON.stringify(response.user))
 
+      logger.info('User logged in successfully', 'authStore', {
+        userId: response.user.id,
+        role: response.user.role,
+      })
       return response
     } catch (err: any) {
       error.value = err.message || 'Login failed'
+      logger.logStoreError('authStore', 'login', err)
       throw err
     } finally {
       loading.value = false
@@ -57,13 +64,15 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
+    logger.logStoreAction('authStore', 'logout')
     loading.value = true
     error.value = null
 
     try {
       await authService.logout()
+      logger.info('User logged out successfully', 'authStore')
     } catch (err: any) {
-      console.error('Logout error:', err)
+      logger.logStoreError('authStore', 'logout', err)
     } finally {
       // Clear state regardless of API call result
       user.value = null
