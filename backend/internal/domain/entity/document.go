@@ -13,6 +13,7 @@ const (
 	FileTypeDOCX FileType = "docx"
 	FileTypePPTX FileType = "pptx"
 	FileTypeTXT  FileType = "txt"
+	FileTypeMD   FileType = "md"
 )
 
 type DocumentStatus string
@@ -34,6 +35,7 @@ type Document struct {
 	FileSize   int64           `json:"file_size" gorm:"not null"`
 	ParsedText string          `json:"parsed_text,omitempty" gorm:"type:text"`
 	Status     DocumentStatus  `json:"status" gorm:"type:varchar(50);default:'uploaded';index"`
+	ErrorMsg   string          `json:"error_msg,omitempty" gorm:"type:text"`
 	CreatedAt  time.Time       `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt  time.Time       `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt  *time.Time      `json:"deleted_at,omitempty" gorm:"index"`
@@ -64,6 +66,17 @@ func (d *Document) MarkAsParsed(parsedText string) {
 }
 
 // MarkAsError sets document status to error
-func (d *Document) MarkAsError() {
+func (d *Document) MarkAsError(errMsg string) {
 	d.Status = StatusError
+	d.ErrorMsg = errMsg
+}
+
+// IsValidType checks if the document type is supported
+func (d *Document) IsValidType() bool {
+	switch d.FileType {
+	case FileTypePDF, FileTypeDOCX, FileTypePPTX, FileTypeTXT, FileTypeMD:
+		return true
+	default:
+		return false
+	}
 }

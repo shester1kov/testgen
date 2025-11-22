@@ -39,8 +39,10 @@ func TestDocument_MarkAsError(t *testing.T) {
 	doc := &Document{
 		Status: StatusParsing,
 	}
-	doc.MarkAsError()
+	errorMsg := "test error message"
+	doc.MarkAsError(errorMsg)
 	assert.Equal(t, StatusError, doc.Status)
+	assert.Equal(t, errorMsg, doc.ErrorMsg)
 }
 
 func TestDocument_TableName(t *testing.T) {

@@ -27,6 +27,7 @@ func NewDocumentParserFactory() *DocumentParserFactory {
 	factory.Register(NewDOCXParser())
 	factory.Register(NewPPTXParser())
 	factory.Register(NewTXTParser())
+	factory.Register(NewMDParser())
 
 	return factory
 }

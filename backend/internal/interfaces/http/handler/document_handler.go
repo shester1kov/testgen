@@ -42,7 +42,7 @@ func NewDocumentHandler(
 
 // Upload godoc
 // @Summary Upload a document
-// @Description Upload a document file (PDF, DOCX, PPTX, TXT) for processing
+// @Description Upload a document file (PDF, DOCX, PPTX, TXT, MD) for processing
 // @Tags documents
 // @Accept multipart/form-data
 // @Produce json
@@ -388,7 +388,7 @@ func (h *DocumentHandler) Parse(c *fiber.Ctx) error {
 
 	parsedText, err := docParser.Parse(file)
 	if err != nil {
-		document.MarkAsError()
+		document.MarkAsError(err.Error())
 		h.documentRepo.Update(c.Context(), document)
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeParsingFailed, "failed to parse document"),

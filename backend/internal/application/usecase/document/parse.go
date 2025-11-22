@@ -51,7 +51,7 @@ func (uc *ParseUseCase) Execute(ctx context.Context, documentID uuid.UUID, userI
 	// Get appropriate parser
 	docParser, err := uc.parserFactory.CreateParser(string(document.FileType))
 	if err != nil {
-		document.MarkAsError()
+		document.MarkAsError(err.Error())
 		uc.documentRepo.Update(ctx, document)
 		return fmt.Errorf("failed to create parser: %w", err)
 	}
@@ -59,7 +59,7 @@ func (uc *ParseUseCase) Execute(ctx context.Context, documentID uuid.UUID, userI
 	// Open file
 	file, err := os.Open(document.FilePath)
 	if err != nil {
-		document.MarkAsError()
+		document.MarkAsError(err.Error())
 		uc.documentRepo.Update(ctx, document)
 		return fmt.Errorf("failed to open file: %w", err)
 	}
@@ -68,7 +68,7 @@ func (uc *ParseUseCase) Execute(ctx context.Context, documentID uuid.UUID, userI
 	// Parse document
 	parsedText, err := docParser.Parse(file)
 	if err != nil {
-		document.MarkAsError()
+		document.MarkAsError(err.Error())
 		uc.documentRepo.Update(ctx, document)
 		return fmt.Errorf("failed to parse document: %w", err)
 	}

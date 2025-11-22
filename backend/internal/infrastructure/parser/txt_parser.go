@@ -2,7 +2,6 @@ package parser
 
 import (
 	"io"
-	"io/ioutil"
 )
 
 // TXTParser handles TXT file parsing
@@ -15,7 +14,7 @@ func NewTXTParser() *TXTParser {
 
 // Parse extracts text from TXT file
 func (p *TXTParser) Parse(reader io.Reader) (string, error) {
-	content, err := ioutil.ReadAll(reader)
+	content, err := io.ReadAll(reader)
 	if err != nil {
 		return "", err
 	}

@@ -239,7 +239,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Upload a document file (PDF, DOCX, PPTX, TXT) for processing",
+                "description": "Upload a document file (PDF, DOCX, PPTX, TXT, MD) for processing",
                 "consumes": [
                     "multipart/form-data"
                 ],

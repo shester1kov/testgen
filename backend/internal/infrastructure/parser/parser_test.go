@@ -10,7 +10,7 @@ import (
 func TestDocumentParserFactory_CreateParser_Success(t *testing.T) {
 	factory := NewDocumentParserFactory()
 
-	supportedTypes := []string{"pdf", "docx", "pptx", "txt"}
+	supportedTypes := []string{"pdf", "docx", "pptx", "txt", "md"}
 	for _, fileType := range supportedTypes {
 		t.Run(fileType, func(t *testing.T) {
 			parser, err := factory.CreateParser(fileType)

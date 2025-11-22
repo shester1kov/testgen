@@ -46,7 +46,7 @@ func (uc *UploadUseCase) Execute(ctx context.Context, params UploadParams) (*ent
 	}
 
 	// Validate file type
-	validTypes := map[string]bool{"pdf": true, "docx": true, "pptx": true, "txt": true}
+	validTypes := map[string]bool{"pdf": true, "docx": true, "pptx": true, "txt": true, "md": true}
 	if !validTypes[params.FileType] {
 		return nil, fmt.Errorf("unsupported file type: %s", params.FileType)
 	}
