@@ -76,6 +76,8 @@ func runMigrations(db *sql.DB, dbName string) error {
 
 	// Get migrations directory path
 	migrationsPath := filepath.Join("internal", "infrastructure", "persistence", "migrations")
+	// Convert Windows backslashes to forward slashes for file:// URL
+	migrationsPath = filepath.ToSlash(migrationsPath)
 	sourceURL := fmt.Sprintf("file://%s", migrationsPath)
 
 	// Create migrate instance
