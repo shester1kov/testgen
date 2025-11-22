@@ -617,6 +617,89 @@ paths:
       summary: Get Moodle courses
       tags:
       - moodle
+  /moodle/tests/{id}/export:
+    get:
+      description: Export a test and its questions to Moodle XML format for download
+      parameters:
+      - description: Test ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/xml
+      responses:
+        "200":
+          description: XML file
+          schema:
+            type: string
+        "400":
+          description: Invalid test ID or test has no questions
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Test not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Export failed
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export test to Moodle XML format
+      tags:
+      - moodle
+  /moodle/tests/{id}/sync:
+    post:
+      consumes:
+      - application/json
+      description: Synchronize a test with Moodle by uploading it as a quiz to a specified
+        course
+      parameters:
+      - description: Test ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Sync request with course name
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SyncMoodleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MoodleSyncResponse'
+        "400":
+          description: Invalid input or test has no questions
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Test not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Sync failed
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Sync test to Moodle
+      tags:
+      - moodle
   /moodle/validate:
     get:
       description: Check if the Moodle server connection is working properly
@@ -786,89 +869,6 @@ paths:
       summary: Get test by ID
       tags:
       - tests
-  /tests/{id}/export-xml:
-    get:
-      description: Export a test and its questions to Moodle XML format for download
-      parameters:
-      - description: Test ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/xml
-      responses:
-        "200":
-          description: XML file
-          schema:
-            type: string
-        "400":
-          description: Invalid test ID or test has no questions
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "404":
-          description: Test not found
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "500":
-          description: Export failed
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Export test to Moodle XML format
-      tags:
-      - moodle
-  /tests/{id}/sync-moodle:
-    post:
-      consumes:
-      - application/json
-      description: Synchronize a test with Moodle by uploading it as a quiz to a specified
-        course
-      parameters:
-      - description: Test ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Sync request with course name
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.SyncMoodleRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.MoodleSyncResponse'
-        "400":
-          description: Invalid input or test has no questions
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "404":
-          description: Test not found
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "500":
-          description: Sync failed
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Sync test to Moodle
-      tags:
-      - moodle
   /tests/generate:
     post:
       consumes:

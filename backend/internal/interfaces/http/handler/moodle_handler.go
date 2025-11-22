@@ -49,7 +49,7 @@ func NewMoodleHandler(
 // @Failure 401 {object} dto.ErrorResponse "Unauthorized"
 // @Failure 404 {object} dto.ErrorResponse "Test not found"
 // @Failure 500 {object} dto.ErrorResponse "Export failed"
-// @Router /tests/{id}/export-xml [get]
+// @Router /moodle/tests/{id}/export [get]
 func (h *MoodleHandler) ExportToXML(c *fiber.Ctx) error {
 	userID, ok := getUserIDFromContext(c)
 	if !ok {
@@ -127,7 +127,7 @@ func (h *MoodleHandler) ExportToXML(c *fiber.Ctx) error {
 // @Failure 401 {object} dto.ErrorResponse "Unauthorized"
 // @Failure 404 {object} dto.ErrorResponse "Test not found"
 // @Failure 500 {object} dto.ErrorResponse "Sync failed"
-// @Router /tests/{id}/sync-moodle [post]
+// @Router /moodle/tests/{id}/sync [post]
 func (h *MoodleHandler) SyncToMoodle(c *fiber.Ctx) error {
 	userID, ok := getUserIDFromContext(c)
 	if !ok {
