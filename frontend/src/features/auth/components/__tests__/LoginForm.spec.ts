@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import LoginForm from './LoginForm.vue'
-import { useAuthStore } from '../stores/authStore'
+import LoginForm from '../LoginForm.vue'
+import { useAuthStore } from '@/features/auth/stores/authStore'
 import { createRouter, createWebHistory } from 'vue-router'
 
 // Mock router
