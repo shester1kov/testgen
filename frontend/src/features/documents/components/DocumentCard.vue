@@ -1,46 +1,50 @@
 <template>
-  <div class="document-card">
-    <div class="card-header">
-      <div class="file-icon-container">
-        <component :is="getFileIcon()" class="file-icon" />
+  <div class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+    <div class="flex items-start gap-4 mb-4">
+      <div class="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+        <component :is="getFileIcon()" class="w-6 h-6 text-blue-600" />
       </div>
 
-      <div class="document-info">
-        <h3 class="document-title">{{ document.title }}</h3>
-        <p class="document-filename">{{ document.file_name }}</p>
-        <div class="document-meta">
-          <span class="meta-item">{{ formatFileSize(document.file_size) }}</span>
-          <span class="meta-separator">•</span>
-          <span class="meta-item">{{ formatDate(document.created_at) }}</span>
+      <div class="flex-1 min-w-0">
+        <h3 class="text-base font-semibold text-gray-900 truncate">{{ document.title }}</h3>
+        <p class="text-sm text-gray-600 truncate">{{ document.file_name }}</p>
+        <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
+          <span class="inline-block">{{ formatFileSize(document.file_size) }}</span>
+          <span class="text-gray-400">•</span>
+          <span class="inline-block">{{ formatDate(document.created_at) }}</span>
         </div>
       </div>
 
-      <div class="status-badge" :class="getStatusClass()">
+      <div class="px-3 py-1 rounded-full text-xs font-medium flex-shrink-0" :class="getStatusClass()">
         {{ getStatusText() }}
       </div>
     </div>
 
-    <div v-if="document.status === DocumentStatus.ERROR && document.error_msg" class="error-section">
-      <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div v-if="document.status === DocumentStatus.ERROR && document.error_msg"
+         class="flex items-start gap-2 p-3 mb-4 bg-red-50 border border-red-200 rounded-md">
+      <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      <p class="error-text">{{ document.error_msg }}</p>
+      <p class="text-sm text-red-700">{{ document.error_msg }}</p>
     </div>
 
-    <div class="card-actions">
-      <button v-if="canParse" type="button" class="action-button primary" :disabled="isProcessing"
-        @click="handleParse">
-        <svg class="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="flex gap-2 flex-wrap">
+      <button v-if="canParse" type="button"
+              class="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
+              :disabled="isProcessing"
+              @click="handleParse">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
         Parse Document
       </button>
 
-      <button v-if="document.status === DocumentStatus.PARSED" type="button" class="action-button secondary"
-        @click="handleViewText">
-        <svg class="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <button v-if="document.status === DocumentStatus.PARSED" type="button"
+              class="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500"
+              @click="handleViewText">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -48,8 +52,11 @@
         View Text
       </button>
 
-      <button type="button" class="action-button danger" :disabled="isProcessing" @click="handleDelete">
-        <svg class="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <button type="button"
+              class="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-500"
+              :disabled="isProcessing"
+              @click="handleDelete">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
         </svg>
@@ -97,10 +104,10 @@ function getFileIcon() {
 
 function getStatusClass() {
   const classes: Record<string, string> = {
-    [DocumentStatus.UPLOADED]: 'status-uploaded',
-    [DocumentStatus.PARSING]: 'status-parsing',
-    [DocumentStatus.PARSED]: 'status-parsed',
-    [DocumentStatus.ERROR]: 'status-error',
+    [DocumentStatus.UPLOADED]: 'bg-gray-100 text-gray-800',
+    [DocumentStatus.PARSING]: 'bg-blue-100 text-blue-800',
+    [DocumentStatus.PARSED]: 'bg-green-100 text-green-800',
+    [DocumentStatus.ERROR]: 'bg-red-100 text-red-800',
   }
   return classes[props.document.status] || ''
 }
@@ -170,103 +177,3 @@ async function handleDelete() {
   }
 }
 </script>
-
-<style scoped>
-.document-card {
-  @apply bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow;
-}
-
-.card-header {
-  @apply flex items-start gap-4 mb-4;
-}
-
-.file-icon-container {
-  @apply flex-shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center;
-}
-
-.file-icon {
-  @apply w-6 h-6 text-blue-600;
-}
-
-.document-info {
-  @apply flex-1 min-w-0;
-}
-
-.document-title {
-  @apply text-base font-semibold text-gray-900 truncate;
-}
-
-.document-filename {
-  @apply text-sm text-gray-600 truncate;
-}
-
-.document-meta {
-  @apply flex items-center gap-2 mt-1 text-xs text-gray-500;
-}
-
-.meta-item {
-  @apply inline-block;
-}
-
-.meta-separator {
-  @apply text-gray-400;
-}
-
-.status-badge {
-  @apply px-3 py-1 rounded-full text-xs font-medium flex-shrink-0;
-}
-
-.status-uploaded {
-  @apply bg-gray-100 text-gray-800;
-}
-
-.status-parsing {
-  @apply bg-blue-100 text-blue-800;
-}
-
-.status-parsed {
-  @apply bg-green-100 text-green-800;
-}
-
-.status-error {
-  @apply bg-red-100 text-red-800;
-}
-
-.error-section {
-  @apply flex items-start gap-2 p-3 mb-4 bg-red-50 border border-red-200 rounded-md;
-}
-
-.error-icon {
-  @apply w-5 h-5 text-red-500 flex-shrink-0 mt-0.5;
-}
-
-.error-text {
-  @apply text-sm text-red-700;
-}
-
-.card-actions {
-  @apply flex gap-2 flex-wrap;
-}
-
-.action-button {
-  @apply px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5;
-  @apply transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
-  @apply disabled:opacity-50 disabled:cursor-not-allowed;
-}
-
-.action-button.primary {
-  @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
-}
-
-.action-button.secondary {
-  @apply bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500;
-}
-
-.action-button.danger {
-  @apply bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-500;
-}
-
-.button-icon {
-  @apply w-4 h-4;
-}
-</style>

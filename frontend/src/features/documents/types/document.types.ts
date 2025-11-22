@@ -8,6 +8,7 @@ export interface Document {
   file_size: number
   parsed_text?: string
   status: DocumentStatus
+  error_msg?: string
   created_at: string
   updated_at: string
 }
