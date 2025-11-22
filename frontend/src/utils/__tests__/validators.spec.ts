@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validateFileSize, validateFileType, formatFileSize } from './validators'
+import { validateFileSize, validateFileType, formatFileSize } from '../validators'
 
 describe('Validators', () => {
   describe('validateFileSize', () => {
