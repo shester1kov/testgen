@@ -1,362 +1,136 @@
 package logger
 
 import (
-	"bytes"
-	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
-	"go.uber.org/zap"
+	"github.com/gofiber/fiber/v2"
+	"net/http/httptest"
 )
 
-func TestNew(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  Config
-		wantErr bool
-	}{
-		{
-			name: "Valid console logger",
-			config: Config{
-				Level:      "info",
-				OutputPath: "stdout",
-				Format:     "console",
-			},
-			wantErr: false,
-		},
-		{
-			name: "Valid JSON logger",
-			config: Config{
-				Level:      "debug",
-				OutputPath: "stdout",
-				Format:     "json",
-			},
-			wantErr: false,
-		},
-		{
-			name: "Valid error level",
-			config: Config{
-				Level:      "error",
-				OutputPath: "stdout",
-				Format:     "console",
-			},
-			wantErr: false,
-		},
-		{
-			name: "Invalid output path",
-			config: Config{
-				Level:      "info",
-				OutputPath: "/invalid/path/that/does/not/exist/test.log",
-				Format:     "console",
-			},
-			wantErr: true,
-		},
-	}
+func TestNewCreatesWritableLogger(t *testing.T) {
+	logFile := filepath.Join(t.TempDir(), "app.log")
+	cfg := Config{Level: "debug", OutputPath: logFile, Format: "json"}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			logger, err := New(tt.config)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && logger == nil {
-				t.Error("New() returned nil logger without error")
-			}
-			if logger != nil {
-				defer logger.Sync()
-			}
-		})
-	}
-}
-
-func TestNewDefault(t *testing.T) {
-	logger := NewDefault()
-	if logger == nil {
-		t.Error("NewDefault() returned nil")
-	}
-	defer logger.Sync()
-}
-
-func TestNewProduction(t *testing.T) {
-	logger, err := NewProduction()
+	l, err := New(cfg)
 	if err != nil {
-		t.Errorf("NewProduction() error = %v", err)
+		t.Fatalf("expected logger to initialize, got error: %v", err)
 	}
-	if logger == nil {
-		t.Error("NewProduction() returned nil")
-	}
-	defer logger.Sync()
-}
 
-func TestNewDevelopment(t *testing.T) {
-	logger, err := NewDevelopment()
+	l.Info("hello")
+
+	data, err := os.ReadFile(logFile)
 	if err != nil {
-		t.Errorf("NewDevelopment() error = %v", err)
+		t.Fatalf("expected log file to be created: %v", err)
 	}
-	if logger == nil {
-		t.Error("NewDevelopment() returned nil")
-	}
-	defer logger.Sync()
-}
 
-func TestWithField(t *testing.T) {
-	logger := NewDefault()
-	defer logger.Sync()
-
-	fieldLogger := logger.WithField("test_key", "test_value")
-	if fieldLogger == nil {
-		t.Error("WithField() returned nil")
+	if !strings.Contains(string(data), "\"message\":\"hello\"") {
+		t.Fatalf("log output missing message, got %q", string(data))
 	}
 }
 
-func TestWithFields(t *testing.T) {
-	logger := NewDefault()
-	defer logger.Sync()
+func TestNewReturnsErrorForBadPath(t *testing.T) {
+	badPath := filepath.Join(t.TempDir(), "nested", "cannot_create.log")
+	cfg := Config{Level: "info", OutputPath: badPath, Format: "json"}
 
-	fields := map[string]interface{}{
-		"key1": "value1",
-		"key2": 123,
-		"key3": true,
-	}
-
-	fieldLogger := logger.WithFields(fields)
-	if fieldLogger == nil {
-		t.Error("WithFields() returned nil")
+	if _, err := New(cfg); err == nil {
+		t.Fatalf("expected error when parent directories are missing")
 	}
 }
 
-func TestWithError(t *testing.T) {
-	logger := NewDefault()
-	defer logger.Sync()
+func TestWithHelpersPreserveConfigAndFields(t *testing.T) {
+	logFile := filepath.Join(t.TempDir(), "fields.log")
+	cfg := Config{Level: "debug", OutputPath: logFile, Format: "json"}
 
-	err := os.ErrNotExist
-	errLogger := logger.WithError(err)
-	if errLogger == nil {
-		t.Error("WithError() returned nil")
-	}
-}
-
-func TestContext(t *testing.T) {
-	logger := NewDefault()
-	defer logger.Sync()
-
-	fields := []zap.Field{
-		zap.String("context_key", "context_value"),
-		zap.Int("count", 42),
-	}
-
-	contextLogger := logger.Context(fields...)
-	if contextLogger == nil {
-		t.Error("Context() returned nil")
-	}
-}
-
-func TestLoggingLevels(t *testing.T) {
-	// Create a temporary file for testing
-	tmpFile, err := os.CreateTemp("", "test_log_*.log")
+	base, err := New(cfg)
 	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
+		t.Fatalf("failed to create base logger: %v", err)
 	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
 
-	logger, err := New(Config{
-		Level:      "debug",
-		OutputPath: tmpFile.Name(),
-		Format:     "json",
-	})
+	derived := base.WithField("user", 42).WithFields(map[string]interface{}{"role": "admin"}).WithError(os.ErrClosed).Context()
+	derived.InfoWithFields("with fields", map[string]interface{}{"ok": true})
+
+	data, err := os.ReadFile(logFile)
 	if err != nil {
-		t.Fatalf("Failed to create logger: %v", err)
-	}
-	defer logger.Sync()
-
-	// Test different log levels
-	logger.Debug("debug message")
-	logger.Info("info message")
-	logger.Warn("warn message")
-
-	// Sync to ensure all logs are written
-	logger.Sync()
-
-	// Read log file
-	content, err := os.ReadFile(tmpFile.Name())
-	if err != nil {
-		t.Fatalf("Failed to read log file: %v", err)
+		t.Fatalf("expected log file to be created: %v", err)
 	}
 
-	logContent := string(content)
-	if !strings.Contains(logContent, "debug message") {
-		t.Error("Debug message not found in logs")
-	}
-	if !strings.Contains(logContent, "info message") {
-		t.Error("Info message not found in logs")
-	}
-	if !strings.Contains(logContent, "warn message") {
-		t.Error("Warn message not found in logs")
-	}
-}
-
-func TestInfoWithFields(t *testing.T) {
-	var buf bytes.Buffer
-	tmpFile, err := os.CreateTemp("", "test_log_*.log")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
-
-	logger, err := New(Config{
-		Level:      "info",
-		OutputPath: tmpFile.Name(),
-		Format:     "json",
-	})
-	if err != nil {
-		t.Fatalf("Failed to create logger: %v", err)
-	}
-	defer logger.Sync()
-
-	fields := map[string]interface{}{
-		"user_id":   "123",
-		"action":    "login",
-		"timestamp": "2024-01-01T12:00:00Z",
-	}
-
-	logger.InfoWithFields("User action", fields)
-	logger.Sync()
-
-	content, err := os.ReadFile(tmpFile.Name())
-	if err != nil {
-		t.Fatalf("Failed to read log file: %v", err)
-	}
-
-	// Parse JSON log
-	var logEntry map[string]interface{}
-	lines := strings.Split(strings.TrimSpace(string(content)), "\n")
-	if len(lines) > 0 {
-		if err := json.Unmarshal([]byte(lines[0]), &logEntry); err != nil {
-			t.Fatalf("Failed to parse JSON log: %v", err)
-		}
-
-		if logEntry["message"] != "User action" {
-			t.Errorf("Expected message 'User action', got '%v'", logEntry["message"])
-		}
-		if logEntry["user_id"] != "123" {
-			t.Errorf("Expected user_id '123', got '%v'", logEntry["user_id"])
+	content := string(data)
+	for _, token := range []string{"with fields", "user", "role", "ok"} {
+		if !strings.Contains(content, token) {
+			t.Fatalf("expected %q to be present in log output", token)
 		}
 	}
 
-	_ = buf
-}
-
-func TestErrorWithFields(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "test_log_*.log")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
-
-	logger, err := New(Config{
-		Level:      "error",
-		OutputPath: tmpFile.Name(),
-		Format:     "json",
-	})
-	if err != nil {
-		t.Fatalf("Failed to create logger: %v", err)
-	}
-	defer logger.Sync()
-
-	fields := map[string]interface{}{
-		"error_code": 500,
-		"endpoint":   "/api/test",
-	}
-
-	logger.ErrorWithFields("Request failed", fields)
-	logger.Sync()
-
-	content, err := os.ReadFile(tmpFile.Name())
-	if err != nil {
-		t.Fatalf("Failed to read log file: %v", err)
-	}
-
-	if !strings.Contains(string(content), "Request failed") {
-		t.Error("Error message not found in logs")
-	}
-	if !strings.Contains(string(content), "error_code") {
-		t.Error("error_code field not found in logs")
+	if derived.config != cfg {
+		t.Fatalf("logger config should be preserved after helper calls")
 	}
 }
 
-func TestWarnWithFields(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "test_log_*.log")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
-
-	logger, err := New(Config{
-		Level:      "warn",
-		OutputPath: tmpFile.Name(),
-		Format:     "json",
-	})
-	if err != nil {
-		t.Fatalf("Failed to create logger: %v", err)
-	}
-	defer logger.Sync()
-
-	fields := map[string]interface{}{
-		"threshold": 80,
-		"current":   85,
+func TestFactoryHelpers(t *testing.T) {
+	if got := NewDefault(); got == nil {
+		t.Fatal("expected default logger instance")
 	}
 
-	logger.WarnWithFields("Memory usage high", fields)
-	logger.Sync()
-
-	content, err := os.ReadFile(tmpFile.Name())
-	if err != nil {
-		t.Fatalf("Failed to read log file: %v", err)
+	if prod, err := NewProduction(); err != nil || prod == nil {
+		t.Fatalf("expected production logger, got err=%v", err)
 	}
 
-	if !strings.Contains(string(content), "Memory usage high") {
-		t.Error("Warning message not found in logs")
+	if dev, err := NewDevelopment(); err != nil || dev == nil {
+		t.Fatalf("expected development logger, got err=%v", err)
 	}
 }
 
-func TestDebugWithFields(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "test_log_*.log")
+func TestRequestIDMiddleware(t *testing.T) {
+	app := fiber.New()
+	app.Use(RequestIDMiddleware())
+	app.Get("/", func(c *fiber.Ctx) error { return c.SendStatus(fiber.StatusOK) })
+
+	req := httptest.NewRequest(fiber.MethodGet, "/", nil)
+	resp, err := app.Test(req, -1)
 	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
+		t.Fatalf("failed to execute request: %v", err)
 	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
 
-	logger, err := New(Config{
-		Level:      "debug",
-		OutputPath: tmpFile.Name(),
-		Format:     "json",
-	})
+	if resp.Header.Get("X-Request-ID") == "" {
+		t.Fatalf("expected request id header to be set")
+	}
+}
+
+func TestHTTPMiddlewareLoggingBranches(t *testing.T) {
+	logFile := filepath.Join(t.TempDir(), "http.log")
+	logger, err := New(Config{Level: "debug", OutputPath: logFile, Format: "json"})
 	if err != nil {
-		t.Fatalf("Failed to create logger: %v", err)
-	}
-	defer logger.Sync()
-
-	fields := map[string]interface{}{
-		"function": "TestDebugWithFields",
-		"line":     123,
+		t.Fatalf("failed to create logger: %v", err)
 	}
 
-	logger.DebugWithFields("Debug info", fields)
-	logger.Sync()
+	app := fiber.New()
+	app.Use(RequestIDMiddleware())
+	app.Use(HTTPMiddleware(logger))
 
-	content, err := os.ReadFile(tmpFile.Name())
+	app.Get("/ok", func(c *fiber.Ctx) error { return c.SendStatus(fiber.StatusOK) })
+	app.Get("/client", func(c *fiber.Ctx) error { return c.SendStatus(fiber.StatusBadRequest) })
+	app.Get("/server", func(c *fiber.Ctx) error { return c.SendStatus(fiber.StatusInternalServerError) })
+	app.Get("/err", func(c *fiber.Ctx) error { return fiber.ErrInternalServerError })
+
+	for _, path := range []string{"/ok", "/client", "/server", "/err"} {
+		req := httptest.NewRequest(fiber.MethodGet, path, nil)
+		if _, err := app.Test(req, -1); err != nil {
+			t.Fatalf("request to %s failed: %v", path, err)
+		}
+	}
+
+	data, err := os.ReadFile(logFile)
 	if err != nil {
-		t.Fatalf("Failed to read log file: %v", err)
+		t.Fatalf("expected log file to be created: %v", err)
 	}
 
-	if !strings.Contains(string(content), "Debug info") {
-		t.Error("Debug message not found in logs")
+	content := string(data)
+	for _, expected := range []string{"completed", "client error", "server error", "HTTP request error"} {
+		if !strings.Contains(content, expected) {
+			t.Fatalf("expected %q to be logged", expected)
+		}
 	}
 }
