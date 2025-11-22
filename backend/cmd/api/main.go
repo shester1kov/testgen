@@ -152,9 +152,10 @@ func main() {
 	app.Use(logger.RequestIDMiddleware())
 	app.Use(logger.HTTPMiddleware(appLogger))
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+		AllowOrigins:     "http://localhost:3000, http://localhost:5173",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
+		AllowCredentials: true,
 	}))
 
 	// Health check endpoint
