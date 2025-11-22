@@ -1,42 +1,41 @@
 <template>
-  <div class="documents-page">
-    <div class="page-header">
+  <div>
+    <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="page-title">Documents</h1>
-        <p class="page-subtitle">Upload and manage your learning materials</p>
+        <h1 class="text-3xl font-bold text-text-primary mb-2">Documents</h1>
+        <p class="text-text-secondary">Upload and manage your learning materials</p>
       </div>
     </div>
 
-    <div class="content-grid">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Upload Section -->
-      <div class="upload-section">
-        <h2 class="section-title">Upload New Document</h2>
+      <div class="lg:col-span-1">
         <DocumentUpload @upload-success="handleUploadSuccess" />
       </div>
 
       <!-- Documents List -->
-      <div class="documents-section">
+      <div class="lg:col-span-2">
         <DocumentList @view-document="handleViewDocument" />
       </div>
     </div>
 
     <!-- Document Text Preview Modal -->
     <Teleport to="body">
-      <div v-if="showPreview" class="modal-overlay" @click="closePreview">
-        <div class="modal-content" @click.stop>
-          <div class="modal-header">
-            <h3 class="modal-title">{{ selectedDocument?.title }}</h3>
-            <button type="button" class="modal-close" @click="closePreview">
+      <div v-if="showPreview" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click="closePreview">
+        <div class="card-cyber max-w-4xl w-full max-h-[90vh] flex flex-col" @click.stop>
+          <div class="flex items-center justify-between p-6 border-b border-dark-500">
+            <h3 class="text-xl font-semibold text-text-primary">{{ selectedDocument?.title }}</h3>
+            <button type="button" class="text-text-muted hover:text-neon-orange transition-colors" @click="closePreview">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
-          <div class="modal-body">
-            <div v-if="selectedDocument?.parsed_text" class="parsed-text">
+          <div class="p-6 overflow-y-auto flex-1">
+            <div v-if="selectedDocument?.parsed_text" class="whitespace-pre-wrap text-text-secondary leading-relaxed font-mono text-sm">
               {{ selectedDocument.parsed_text }}
             </div>
-            <div v-else class="no-text">
+            <div v-else class="text-center py-12 text-text-muted">
               <p>This document has not been parsed yet.</p>
             </div>
           </div>
@@ -72,70 +71,3 @@ function closePreview() {
   selectedDocument.value = null
 }
 </script>
-
-<style scoped>
-.documents-page {
-  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8;
-}
-
-.page-header {
-  @apply mb-8;
-}
-
-.page-title {
-  @apply text-3xl font-bold text-gray-900 mb-2;
-}
-
-.page-subtitle {
-  @apply text-gray-600;
-}
-
-.content-grid {
-  @apply grid grid-cols-1 lg:grid-cols-3 gap-8;
-}
-
-.upload-section {
-  @apply lg:col-span-1;
-}
-
-.documents-section {
-  @apply lg:col-span-2;
-}
-
-.section-title {
-  @apply text-xl font-semibold text-gray-900 mb-4;
-}
-
-/* Modal styles */
-.modal-overlay {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
-}
-
-.modal-content {
-  @apply bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col;
-}
-
-.modal-header {
-  @apply flex items-center justify-between p-6 border-b border-gray-200;
-}
-
-.modal-title {
-  @apply text-xl font-semibold text-gray-900;
-}
-
-.modal-close {
-  @apply text-gray-400 hover:text-gray-600 transition-colors;
-}
-
-.modal-body {
-  @apply p-6 overflow-y-auto flex-1;
-}
-
-.parsed-text {
-  @apply whitespace-pre-wrap text-gray-700 leading-relaxed;
-}
-
-.no-text {
-  @apply text-center py-12 text-gray-500;
-}
-</style>

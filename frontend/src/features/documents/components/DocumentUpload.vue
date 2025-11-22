@@ -1,73 +1,92 @@
 <template>
-  <div class="flex flex-col gap-4">
-    <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer transition-colors hover:border-gray-400"
-         :class="{ 'border-blue-500 bg-blue-50': isDragOver }"
-         @drop.prevent="handleDrop"
-         @dragover.prevent="isDragOver = true"
-         @dragleave.prevent="isDragOver = false">
+  <div class="card-cyber">
+    <h2 class="text-lg font-semibold text-text-primary mb-4">Upload Document</h2>
+
+    <div
+      class="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-300"
+      :class="isDragOver ? 'border-neon-orange bg-neon-orange/10 shadow-neon-sm' : 'border-dark-500 hover:border-dark-600'"
+      @click="fileInput?.click()"
+      @drop.prevent="handleDrop"
+      @dragover.prevent="isDragOver = true"
+      @dragleave.prevent="isDragOver = false"
+    >
       <input ref="fileInput" type="file" :accept="acceptedFormats" class="sr-only" @change="handleFileSelect" />
 
-      <div class="flex flex-col gap-3">
-        <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-        </svg>
+      <div class="flex flex-col items-center gap-3">
+        <div class="w-12 h-12 rounded-full bg-neon-orange/20 flex items-center justify-center">
+          <svg class="w-6 h-6 text-neon-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+        </div>
 
-        <p class="text-lg font-medium text-gray-700">
+        <p class="text-base font-medium text-text-primary">
           {{ isDragOver ? 'Drop file here' : 'Upload a document' }}
         </p>
 
-        <p class="text-sm text-gray-600">
+        <p class="text-sm text-text-muted">
           Drag and drop or
-          <button type="button" class="text-blue-600 hover:text-blue-700 font-medium underline" @click="fileInput?.click()">
+          <button type="button" class="text-neon-orange hover:text-neon-orange-light font-medium underline" @click.stop>
             browse
           </button>
         </p>
 
-        <p class="text-xs text-gray-500">Supported: PDF, DOCX, PPTX, TXT, MD (max 50MB)</p>
+        <p class="text-xs text-text-muted">Supported: PDF, DOCX, PPTX, TXT, MD (max 50MB)</p>
       </div>
     </div>
 
     <!-- Selected file info -->
-    <div v-if="selectedFile" class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <div class="flex items-center gap-3">
-        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <div class="text-left">
-          <p class="text-sm font-medium text-gray-900">{{ selectedFile.name }}</p>
-          <p class="text-xs text-gray-500">{{ formatFileSize(selectedFile.size) }}</p>
+    <div v-if="selectedFile" class="mt-4 p-4 bg-dark-600 rounded-lg border border-dark-500">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded bg-cyber-blue/20 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-cyber-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-text-primary truncate">{{ selectedFile.name }}</p>
+            <p class="text-xs text-text-muted">{{ formatFileSize(selectedFile.size) }}</p>
+          </div>
         </div>
-      </div>
 
-      <button type="button" class="p-1 text-gray-400 hover:text-gray-600 transition-colors" @click="clearFile">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+        <button type="button" class="p-1 text-text-muted hover:text-cyber-pink transition-colors" @click="clearFile">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Title input -->
-    <div v-if="selectedFile" class="flex flex-col gap-2">
-      <label for="doc-title" class="block text-sm font-medium text-gray-700">Document Title (optional)</label>
-      <input id="doc-title" v-model="title" type="text"
-             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-             :placeholder="selectedFile.name" />
+    <div v-if="selectedFile" class="mt-4">
+      <label for="doc-title" class="block text-sm font-medium text-text-secondary mb-2">Document Title (optional)</label>
+      <input
+        id="doc-title"
+        v-model="title"
+        type="text"
+        class="input-neon w-full"
+        :placeholder="selectedFile.name"
+      />
     </div>
 
     <!-- Upload button -->
-    <div v-if="selectedFile" class="flex gap-3 justify-end">
-      <button type="button"
-              class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="isUploading"
-              @click="clearFile">
+    <div v-if="selectedFile" class="mt-4 flex gap-3 justify-end">
+      <button
+        type="button"
+        class="px-4 py-2 border border-dark-500 rounded-lg text-sm font-medium text-text-secondary hover:bg-dark-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        :disabled="isUploading"
+        @click="clearFile"
+      >
         Cancel
       </button>
-      <button type="button"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium flex items-center gap-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="isUploading"
-              @click="handleUpload">
+      <button
+        type="button"
+        class="btn-neon flex items-center gap-2 disabled:opacity-50"
+        :disabled="isUploading"
+        @click="handleUpload"
+      >
         <svg v-if="isUploading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor"
@@ -78,12 +97,12 @@
     </div>
 
     <!-- Error message -->
-    <div v-if="error" class="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
-      <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div v-if="error" class="mt-4 flex items-center gap-2 p-3 bg-cyber-pink/10 border border-cyber-pink/30 rounded-lg">
+      <svg class="w-5 h-5 text-cyber-pink flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      {{ error }}
+      <p class="text-sm text-cyber-pink">{{ error }}</p>
     </div>
   </div>
 </template>
