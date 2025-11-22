@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import RegisterForm from '../RegisterForm.vue'
-import { useAuthStore } from '@/features/auth/stores/authStore'
+import { useAuthStore } from '../../stores/authStore'
 import { createRouter, createWebHistory } from 'vue-router'
 
 // Mock router
@@ -31,7 +31,7 @@ describe('RegisterForm', () => {
     expect(wrapper.find('input#full_name').exists()).toBe(true)
     expect(wrapper.find('input#email').exists()).toBe(true)
     expect(wrapper.find('input#password').exists()).toBe(true)
-    
+
     // Role selection should NOT exist
     expect(wrapper.find('select#role').exists()).toBe(false)
     expect(wrapper.find('label[for="role"]').exists()).toBe(false)
@@ -113,7 +113,7 @@ describe('RegisterForm', () => {
     await wrapper.find('input#password').setValue('password123')
 
     const submitButton = wrapper.find('button[type="submit"]')
-    
+
     await wrapper.find('form').trigger('submit.prevent')
     await wrapper.vm.$nextTick()
 
