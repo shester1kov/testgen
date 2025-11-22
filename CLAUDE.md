@@ -17,21 +17,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Technology Stack
 
 ### Backend (Go)
+
 - **Framework**: Fiber v2 (Express-like web framework)
 - **ORM**: GORM (PostgreSQL)
 - **DI**: Wire (Dependency Injection)
 - **Migrations**: golang-migrate
 - **Monitoring**: Prometheus metrics export
+- **Logging**: Uber Zap (structured logging with request ID tracking)
 - **Validation**: go-playground/validator
 - **Document parsing**:
   - unidoc/unioffice (DOCX, PPTX)
   - ledongthuc/pdf (PDF)
   - Standard library (TXT)
-- **Auth**: JWT tokens
+- **Auth**: JWT tokens (HTTP-only cookies + Authorization header)
 - **Testing**: testify, go-mock
+- **API Documentation**: Swagger/OpenAPI 2.0 with swag
 - **Config**: godotenv
 
 ### Frontend (Vue 3)
+
 - **Build tool**: Vite 7
 - **Framework**: Vue 3 (Composition API)
 - **Language**: TypeScript
@@ -40,12 +44,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **UI Framework**: Tailwind CSS v4 (Utility-first CSS)
 - **UI Components**: Headless UI (Accessible components)
 - **Icons**: Heroicons (Official Tailwind icons)
-- **HTTP Client**: Axios
+- **HTTP Client**: Axios (with request/response logging interceptors)
 - **Form validation**: VeeValidate + Yup
-- **Testing**: Vitest, Vue Test Utils
+- **Testing**: Vitest, Vue Test Utils (112 tests with comprehensive coverage)
+- **Logging**: Custom logger utility with DEBUG/INFO/WARN/ERROR levels
 - **Code style**: ESLint + Prettier
 
 ### ML/AI
+
 - **LLM API**:
   - Perplexity API (для генерации вопросов)
   - OpenAI API (fallback)
@@ -55,16 +61,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Hugging Face Transformers (для экспериментов)
 
 ### Database
+
 - **Primary DB**: PostgreSQL 15
 - **Caching**: Redis (опционально для будущего масштабирования)
 
 ### Infrastructure
+
 - **Containerization**: Docker + Docker Compose
 - **Load Balancer**: Nginx
 - **Monitoring**: Prometheus + Grafana (опционально)
 - **Logging**: Structured logging (zerolog/zap)
 
 ### Integration
+
 - **Moodle**: REST API integration (XML-RPC or Web Services)
 - **Export formats**: JSON, CSV, Moodle XML
 
@@ -278,6 +287,199 @@ frontend/
 └── vitest.config.ts
 ```
 
+## Structured Logging
+
+### Backend Logging (Go)
+
+#### Implementation
+
+**Library**: Uber Zap - высокопроизводительная библиотека для структурированного логирования
+
+**Location**: `pkg/logger/`
+
+#### Features
+
+1. **Structured Logs**: JSON и console форматы
+2. **Log Levels**: debug, info, warn, error
+3. **Request Tracking**: Автоматическое добавление request ID к каждому запросу
+4. **Context Fields**: Поддержка добавления полей для контекста (user_id, action, etc.)
+5. **HTTP Middleware**: Автоматическое логирование всех HTTP запросов с метриками:
+   - Method, Path, Status Code
+   - Duration (время выполнения)
+   - IP address, User-Agent
+   - Request ID
+   - User ID (если аутентифицирован)
+
+### Usage Examples
+
+```go
+// Initialize logger
+appLogger, err := logger.New(logger.Config{
+    Level:      "info",
+    OutputPath: "stdout",
+    Format:     "json",
+})
+
+// Simple logging
+appLogger.Info("Server started", zap.String("port", "8080"))
+appLogger.Error("Database error", zap.Error(err))
+
+// With fields
+appLogger.InfoWithFields("User logged in", map[string]interface{}{
+    "user_id": "123",
+    "email": "user@example.com",
+    "ip": "192.168.1.1",
+})
+
+// Context logger
+contextLogger := appLogger.WithField("request_id", "abc123")
+contextLogger.Info("Processing request")
+```
+
+### HTTP Request Logging Output
+
+```json
+{
+  "level": "info",
+  "timestamp": "2024-01-20T15:04:05.123Z",
+  "caller": "logger/middleware.go:45",
+  "message": "HTTP request completed",
+  "method": "POST",
+  "path": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "45ms",
+  "ip": "127.0.0.1",
+  "user_agent": "Mozilla/5.0...",
+  "request_id": "20240120150405.123456"
+}
+```
+
+### Configuration
+
+Environment variables:
+
+- `LOG_LEVEL`: debug, info, warn, error (default: info)
+- `LOG_FORMAT`: console, json (default: console for dev, json for prod)
+
+#### Backend Testing
+
+Comprehensive test suite in `pkg/logger/logger_test.go`:
+
+- 13 test cases covering all logging functionality
+- Tests for log levels, structured fields, file output
+- 100% code coverage for core logger functionality
+
+### Frontend Logging (TypeScript)
+
+#### Implementation
+
+**Location**: `frontend/src/utils/logger.ts`
+
+**Purpose**: Unified logging system for debugging frontend operations in development and production
+
+#### Features
+
+1. **Log Levels**: DEBUG, INFO, WARN, ERROR (enum-based)
+2. **Environment-aware**: Automatic detection of development/production mode
+3. **Browser Console Integration**: All logs output to browser console with proper formatting
+4. **HTTP Request/Response Logging**: Automatic logging via Axios interceptors
+5. **Store Action Logging**: Pinia store actions logged with payload and errors
+6. **Structured Output**: Consistent format with timestamp, level, category, message, and data
+
+#### Architecture
+
+```typescript
+enum LogLevel {
+  DEBUG = 'DEBUG',
+  INFO = 'INFO',
+  WARN = 'WARN',
+  ERROR = 'ERROR',
+}
+
+class Logger {
+  // Core logging methods
+  debug(message: string, category?: string, data?: unknown): void
+  info(message: string, category?: string, data?: unknown): void
+  warn(message: string, category?: string, data?: unknown): void
+  error(message: string, category?: string, data?: unknown): void
+
+  // HTTP-specific logging
+  logRequest(method: string, url: string, data?: unknown): void
+  logResponse(method: string, url: string, status: number, data?: unknown): void
+  logError(method: string, url: string, error: Error): void
+
+  // Store-specific logging
+  logStoreAction(store: string, action: string, payload?: unknown): void
+  logStoreError(store: string, action: string, error: Error): void
+}
+```
+
+#### Integration Points
+
+**1. Axios Interceptors** (`src/services/api.ts`):
+
+```typescript
+// Request logging
+api.interceptors.request.use(config => {
+  logger.logRequest(config.method?.toUpperCase() || 'GET', config.url || '', config.data)
+  return config
+})
+
+// Response logging
+api.interceptors.response.use(
+  response => {
+    logger.logResponse(method, url, response.status, response.data)
+    return response.data
+  },
+  error => {
+    logger.logError(method, url, error)
+    throw error
+  }
+)
+```
+
+**2. Pinia Store Actions** (`src/features/auth/stores/authStore.ts`):
+
+```typescript
+async function login(credentials: LoginRequest) {
+  logger.logStoreAction('authStore', 'login', { email: credentials.email })
+  try {
+    const response = await authService.login(credentials)
+    logger.info('User logged in successfully', 'authStore', { userId: response.user.id })
+    return response
+  } catch (err: any) {
+    logger.logStoreError('authStore', 'login', err)
+    throw err
+  }
+}
+```
+
+#### Console Output Example
+
+```
+[2024-01-20 15:04:05] [DEBUG] [HTTP] GET /api/v1/auth/me
+[2024-01-20 15:04:05] [DEBUG] [HTTP] GET /api/v1/auth/me - 200
+[2024-01-20 15:04:06] [DEBUG] [STORE] authStore.login { email: "user@example.com" }
+[2024-01-20 15:04:07] [INFO] [authStore] User logged in successfully { userId: "123", role: "student" }
+```
+
+#### Configuration
+
+- **Development**: All log levels enabled (DEBUG, INFO, WARN, ERROR)
+- **Production**: INFO, WARN, ERROR only (DEBUG disabled)
+- **Console Output**: Always enabled for browser DevTools debugging
+
+#### Frontend Testing
+
+Comprehensive test suite in `src/utils/__tests__/logger.spec.ts`:
+
+- 41 test cases covering all logging functionality
+- Tests for all log levels (DEBUG, INFO, WARN, ERROR)
+- HTTP request/response/error logging tests
+- Store action/error logging tests
+- Environment detection and level filtering
+- Console spy validation for output verification
+
 ## Database Schema (ERD - Crow's Foot Notation)
 
 ```sql
@@ -375,12 +577,14 @@ CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at);
 ## Core Features (MVP)
 
 ### 1. Аутентификация и авторизация
+
 - Регистрация пользователей (teacher, student, admin)
 - Вход/выход (JWT tokens)
 - Разграничение прав доступа по ролям
 - Журнал действий пользователей
 
 ### 2. Управление документами
+
 - Загрузка файлов (PDF, DOCX, PPTX, TXT)
 - Валидация формата и размера (max 50MB)
 - Парсинг текста из документов
@@ -388,26 +592,29 @@ CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at);
 - Удаление документов
 
 ### 3. Генерация тестов (LLM)
+
 - Автоматическая генерация вопросов из текста документа
 - Настройка параметров:
   - Количество вопросов
-  - Типы вопросов (single choice, multiple choice, true/false)
-  - Уровень сложности
+  - Типы вопросов - single choice, в будущем (multiple choice, true/false)
 - Редактирование сгенерированных вопросов
 - Предварительный просмотр теста
 
 ### 4. Управление тестами
+
 - CRUD операции с тестами
 - Добавление/удаление/редактирование вопросов вручную
 - Изменение порядка вопросов
 - Статусы тестов (draft, published, archived)
 
 ### 5. Интеграция с Moodle
+
 - Экспорт тестов в Moodle XML формат
 - Синхронизация с Moodle через REST API
 - Отслеживание статуса синхронизации
 
 ### 6. Мониторинг и логирование
+
 - Prometheus метрики (requests, latency, errors)
 - Структурированные логи
 - Аудит действий пользователей
@@ -415,6 +622,7 @@ CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at);
 ## Design Patterns (минимум 3)
 
 ### 1. Repository Pattern
+
 **Где**: `internal/domain/repository/` + `internal/infrastructure/persistence/`
 
 **Назначение**: Абстракция доступа к данным, разделение бизнес-логики и слоя данных
@@ -434,6 +642,7 @@ type postgresUserRepository struct {
 ```
 
 ### 2. Factory Pattern
+
 **Где**: `internal/infrastructure/parser/`
 
 **Назначение**: Создание парсеров документов в зависимости от типа файла
@@ -447,6 +656,7 @@ type DocumentParserFactory interface {
 ```
 
 ### 3. Strategy Pattern
+
 **Где**: `internal/infrastructure/llm/`
 
 **Назначение**: Выбор LLM провайдера (Perplexity, OpenAI, YandexGPT)
@@ -462,18 +672,101 @@ type YandexGPTStrategy struct {}
 ```
 
 ### 4. Dependency Injection (Wire)
+
 **Где**: `wire.go`
 
 **Назначение**: Автоматическое внедрение зависимостей
 
 ### 5. Middleware Chain
-**Где**: `internal/interfaces/http/middleware/`
 
-**Назначение**: Обработка сквозной функциональности (auth, logging, CORS)
+**Где**: `internal/interfaces/http/middleware/`, `pkg/logger/middleware.go`
+
+**Назначение**: Обработка сквозной функциональности (auth, logging, CORS, request tracking)
+
+```go
+// Request flow through middleware chain:
+app.Use(recover.New())              // 1. Panic recovery
+app.Use(logger.RequestIDMiddleware()) // 2. Request ID generation
+app.Use(logger.HTTPMiddleware(log))  // 3. Structured logging
+app.Use(cors.New(...))               // 4. CORS headers
+app.Use(auth.JWTMiddleware())        // 5. Authentication
+```
+
+**IMPORTANT: CORS Configuration for HTTP-only Cookies**
+
+When using HTTP-only cookies with `AllowCredentials: true`, you CANNOT use wildcard "*" for `AllowOrigins`. You must explicitly list all allowed origins:
+
+```go
+app.Use(cors.New(cors.Config{
+    AllowOrigins:     "http://localhost:3000, http://localhost:5173",
+    AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+    AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
+    AllowCredentials: true, // Required for cookies
+}))
+```
+
+**Why:**
+
+- HTTP-only cookies require `AllowCredentials: true`
+- Browsers block `Access-Control-Allow-Origin: *` with credentials for security
+- Must explicitly list each origin (development: localhost ports, production: domain URLs)
+
+### 6. Adapter Pattern (Wrapper Pattern)
+
+**Где**: `pkg/logger/logger.go`
+
+**Назначение**: Обертка над zap.Logger с дополнительным API для удобства использования
+
+```go
+type Logger struct {
+    *zap.Logger
+    config Config
+}
+
+// Wraps zap functionality with convenience methods
+func (l *Logger) WithFields(fields map[string]interface{}) *Logger
+func (l *Logger) InfoWithFields(msg string, fields map[string]interface{})
+```
+
+## API Documentation
+
+### Swagger/OpenAPI
+
+**Полная интерактивная документация API доступна через Swagger UI:**
+
+- **URL**: `http://localhost:8080/swagger/index.html`
+- **Формат**: OpenAPI 2.0 (Swagger)
+- **Генерация**: swag CLI tool
+- **Файлы**: `backend/docs/swagger.json`, `backend/docs/swagger.yaml`
+
+**Особенности:**
+
+- Автоматическая генерация из godoc комментариев
+- Полное описание всех эндпоинтов с примерами
+- Интерактивное тестирование API прямо в браузере
+- Документация всех DTO структур
+- Описание ошибок и статус кодов
+- JWT Bearer Auth поддержка в UI
+
+**Генерация документации:**
+
+```bash
+cd backend
+swag init -g cmd/api/main.go -o docs
+```
+
+**Все эндпоинты задокументированы с:**
+
+- Summary и Description
+- Request/Response DTOs
+- Security требования (BearerAuth)
+- Все возможные HTTP статус коды
+- Группировка по тегам (auth, documents, tests, moodle, users)
 
 ## API Endpoints (REST)
 
 ### Authentication
+
 ```
 POST   /api/v1/auth/register       # Регистрация
 POST   /api/v1/auth/login          # Вход
@@ -482,6 +775,7 @@ GET    /api/v1/auth/me             # Текущий пользователь
 ```
 
 ### Documents
+
 ```
 POST   /api/v1/documents           # Загрузка документа
 GET    /api/v1/documents           # Список документов
@@ -491,6 +785,7 @@ POST   /api/v1/documents/:id/parse # Парсинг документа
 ```
 
 ### Tests
+
 ```
 POST   /api/v1/tests               # Создание теста
 GET    /api/v1/tests               # Список тестов
@@ -503,6 +798,7 @@ POST   /api/v1/tests/:id/sync      # Синхронизация с Moodle
 ```
 
 ### Questions
+
 ```
 POST   /api/v1/tests/:testId/questions           # Добавить вопрос
 PUT    /api/v1/tests/:testId/questions/:id       # Обновить вопрос
@@ -511,6 +807,7 @@ PUT    /api/v1/tests/:testId/questions/reorder   # Изменить порядо
 ```
 
 ### Monitoring
+
 ```
 GET    /metrics                    # Prometheus metrics
 GET    /health                     # Health check
@@ -629,6 +926,7 @@ docker-compose exec postgres psql -U testgen_user -d testgen_db
 ## Environment Variables
 
 ### Backend (.env)
+
 ```env
 # Server
 PORT=8080
@@ -646,6 +944,20 @@ DB_SSLMODE=disable
 JWT_SECRET=your-secret-key-change-in-production
 JWT_EXPIRATION=24h
 
+# Cookie Configuration
+COOKIE_NAME=testgen_token
+COOKIE_DOMAIN=
+COOKIE_PATH=/
+COOKIE_SECURE=false  # Set to true in production with HTTPS
+COOKIE_HTTP_ONLY=true
+COOKIE_SAME_SITE=Lax
+
+# CORS Configuration (IMPORTANT!)
+# ⚠️ When using HTTP-only cookies (credentials), CANNOT use wildcard "*" for AllowOrigins
+# Must explicitly list allowed origins and set AllowCredentials=true
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173  # Vite dev server ports
+# In production: ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+
 # File Upload
 MAX_FILE_SIZE=52428800  # 50MB
 UPLOAD_DIR=./uploads
@@ -660,11 +972,16 @@ LLM_PROVIDER=perplexity  # perplexity, openai, yandex
 MOODLE_URL=https://moodle.example.com
 MOODLE_TOKEN=your-moodle-webservice-token
 
+# Logging
+LOG_LEVEL=info  # debug, info, warn, error
+LOG_FORMAT=console  # console (dev) or json (production)
+
 # Monitoring
 ENABLE_METRICS=true
 ```
 
 ### Frontend (.env)
+
 ```env
 VITE_API_BASE_URL=http://localhost:8080/api/v1
 VITE_MAX_FILE_SIZE=52428800
@@ -674,12 +991,14 @@ VITE_SUPPORTED_FORMATS=pdf,docx,pptx,txt
 ## Development Workflow (Waterfall)
 
 ### Фаза 1: Анализ (Analysis)
+
 1. Анализ требований к системе генерации тестов
 2. Исследование конкурентов (Kahoot, Quizlet, Google Forms)
 3. Анализ технологий (LLM модели, парсеры документов, Moodle API)
 4. Определение функциональных и нефункциональных требований
 
 ### Фаза 2: Проектирование (Design)
+
 1. UML Use Case диаграмма (актёры и их действия)
 2. UML Class диаграмма (паттерны проектирования)
 3. UML Activity диаграмма (процесс генерации теста)
@@ -688,6 +1007,7 @@ VITE_SUPPORTED_FORMATS=pdf,docx,pptx,txt
 6. Мокап-дизайн интерфейса (Figma)
 
 ### Фаза 3: Разработка (Implementation)
+
 1. Настройка инфраструктуры (Docker, PostgreSQL, Nginx)
 2. Backend разработка (Go + Fiber)
 3. Frontend разработка (Vue + TypeScript)
@@ -696,6 +1016,7 @@ VITE_SUPPORTED_FORMATS=pdf,docx,pptx,txt
 6. Применение паттернов проектирования
 
 ### Фаза 4: Тестирование (Testing)
+
 1. Unit тесты (backend + frontend)
 2. Integration тесты (API endpoints)
 3. E2E тесты (пользовательские сценарии)
@@ -703,6 +1024,7 @@ VITE_SUPPORTED_FORMATS=pdf,docx,pptx,txt
 5. Нагрузочное тестирование
 
 ### Фаза 5: Внедрение (Deployment)
+
 1. Написание технической документации
 2. Инструкция по развертыванию
 3. Презентация проекта
@@ -711,17 +1033,20 @@ VITE_SUPPORTED_FORMATS=pdf,docx,pptx,txt
 ## User Roles
 
 ### Admin
+
 - Управление пользователями
 - Просмотр всех документов и тестов
 - Доступ к логам и метрикам
 
 ### Teacher
+
 - Загрузка документов
 - Генерация и редактирование тестов
 - Экспорт в Moodle
 - Просмотр своих тестов
 
 ### Student (для будущего расширения)
+
 - Прохождение тестов
 - Просмотр результатов
 
@@ -747,19 +1072,51 @@ VITE_SUPPORTED_FORMATS=pdf,docx,pptx,txt
 ## Testing Strategy
 
 ### Backend Tests
+
 - Unit tests: Domain entities, services
 - Repository tests: Database operations (with testcontainers)
 - Handler tests: HTTP endpoints (mocked dependencies)
 - Integration tests: Full API workflow
 
 ### Frontend Tests
-- Component tests: Vue components (Vitest + Vue Test Utils)
-- Store tests: Pinia stores
-- E2E tests: User flows (опционально Playwright)
 
-### Coverage Target
+**Test Structure:** All tests follow co-location pattern in `__tests__/` directories with `.spec.ts` naming convention.
+
+**Current Coverage: 112 tests passing**
+
+#### Test Files
+
+1. **Component Tests** (`src/features/auth/components/__tests__/`):
+   - `LoginForm.spec.ts` - 6 tests (form rendering, submission, error handling, loading states, navigation)
+   - `RegisterForm.spec.ts` - 5 tests (form without role selection, submission, error display, loading states, links)
+
+2. **Store Tests** (`src/features/auth/stores/__tests__/`):
+   - `authStore.spec.ts` - 24 tests covering:
+     - Positive: login, register, logout, user fetch, initialization
+     - Negative: invalid credentials, duplicate email, weak password, network errors, token errors, concurrent operations
+
+3. **Service Tests** (`src/services/__tests__/`):
+   - `authService.spec.ts` - 25 tests covering:
+     - Positive: login, register, logout, getMe
+     - Negative: validation errors, network errors, unauthorized access, special characters, SQL injection attempts, XSS attempts, long inputs
+
+4. **Utility Tests** (`src/utils/__tests__/`):
+   - `logger.spec.ts` - 41 tests (all log levels, HTTP logging, store logging, fields, formatters)
+   - `validators.spec.ts` - 5 tests (file size, file type, formatters)
+   - `formatters.spec.ts` - 6 tests (date formatting, relative time, text truncation)
+
+#### Key Testing Patterns
+
+- **Mock-based testing** with Vitest `vi.mock()`
+- **User registration without role** - role assigned by backend (default: student)
+- **AuthResponse includes token field** - required for JWT authentication
+- **Comprehensive negative testing** - 60+ negative test cases for security and edge cases
+- **localStorage handling** - tests account for undefined/null differences in test environment
+
+#### Coverage Target
+
 - Backend: >70%
-- Frontend: >60%
+- Frontend: >60% (currently achieved with 112 tests)
 
 ## Performance Requirements
 
@@ -805,10 +1162,3 @@ refactor: рефакторинг
 test: тесты
 chore: инфраструктура
 ```
-
-## Contact & Resources
-
-- Instructor: Макиевский С.Е.
-- University: МИРЭА - Институт перспективных технологий и индустриального программирования
-- Course: Создание программного обеспечения
-- Year: 2024-2025
