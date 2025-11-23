@@ -24,6 +24,7 @@
               Dashboard
             </router-link>
             <router-link
+              v-if="isTeacherOrAdmin"
               to="/documents"
               class="text-text-secondary hover:text-neon-orange px-4 py-2 rounded-lg text-sm font-medium
                      transition-all duration-300 hover:bg-dark-700
@@ -40,6 +41,16 @@
               active-class="text-neon-orange bg-dark-700 border-dark-500 shadow-neon-sm"
             >
               Tests
+            </router-link>
+            <router-link
+              v-if="isTeacherOrAdmin"
+              to="/users"
+              class="text-text-secondary hover:text-neon-orange px-4 py-2 rounded-lg text-sm font-medium
+                     transition-all duration-300 hover:bg-dark-700
+                     border border-transparent hover:border-dark-500"
+              active-class="text-neon-orange bg-dark-700 border-dark-500 shadow-neon-sm"
+            >
+              Users
             </router-link>
           </nav>
 
@@ -83,6 +94,10 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const user = computed(() => authStore.user)
+const isTeacherOrAdmin = computed(() => {
+  const role = authStore.user?.role
+  return role === 'teacher' || role === 'admin'
+})
 
 async function handleLogout() {
   await authStore.logout()

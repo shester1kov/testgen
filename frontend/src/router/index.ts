@@ -28,13 +28,13 @@ const routes: RouteRecordRaw[] = [
     path: '/documents',
     name: 'Documents',
     component: () => import('@/views/DocumentsView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiredRoles: ['teacher', 'admin'] },
   },
   {
     path: '/documents/:id',
     name: 'DocumentDetails',
     component: () => import('@/views/DocumentDetailsView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiredRoles: ['teacher', 'admin'] },
   },
   {
     path: '/tests',
@@ -46,7 +46,7 @@ const routes: RouteRecordRaw[] = [
     path: '/tests/create',
     name: 'CreateTest',
     component: () => import('@/views/CreateTestView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiredRoles: ['teacher', 'admin'] },
   },
   {
     path: '/tests/:id',
@@ -58,7 +58,13 @@ const routes: RouteRecordRaw[] = [
     path: '/tests/:id/edit',
     name: 'EditTest',
     component: () => import('@/views/EditTestView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiredRoles: ['teacher', 'admin'] },
+  },
+  {
+    path: '/users',
+    name: 'Users',
+    component: () => import('@/views/UsersView.vue'),
+    meta: { requiresAuth: true, requiredRoles: ['teacher', 'admin'] },
   },
   {
     path: '/:pathMatch(.*)*',
@@ -73,17 +79,34 @@ const router = createRouter({
 })
 
 // Navigation guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const requiredRoles = to.meta.requiredRoles as string[] | undefined
 
+  // Check authentication
   if (requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
-  } else if ((to.name === 'Login' || to.name === 'Register') && authStore.isAuthenticated) {
-    next({ name: 'Dashboard' })
-  } else {
-    next()
+    return
   }
+
+  // Redirect authenticated users away from login/register
+  if ((to.name === 'Login' || to.name === 'Register') && authStore.isAuthenticated) {
+    next({ name: 'Dashboard' })
+    return
+  }
+
+  // Check role-based access
+  if (requiredRoles && requiredRoles.length > 0) {
+    const userRole = authStore.user?.role
+    if (!userRole || !requiredRoles.includes(userRole)) {
+      // User doesn't have required role, redirect to dashboard
+      next({ name: 'Dashboard' })
+      return
+    }
+  }
+
+  next()
 })
 
 export default router
