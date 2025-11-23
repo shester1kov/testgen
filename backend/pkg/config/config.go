@@ -15,6 +15,7 @@ type Config struct {
 	LLM      LLMConfig
 	Moodle   MoodleConfig
 	Logger   LoggerConfig
+	Admin    AdminConfig
 }
 
 // ServerConfig holds server configuration
@@ -76,6 +77,13 @@ type LoggerConfig struct {
 	Format string
 }
 
+// AdminConfig holds default admin user configuration
+type AdminConfig struct {
+	Email    string
+	Password string
+	FullName string
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
@@ -121,6 +129,11 @@ func Load() *Config {
 		Logger: LoggerConfig{
 			Level:  getEnv("LOG_LEVEL", "info"),
 			Format: getEnv("LOG_FORMAT", "console"),
+		},
+		Admin: AdminConfig{
+			Email:    getEnv("ADMIN_EMAIL", "admin@testgen.local"),
+			Password: getEnv("ADMIN_PASSWORD", "admin123"),
+			FullName: getEnv("ADMIN_FULL_NAME", "System Administrator"),
 		},
 	}
 }
