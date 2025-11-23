@@ -20,6 +20,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -35,6 +36,7 @@ import (
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/parser"
+	"github.com/shester1kov/testgen-backend/internal/infrastructure/persistence"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/persistence/postgres"
 	"github.com/shester1kov/testgen-backend/internal/interfaces/http/handler"
 	"github.com/shester1kov/testgen-backend/internal/interfaces/http/router"
@@ -89,6 +91,12 @@ func main() {
 	testRepo := postgres.NewTestRepository(db)
 	questionRepo := postgres.NewQuestionRepository(db)
 	answerRepo := postgres.NewAnswerRepository(db)
+
+	// Run database seeders
+	seeder := persistence.NewSeeder(userRepo, roleRepo, cfg, appLogger)
+	if err := seeder.Seed(context.Background()); err != nil {
+		appLogger.Error("Failed to run database seeders", zap.Error(err))
+	}
 
 	// Initialize JWT manager
 	jwtManager, err := utils.NewJWTManager(cfg.JWT.Secret, cfg.JWT.Expiration)

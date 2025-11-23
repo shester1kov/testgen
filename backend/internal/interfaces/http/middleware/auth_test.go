@@ -254,13 +254,13 @@ func TestAuthMiddleware_StoresUserInfoInContext(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
 
-	// Verify context values
-	assert.Equal(t, userID, capturedUserID)
+	// Verify context values (userID is stored as string in JWT)
+	assert.Equal(t, userID.String(), capturedUserID)
 	assert.Equal(t, userEmail, capturedUserEmail)
 	assert.Equal(t, userRole, capturedUserRole)
 }
 
-func TestRoleMiddleware_AllowedRole(t *testing.T) {
+func TestRequireRole_AllowedRole(t *testing.T) {
 	app := fiber.New()
 
 	// Simulate auth middleware setting user role
@@ -269,7 +269,7 @@ func TestRoleMiddleware_AllowedRole(t *testing.T) {
 		return c.Next()
 	})
 
-	app.Use(RoleMiddleware("admin", "teacher"))
+	app.Use(RequireTeacherOrAdmin())
 	app.Get("/protected", func(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusOK)
 	})
@@ -280,7 +280,7 @@ func TestRoleMiddleware_AllowedRole(t *testing.T) {
 	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
 }
 
-func TestRoleMiddleware_ForbiddenRole(t *testing.T) {
+func TestRequireRole_ForbiddenRole(t *testing.T) {
 	app := fiber.New()
 
 	// Simulate auth middleware setting user role
@@ -289,7 +289,7 @@ func TestRoleMiddleware_ForbiddenRole(t *testing.T) {
 		return c.Next()
 	})
 
-	app.Use(RoleMiddleware("admin", "teacher"))
+	app.Use(RequireTeacherOrAdmin())
 	app.Get("/protected", func(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusOK)
 	})

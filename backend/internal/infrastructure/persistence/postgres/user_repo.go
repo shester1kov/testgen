@@ -41,7 +41,9 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*entity
 }
 
 func (r *userRepository) Update(ctx context.Context, user *entity.User) error {
-	return r.db.WithContext(ctx).Save(user).Error
+	// Use Model().Select() to explicitly update role_id
+	// Save() doesn't work well when Role association is preloaded
+	return r.db.WithContext(ctx).Model(user).Select("email", "password_hash", "full_name", "role_id", "updated_at").Updates(user).Error
 }
 
 func (r *userRepository) Delete(ctx context.Context, id uuid.UUID) error {

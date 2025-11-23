@@ -372,3 +372,65 @@ func TestUpdateUserRole_UpdateFails(t *testing.T) {
 	mockUserRepo.AssertExpectations(t)
 	mockRoleRepo.AssertExpectations(t)
 }
+
+// TestUpdateUserRole_UpdatesTimestamp verifies that UpdatedAt timestamp is set when updating role
+func TestUpdateUserRole_UpdatesTimestamp(t *testing.T) {
+	handler, mockUserRepo, mockRoleRepo := setupUserHandler(t)
+
+	userID := uuid.New()
+	studentRole := &entity.Role{
+		ID:          uuid.New(),
+		Name:        entity.RoleNameStudent,
+		Description: "Student role",
+	}
+
+	teacherRole := &entity.Role{
+		ID:          uuid.New(),
+		Name:        entity.RoleNameTeacher,
+		Description: "Teacher role",
+	}
+
+	user := &entity.User{
+		ID:       userID,
+		Email:    "user@example.com",
+		FullName: "Test User",
+		RoleID:   studentRole.ID,
+		Role:     studentRole,
+	}
+
+	mockUserRepo.On("FindByID", mock.Anything, userID).Return(user, nil)
+	mockRoleRepo.On("FindByName", mock.Anything, entity.RoleNameTeacher).Return(teacherRole, nil)
+
+	// Capture the user object passed to Update to verify UpdatedAt was set
+	var capturedUser *entity.User
+	mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.User")).
+		Run(func(args mock.Arguments) {
+			capturedUser = args.Get(1).(*entity.User)
+		}).
+		Return(nil)
+
+	// Setup Fiber app
+	app := fiber.New()
+	app.Put("/users/:id/role", handler.UpdateUserRole)
+
+	// Create request
+	updateReq := dto.UpdateUserRoleRequest{
+		RoleName: "teacher",
+	}
+	body, _ := json.Marshal(updateReq)
+	req := httptest.NewRequest(http.MethodPut, "/users/"+userID.String()+"/role", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	// Perform request
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
+	// Verify that UpdatedAt was set and role_id was updated
+	assert.NotNil(t, capturedUser)
+	assert.Equal(t, teacherRole.ID, capturedUser.RoleID, "RoleID should be updated to teacher role")
+	assert.False(t, capturedUser.UpdatedAt.IsZero(), "UpdatedAt should be set")
+
+	mockUserRepo.AssertExpectations(t)
+	mockRoleRepo.AssertExpectations(t)
+}

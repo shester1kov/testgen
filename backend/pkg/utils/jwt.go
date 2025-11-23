@@ -10,9 +10,9 @@ import (
 
 // JWTClaims represents the claims in the JWT token
 type JWTClaims struct {
-	UserID uuid.UUID `json:"user_id"`
-	Email  string    `json:"email"`
-	Role   string    `json:"role"`
+	UserID string `json:"user_id"` // Stored as string in JWT for compatibility
+	Email  string `json:"email"`
+	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
 
@@ -38,7 +38,7 @@ func NewJWTManager(secret string, expiration string) (*JWTManager, error) {
 // GenerateToken generates a new JWT token
 func (jm *JWTManager) GenerateToken(userID uuid.UUID, email, role string) (string, error) {
 	claims := &JWTClaims{
-		UserID: userID,
+		UserID: userID.String(), // Convert UUID to string
 		Email:  email,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{

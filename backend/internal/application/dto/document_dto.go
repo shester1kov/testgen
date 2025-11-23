@@ -2,13 +2,15 @@ package dto
 
 // DocumentUploadResponse represents document upload response
 type DocumentUploadResponse struct {
-	ID         string `json:"id"`
-	Title      string `json:"title"`
-	FileName   string `json:"file_name"`
-	FileType   string `json:"file_type"`
-	FileSize   int64  `json:"file_size"`
-	Status     string `json:"status"`
-	CreatedAt  string `json:"created_at"`
+	ID         string  `json:"id"`
+	Title      string  `json:"title"`
+	FileName   string  `json:"file_name"`
+	FileType   string  `json:"file_type"`
+	FileSize   int64   `json:"file_size"`
+	ParsedText *string `json:"parsed_text,omitempty"` // Pointer to omit if null
+	Status     string  `json:"status"`
+	ErrorMsg   *string `json:"error_msg,omitempty"` // Pointer to omit if null
+	CreatedAt  string  `json:"created_at"`
 }
 
 // DocumentListResponse represents list of documents

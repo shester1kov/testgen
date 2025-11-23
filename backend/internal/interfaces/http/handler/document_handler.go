@@ -197,14 +197,25 @@ func (h *DocumentHandler) List(c *fiber.Ctx) error {
 
 	result := make([]dto.DocumentUploadResponse, len(documents))
 	for i, doc := range documents {
+		var parsedText *string
+		if doc.ParsedText != "" {
+			parsedText = &doc.ParsedText
+		}
+		var errorMsg *string
+		if doc.ErrorMsg != "" {
+			errorMsg = &doc.ErrorMsg
+		}
+
 		result[i] = dto.DocumentUploadResponse{
-			ID:        doc.ID.String(),
-			Title:     doc.Title,
-			FileName:  doc.FileName,
-			FileType:  string(doc.FileType),
-			FileSize:  doc.FileSize,
-			Status:    string(doc.Status),
-			CreatedAt: doc.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			ID:         doc.ID.String(),
+			Title:      doc.Title,
+			FileName:   doc.FileName,
+			FileType:   string(doc.FileType),
+			FileSize:   doc.FileSize,
+			ParsedText: parsedText,
+			Status:     string(doc.Status),
+			ErrorMsg:   errorMsg,
+			CreatedAt:  doc.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		}
 	}
 
@@ -257,14 +268,25 @@ func (h *DocumentHandler) GetByID(c *fiber.Ctx) error {
 		)
 	}
 
+	var parsedText *string
+	if document.ParsedText != "" {
+		parsedText = &document.ParsedText
+	}
+	var errorMsg *string
+	if document.ErrorMsg != "" {
+		errorMsg = &document.ErrorMsg
+	}
+
 	return c.JSON(dto.DocumentUploadResponse{
-		ID:        document.ID.String(),
-		Title:     document.Title,
-		FileName:  document.FileName,
-		FileType:  string(document.FileType),
-		FileSize:  document.FileSize,
-		Status:    string(document.Status),
-		CreatedAt: document.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		ID:         document.ID.String(),
+		Title:      document.Title,
+		FileName:   document.FileName,
+		FileType:   string(document.FileType),
+		FileSize:   document.FileSize,
+		ParsedText: parsedText,
+		Status:     string(document.Status),
+		ErrorMsg:   errorMsg,
+		CreatedAt:  document.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	})
 }
 

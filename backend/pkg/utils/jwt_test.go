@@ -29,8 +29,8 @@ func TestJWTManager_GenerateAndValidate_Success(t *testing.T) {
 		t.Fatalf("Failed to validate token: %v", err)
 	}
 
-	if claims.UserID != userID {
-		t.Errorf("Expected userID %s, got %s", userID, claims.UserID)
+	if claims.UserID != userID.String() {
+		t.Errorf("Expected userID %s, got %s", userID.String(), claims.UserID)
 	}
 	if claims.Email != email {
 		t.Errorf("Expected email %s, got %s", email, claims.Email)
@@ -50,8 +50,6 @@ func TestJWTManager_NewJWTManager_InvalidExpiration(t *testing.T) {
 		{"invalid format", "invalid"},
 		{"no unit", "123"},
 		{"invalid unit", "1x"},
-		// Note: negative durations are valid in Go, so this won't error
-		// {"negative", "-1h"},
 	}
 
 	for _, tc := range testCases {
@@ -133,9 +131,9 @@ func TestJWTManager_ValidateToken_ExpiredToken(t *testing.T) {
 func TestJWTManager_ValidateToken_WrongSigningMethod(t *testing.T) {
 	manager, _ := NewJWTManager("test-secret", "1h")
 
-	// Create token with RS256 instead of HS256
+	// Create token with None signing method (insecure)
 	claims := &JWTClaims{
-		UserID: uuid.New(),
+		UserID: uuid.New().String(),
 		Email:  "test@example.com",
 		Role:   "teacher",
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -144,7 +142,6 @@ func TestJWTManager_ValidateToken_WrongSigningMethod(t *testing.T) {
 		},
 	}
 
-	// Use None signing method (insecure)
 	token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
 	tokenString, _ := token.SignedString(jwt.UnsafeAllowNoneSignatureType)
 
@@ -173,8 +170,6 @@ func TestJWTManager_ValidateToken_TamperedPayload(t *testing.T) {
 }
 
 // NEGATIVE TEST: Token without required claims
-// Note: JWT library will parse it and fill zero values for missing fields
-// This is expected behavior - validation of required fields should be done at business logic level
 func TestJWTManager_ValidateToken_MissingClaims(t *testing.T) {
 	manager, _ := NewJWTManager("test-secret", "1h")
 
@@ -194,8 +189,8 @@ func TestJWTManager_ValidateToken_MissingClaims(t *testing.T) {
 	}
 
 	// Verify that custom fields have zero values
-	if parsedClaims.UserID != uuid.Nil {
-		t.Error("Expected zero UUID for missing UserID claim")
+	if parsedClaims.UserID != "" {
+		t.Error("Expected empty string for missing UserID claim")
 	}
 	if parsedClaims.Email != "" {
 		t.Error("Expected empty string for missing Email claim")
@@ -249,7 +244,7 @@ func TestJWTManager_ValidateToken_NotYetValid(t *testing.T) {
 
 	// Create token that's not valid yet
 	claims := &JWTClaims{
-		UserID: uuid.New(),
+		UserID: uuid.New().String(),
 		Email:  "test@example.com",
 		Role:   "teacher",
 		RegisteredClaims: jwt.RegisteredClaims{

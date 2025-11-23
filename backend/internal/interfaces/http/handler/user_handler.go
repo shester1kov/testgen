@@ -2,6 +2,7 @@ package handler
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -147,8 +148,9 @@ func (h *UserHandler) UpdateUserRole(c *fiber.Ctx) error {
 		)
 	}
 
-	// Update user role
+	// Update user role and timestamp
 	user.RoleID = role.ID
+	user.UpdatedAt = time.Now()
 	if err := h.userRepo.Update(c.Context(), user); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to update user role"),
