@@ -5,6 +5,7 @@ package main
 
 import (
 	"github.com/google/wire"
+	"github.com/shester1kov/testgen-backend/internal/domain/repository"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/parser"
@@ -29,6 +30,7 @@ func InitializeApplication(cfg *config.Config, db *gorm.DB) (*ApplicationContain
 	wire.Build(
 		// Repositories
 		postgres.NewUserRepository,
+		postgres.NewRoleRepository,
 		postgres.NewDocumentRepository,
 		postgres.NewTestRepository,
 		postgres.NewQuestionRepository,
@@ -48,7 +50,7 @@ func InitializeApplication(cfg *config.Config, db *gorm.DB) (*ApplicationContain
 		provideMoodleClient,
 
 		// Handlers
-		handler.NewAuthHandler,
+		provideAuthHandler,
 		handler.NewDocumentHandler,
 		handler.NewTestHandler,
 		handler.NewMoodleHandler,
@@ -75,6 +77,8 @@ func provideLLMFactory(cfg *config.Config) *llm.LLMFactory {
 		cfg.LLM.PerplexityAPIKey,
 		cfg.LLM.OpenAIAPIKey,
 		cfg.LLM.YandexAPIKey,
+		cfg.LLM.YandexFolderID,
+		cfg.LLM.YandexModel,
 	)
 }
 
@@ -91,4 +95,24 @@ func provideUploadDir(cfg *config.Config) string {
 
 func provideMaxFileSize(cfg *config.Config) int64 {
 	return cfg.File.MaxFileSize
+}
+
+func provideAuthHandler(
+	cfg *config.Config,
+	userRepo repository.UserRepository,
+	roleRepo repository.RoleRepository,
+	jwtManager *utils.JWTManager,
+) *handler.AuthHandler {
+	return handler.NewAuthHandler(
+		userRepo,
+		roleRepo,
+		jwtManager,
+		cfg.Cookie.Name,
+		cfg.Cookie.Domain,
+		cfg.Cookie.Path,
+		cfg.Cookie.SameSite,
+		cfg.JWT.Expiration,
+		cfg.Cookie.Secure,
+		cfg.Cookie.HTTPOnly,
+	)
 }

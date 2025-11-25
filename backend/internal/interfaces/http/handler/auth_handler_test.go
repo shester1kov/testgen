@@ -3,21 +3,21 @@ package handler
 import (
 	"bytes"
 	"context"
-"encoding/json"
-"net/http"
-"net/http/httptest"
-"testing"
-"time"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
-"github.com/shester1kov/testgen-backend/internal/domain/entity"
-"github.com/shester1kov/testgen-backend/pkg/utils"
-"github.com/stretchr/testify/assert"
-"github.com/stretchr/testify/mock"
-"github.com/stretchr/testify/require"
-"gorm.io/gorm"
+	"github.com/shester1kov/testgen-backend/internal/domain/entity"
+	"github.com/shester1kov/testgen-backend/pkg/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 // MockUserRepository is a mock implementation of UserRepository
@@ -469,83 +469,193 @@ func TestRegister_FailsWhenStudentRoleNotFound(t *testing.T) {
 }
 
 func TestLogin_InvalidBodyReturnsBadRequest(t *testing.T) {
-    handler, _, _, _ := setupAuthHandler(t)
-    app := fiber.New()
-    app.Post("/login", handler.Login)
+	handler, _, _, _ := setupAuthHandler(t)
+	app := fiber.New()
+	app.Post("/login", handler.Login)
 
-    req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString("{invalid"))
-    req.Header.Set("Content-Type", "application/json")
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString("{invalid"))
+	req.Header.Set("Content-Type", "application/json")
 
-    resp, err := app.Test(req)
-    assert.NoError(t, err)
-    assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
 }
 
 func TestLogin_UserNotFound(t *testing.T) {
-    handler, mockUserRepo, _, _ := setupAuthHandler(t)
-    mockUserRepo.On("FindByEmail", mock.Anything, "missing@example.com").Return(nil, gorm.ErrRecordNotFound)
+	handler, mockUserRepo, _, _ := setupAuthHandler(t)
+	mockUserRepo.On("FindByEmail", mock.Anything, "missing@example.com").Return(nil, gorm.ErrRecordNotFound)
 
-    app := fiber.New()
-    app.Post("/login", handler.Login)
+	app := fiber.New()
+	app.Post("/login", handler.Login)
 
-    body, _ := json.Marshal(dto.LoginRequest{Email: "missing@example.com", Password: "pass"})
-    req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
-    req.Header.Set("Content-Type", "application/json")
+	body, _ := json.Marshal(dto.LoginRequest{Email: "missing@example.com", Password: "pass"})
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
 
-    resp, err := app.Test(req)
-    assert.NoError(t, err)
-    assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
 }
 
 func TestLogin_InvalidPassword(t *testing.T) {
-    handler, mockUserRepo, _, _ := setupAuthHandler(t)
+	handler, mockUserRepo, _, _ := setupAuthHandler(t)
 
-    role := &entity.Role{ID: uuid.New(), Name: entity.RoleNameStudent}
-    user := &entity.User{ID: uuid.New(), Email: "user@example.com", FullName: "User", RoleID: role.ID, Role: role}
-    require.NoError(t, user.SetPassword("correct"))
+	role := &entity.Role{ID: uuid.New(), Name: entity.RoleNameStudent}
+	user := &entity.User{ID: uuid.New(), Email: "user@example.com", FullName: "User", RoleID: role.ID, Role: role}
+	require.NoError(t, user.SetPassword("correct"))
 
-    mockUserRepo.On("FindByEmail", mock.Anything, "user@example.com").Return(user, nil)
+	mockUserRepo.On("FindByEmail", mock.Anything, "user@example.com").Return(user, nil)
 
-    app := fiber.New()
-    app.Post("/login", handler.Login)
+	app := fiber.New()
+	app.Post("/login", handler.Login)
 
-    body, _ := json.Marshal(dto.LoginRequest{Email: "user@example.com", Password: "wrong"})
-    req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
-    req.Header.Set("Content-Type", "application/json")
+	body, _ := json.Marshal(dto.LoginRequest{Email: "user@example.com", Password: "wrong"})
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
 
-    resp, err := app.Test(req)
-    assert.NoError(t, err)
-    assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
 }
 
 func TestRegister_UserAlreadyExists(t *testing.T) {
-    handler, mockUserRepo, mockRoleRepo, _ := setupAuthHandler(t)
+	handler, mockUserRepo, mockRoleRepo, _ := setupAuthHandler(t)
 
-    existing := &entity.User{ID: uuid.New(), Email: "dup@example.com"}
-    mockUserRepo.On("FindByEmail", mock.Anything, "dup@example.com").Return(existing, nil)
-    mockRoleRepo.AssertNotCalled(t, "FindByName")
+	existing := &entity.User{ID: uuid.New(), Email: "dup@example.com"}
+	mockUserRepo.On("FindByEmail", mock.Anything, "dup@example.com").Return(existing, nil)
+	mockRoleRepo.AssertNotCalled(t, "FindByName")
 
-    app := fiber.New()
-    app.Post("/register", handler.Register)
+	app := fiber.New()
+	app.Post("/register", handler.Register)
 
-    body, _ := json.Marshal(dto.RegisterRequest{Email: "dup@example.com", Password: "pass", FullName: "Dup"})
-    req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewReader(body))
-    req.Header.Set("Content-Type", "application/json")
+	body, _ := json.Marshal(dto.RegisterRequest{Email: "dup@example.com", Password: "pass", FullName: "Dup"})
+	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
 
-    resp, err := app.Test(req)
-    assert.NoError(t, err)
-    assert.Equal(t, fiber.StatusConflict, resp.StatusCode)
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusConflict, resp.StatusCode)
 }
 
 func TestRegister_InvalidBody(t *testing.T) {
-    handler, _, _, _ := setupAuthHandler(t)
-    app := fiber.New()
-    app.Post("/register", handler.Register)
+	handler, _, _, _ := setupAuthHandler(t)
+	app := fiber.New()
+	app.Post("/register", handler.Register)
 
-    req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBufferString("{invalid"))
-    req.Header.Set("Content-Type", "application/json")
+	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBufferString("{invalid"))
+	req.Header.Set("Content-Type", "application/json")
 
-    resp, err := app.Test(req)
-    assert.NoError(t, err)
-    assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+}
+
+func TestGetMe_Success(t *testing.T) {
+	handler, userRepo, _, _ := setupAuthHandler(t)
+	app := fiber.New()
+
+	userID := uuid.New()
+	roleID := uuid.New()
+
+	testRole := &entity.Role{
+		ID:   roleID,
+		Name: entity.RoleNameStudent,
+	}
+
+	testUser := &entity.User{
+		ID:       userID,
+		Email:    "test@example.com",
+		FullName: "Test User",
+		RoleID:   roleID,
+		Role:     testRole, // Include the Role so GetRoleName() works
+	}
+
+	userRepo.On("FindByID", mock.Anything, userID).Return(testUser, nil)
+
+	app.Get("/me", func(c *fiber.Ctx) error {
+		// Simulate middleware setting userID in context
+		c.Locals("userID", userID)
+		return handler.GetMe(c)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/me", nil)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
+	var result dto.UserDTO
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	require.NoError(t, err)
+	assert.Equal(t, testUser.Email, result.Email)
+	assert.Equal(t, testUser.FullName, result.FullName)
+	assert.Equal(t, string(entity.RoleNameStudent), result.Role)
+
+	userRepo.AssertExpectations(t)
+}
+
+func TestGetMe_UserNotInContext(t *testing.T) {
+	handler, _, _, _ := setupAuthHandler(t)
+	app := fiber.New()
+
+	app.Get("/me", handler.GetMe)
+
+	req := httptest.NewRequest(http.MethodGet, "/me", nil)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
+}
+
+func TestGetMe_UserNotFound(t *testing.T) {
+	handler, userRepo, _, _ := setupAuthHandler(t)
+	app := fiber.New()
+
+	userID := uuid.New()
+	userRepo.On("FindByID", mock.Anything, userID).Return(nil, gorm.ErrRecordNotFound)
+
+	app.Get("/me", func(c *fiber.Ctx) error {
+		c.Locals("userID", userID)
+		return handler.GetMe(c)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/me", nil)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, fiber.StatusNotFound, resp.StatusCode)
+
+	userRepo.AssertExpectations(t)
+}
+
+func TestGetMe_UserWithoutRole(t *testing.T) {
+	handler, userRepo, _, _ := setupAuthHandler(t)
+	app := fiber.New()
+
+	userID := uuid.New()
+	roleID := uuid.New()
+
+	testUser := &entity.User{
+		ID:       userID,
+		Email:    "test@example.com",
+		FullName: "Test User",
+		RoleID:   roleID,
+		Role:     nil, // User has no role loaded
+	}
+
+	userRepo.On("FindByID", mock.Anything, userID).Return(testUser, nil)
+
+	app.Get("/me", func(c *fiber.Ctx) error {
+		c.Locals("userID", userID)
+		return handler.GetMe(c)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/me", nil)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
+	var result dto.UserDTO
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	require.NoError(t, err)
+	assert.Equal(t, "", result.Role) // Role should be empty string
+
+	userRepo.AssertExpectations(t)
 }

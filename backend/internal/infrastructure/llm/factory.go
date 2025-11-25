@@ -4,17 +4,21 @@ import "fmt"
 
 // LLMFactory creates LLM strategies based on provider name
 type LLMFactory struct {
-	perplexityKey string
-	openaiKey     string
-	yandexKey     string
+	perplexityKey   string
+	openaiKey       string
+	yandexKey       string
+	yandexFolderID  string
+	yandexModel     string
 }
 
 // NewLLMFactory creates a new LLM factory
-func NewLLMFactory(perplexityKey, openaiKey, yandexKey string) *LLMFactory {
+func NewLLMFactory(perplexityKey, openaiKey, yandexKey, yandexFolderID, yandexModel string) *LLMFactory {
 	return &LLMFactory{
-		perplexityKey: perplexityKey,
-		openaiKey:     openaiKey,
-		yandexKey:     yandexKey,
+		perplexityKey:  perplexityKey,
+		openaiKey:      openaiKey,
+		yandexKey:      yandexKey,
+		yandexFolderID: yandexFolderID,
+		yandexModel:    yandexModel,
 	}
 }
 
@@ -26,7 +30,7 @@ func (f *LLMFactory) CreateStrategy(provider string) (LLMStrategy, error) {
 	case "openai":
 		return NewOpenAIStrategy(f.openaiKey), nil
 	case "yandexgpt", "yandex":
-		return NewYandexGPTStrategy(f.yandexKey), nil
+		return NewYandexGPTStrategy(f.yandexKey, f.yandexFolderID, f.yandexModel), nil
 	default:
 		return nil, fmt.Errorf("unknown LLM provider: %s", provider)
 	}
@@ -42,7 +46,7 @@ func (f *LLMFactory) GetAvailableProviders() []string {
 	if f.openaiKey != "" {
 		providers = append(providers, "openai")
 	}
-	if f.yandexKey != "" {
+	if f.yandexKey != "" && f.yandexFolderID != "" {
 		providers = append(providers, "yandexgpt")
 	}
 

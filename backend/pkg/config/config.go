@@ -63,6 +63,8 @@ type LLMConfig struct {
 	PerplexityAPIKey string
 	OpenAIAPIKey     string
 	YandexAPIKey     string
+	YandexFolderID   string
+	YandexModel      string
 }
 
 // MoodleConfig holds Moodle integration configuration
@@ -117,10 +119,12 @@ func Load() *Config {
 			UploadDir:   getEnv("UPLOAD_DIR", "./uploads"),
 		},
 		LLM: LLMConfig{
-			Provider:         getEnv("LLM_PROVIDER", "perplexity"),
+			Provider:         getEnv("LLM_PROVIDER", "yandexgpt"),
 			PerplexityAPIKey: getEnv("PERPLEXITY_API_KEY", ""),
 			OpenAIAPIKey:     getEnv("OPENAI_API_KEY", ""),
 			YandexAPIKey:     getEnv("YANDEX_GPT_API_KEY", ""),
+			YandexFolderID:   getEnv("YANDEX_GPT_FOLDER_ID", ""),
+			YandexModel:      getEnv("YANDEX_GPT_MODEL", "yandexgpt-lite"),
 		},
 		Moodle: MoodleConfig{
 			URL:   getEnv("MOODLE_URL", ""),

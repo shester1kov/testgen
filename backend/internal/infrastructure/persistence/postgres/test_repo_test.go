@@ -149,3 +149,32 @@ func TestTestRepository_ErrorBranches(t *testing.T) {
 	_, err = repo.FindByUserID(context.Background(), test.UserID, 5, 0)
 	assert.Error(t, err)
 }
+
+func TestTestRepository_Create(t *testing.T) {
+	db := setupTestRepoDB(t)
+	repo := NewTestRepository(db)
+
+	userID := uuid.New()
+	require.NoError(t, db.Exec("INSERT INTO users (id, email, password_hash, full_name, role_id) VALUES (?, ?, 'hash', 'User', ?)", userID.String(), "test@example.com", uuid.New().String()).Error)
+
+	newTest := &entity.Test{
+		ID:             uuid.New(),
+		UserID:         userID,
+		Title:          "New Test",
+		Description:    "Test description",
+		TotalQuestions: 5,
+		Status:         entity.TestStatusDraft,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+
+	err := repo.Create(context.Background(), newTest)
+	require.NoError(t, err)
+
+	// Verify it was created
+	fetched, err := repo.FindByID(context.Background(), newTest.ID)
+	require.NoError(t, err)
+	assert.Equal(t, newTest.Title, fetched.Title)
+	assert.Equal(t, newTest.Description, fetched.Description)
+	assert.Equal(t, newTest.TotalQuestions, fetched.TotalQuestions)
+}

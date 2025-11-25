@@ -152,3 +152,70 @@ func TestQuestionRepository_ReorderQuestions(t *testing.T) {
 	err = repo.ReorderQuestions(context.Background(), testID, newOrder)
 	assert.Error(t, err)
 }
+
+func TestQuestionRepository_Update(t *testing.T) {
+	db := setupQuestionTestDB(t)
+	repo := NewQuestionRepository(db)
+	testID := uuid.New()
+
+	q := &entity.Question{
+		ID:           uuid.New(),
+		TestID:       testID,
+		QuestionText: "Original Question",
+		QuestionType: entity.QuestionTypeSingleChoice,
+		Difficulty:   entity.DifficultyEasy,
+		Points:       1,
+		OrderNum:     1,
+	}
+
+	err := repo.Create(context.Background(), q)
+	require.NoError(t, err)
+
+	// Update the question
+	q.QuestionText = "Updated Question"
+	q.Difficulty = entity.DifficultyHard
+	q.Points = 5
+
+	err = repo.Update(context.Background(), q)
+	require.NoError(t, err)
+
+	// Verify update
+	fetched, err := repo.FindByID(context.Background(), q.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "Updated Question", fetched.QuestionText)
+	assert.Equal(t, entity.DifficultyHard, fetched.Difficulty)
+	assert.Equal(t, float64(5), fetched.Points)
+}
+
+func TestQuestionRepository_Delete(t *testing.T) {
+	db := setupQuestionTestDB(t)
+	repo := NewQuestionRepository(db)
+	testID := uuid.New()
+
+	q := &entity.Question{
+		ID:           uuid.New(),
+		TestID:       testID,
+		QuestionText: "Question to delete",
+		QuestionType: entity.QuestionTypeTrueFalse,
+		Difficulty:   entity.DifficultyMedium,
+		Points:       2,
+		OrderNum:     1,
+	}
+
+	err := repo.Create(context.Background(), q)
+	require.NoError(t, err)
+
+	// Delete the question
+	err = repo.Delete(context.Background(), q.ID)
+	require.NoError(t, err)
+
+	// Verify deletion
+	fetched, err := repo.FindByID(context.Background(), q.ID)
+	assert.Nil(t, fetched)
+	assert.Error(t, err)
+
+	// Count should be 0
+	count, err := repo.CountByTestID(context.Background(), testID)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count)
+}

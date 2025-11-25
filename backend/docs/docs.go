@@ -817,10 +817,10 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Test created with generated questions",
                         "schema": {
-                            "$ref": "#/definitions/dto.GenerateQuestionsResponse"
+                            "$ref": "#/definitions/dto.TestResponse"
                         }
                     },
                     "400": {
@@ -842,7 +842,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Generation failed",
+                        "description": "Generation failed or database error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -1179,6 +1179,10 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "error_msg": {
+                    "description": "Pointer to omit if null",
+                    "type": "string"
+                },
                 "file_name": {
                     "type": "string"
                 },
@@ -1189,6 +1193,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "parsed_text": {
+                    "description": "Pointer to omit if null",
                     "type": "string"
                 },
                 "status": {
@@ -1217,23 +1225,6 @@ const docTemplate = `{
             "properties": {
                 "error": {
                     "$ref": "#/definitions/dto.ErrorDetail"
-                }
-            }
-        },
-        "dto.GenerateQuestionsResponse": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "type": "integer"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "questions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.QuestionDTO"
-                    }
                 }
             }
         },

@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
@@ -12,11 +14,25 @@ import (
 type TestHandler struct {
 	testRepo     repository.TestRepository
 	documentRepo repository.DocumentRepository
+	questionRepo repository.QuestionRepository
+	answerRepo   repository.AnswerRepository
 	llmFactory   *llm.LLMFactory
 }
 
-func NewTestHandler(testRepo repository.TestRepository, documentRepo repository.DocumentRepository, llmFactory *llm.LLMFactory) *TestHandler {
-	return &TestHandler{testRepo: testRepo, documentRepo: documentRepo, llmFactory: llmFactory}
+func NewTestHandler(
+	testRepo repository.TestRepository,
+	documentRepo repository.DocumentRepository,
+	questionRepo repository.QuestionRepository,
+	answerRepo repository.AnswerRepository,
+	llmFactory *llm.LLMFactory,
+) *TestHandler {
+	return &TestHandler{
+		testRepo:     testRepo,
+		documentRepo: documentRepo,
+		questionRepo: questionRepo,
+		answerRepo:   answerRepo,
+		llmFactory:   llmFactory,
+	}
 }
 
 // Create godoc
@@ -72,11 +88,11 @@ func (h *TestHandler) Create(c *fiber.Ctx) error {
 // @Produce json
 // @Security BearerAuth
 // @Param request body dto.GenerateTestRequest true "Generate test request"
-// @Success 200 {object} dto.GenerateQuestionsResponse
+// @Success 201 {object} dto.TestResponse "Test created with generated questions"
 // @Failure 400 {object} dto.ErrorResponse "Invalid input or document not parsed"
 // @Failure 401 {object} dto.ErrorResponse "Unauthorized"
 // @Failure 404 {object} dto.ErrorResponse "Document not found"
-// @Failure 500 {object} dto.ErrorResponse "Generation failed"
+// @Failure 500 {object} dto.ErrorResponse "Generation failed or database error"
 // @Router /tests/generate [post]
 func (h *TestHandler) Generate(c *fiber.Ctx) error {
 	userID, ok := getUserIDFromContext(c)
@@ -128,30 +144,73 @@ func (h *TestHandler) Generate(c *fiber.Ctx) error {
 		)
 	}
 
-	// Convert llm.GeneratedQuestion to dto.QuestionDTO
-	questionDTOs := make([]dto.QuestionDTO, len(questions))
+	// Create Test entity
+	test := &entity.Test{
+		ID:             uuid.New(),
+		UserID:         userID,
+		DocumentID:     &docID,
+		Title:          req.Title,
+		TotalQuestions: len(questions),
+		Status:         entity.TestStatusDraft,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+
+	// Save test to database
+	if err := h.testRepo.Create(c.Context(), test); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to save test"),
+		)
+	}
+
+	// Save questions and answers to database
 	for i, q := range questions {
-		answers := make([]dto.AnswerDTO, len(q.Answers))
+		question := &entity.Question{
+			ID:           uuid.New(),
+			TestID:       test.ID,
+			QuestionText: q.QuestionText,
+			QuestionType: entity.QuestionType(q.QuestionType),
+			Difficulty:   entity.Difficulty(q.Difficulty),
+			Points:       1.0, // Default points
+			OrderNum:     i + 1,
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+		}
+
+		if err := h.questionRepo.Create(c.Context(), question); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to save question"),
+			)
+		}
+
+		// Save answers
 		for j, a := range q.Answers {
-			answers[j] = dto.AnswerDTO{
+			answer := &entity.Answer{
+				ID:         uuid.New(),
+				QuestionID: question.ID,
 				AnswerText: a.Text,
 				IsCorrect:  a.IsCorrect,
 				OrderNum:   j + 1,
+				CreatedAt:  time.Now(),
 			}
-		}
-		questionDTOs[i] = dto.QuestionDTO{
-			QuestionText: q.QuestionText,
-			QuestionType: string(q.QuestionType),
-			Difficulty:   q.Difficulty,
-			OrderNum:     i + 1,
-			Answers:      answers,
+
+			if err := h.answerRepo.Create(c.Context(), answer); err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(
+					dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to save answer"),
+				)
+			}
 		}
 	}
 
-	return c.JSON(dto.GenerateQuestionsResponse{
-		Message:   "questions generated",
-		Count:     len(questions),
-		Questions: questionDTOs,
+	// Return test response with ID
+	return c.Status(fiber.StatusCreated).JSON(dto.TestResponse{
+		ID:             test.ID.String(),
+		Title:          test.Title,
+		Description:    "", // Empty for generated tests
+		TotalQuestions: test.TotalQuestions,
+		Status:         string(test.Status),
+		MoodleSynced:   false,
+		CreatedAt:      test.CreatedAt.Format(time.RFC3339),
 	})
 }
 
@@ -182,7 +241,15 @@ func (h *TestHandler) List(c *fiber.Ctx) error {
 
 	result := make([]dto.TestResponse, len(tests))
 	for i, t := range tests {
-		result[i] = dto.TestResponse{ID: t.ID.String(), Title: t.Title, TotalQuestions: t.TotalQuestions, Status: string(t.Status)}
+		result[i] = dto.TestResponse{
+			ID:             t.ID.String(),
+			Title:          t.Title,
+			Description:    t.Description,
+			TotalQuestions: t.TotalQuestions,
+			Status:         string(t.Status),
+			MoodleSynced:   t.MoodleSynced,
+			CreatedAt:      t.CreatedAt.Format(time.RFC3339),
+		}
 	}
 
 	return c.JSON(dto.TestListResponse{Tests: result, Total: total, Page: page, PageSize: pageSize})
@@ -190,7 +257,7 @@ func (h *TestHandler) List(c *fiber.Ctx) error {
 
 // GetByID godoc
 // @Summary Get test by ID
-// @Description Get details of a specific test by its ID
+// @Description Get details of a specific test by its ID with questions and answers
 // @Tags tests
 // @Produce json
 // @Security BearerAuth
@@ -216,7 +283,57 @@ func (h *TestHandler) GetByID(c *fiber.Ctx) error {
 		)
 	}
 
-	return c.JSON(dto.TestResponse{ID: test.ID.String(), Title: test.Title, Description: test.Description, TotalQuestions: test.TotalQuestions})
+	// Load questions with answers
+	questions, err := h.questionRepo.FindByTestID(c.Context(), testID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to load questions"),
+		)
+	}
+
+	// Build questions DTO with answers
+	questionsDTO := make([]dto.QuestionDTO, len(questions))
+	for i, q := range questions {
+		// Load answers for each question
+		answers, err := h.answerRepo.FindByQuestionID(c.Context(), q.ID)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to load answers"),
+			)
+		}
+
+		// Build answers DTO
+		answersDTO := make([]dto.AnswerDTO, len(answers))
+		for j, a := range answers {
+			answersDTO[j] = dto.AnswerDTO{
+				ID:         a.ID.String(),
+				AnswerText: a.AnswerText,
+				IsCorrect:  a.IsCorrect,
+				OrderNum:   a.OrderNum,
+			}
+		}
+
+		questionsDTO[i] = dto.QuestionDTO{
+			ID:           q.ID.String(),
+			QuestionText: q.QuestionText,
+			QuestionType: string(q.QuestionType),
+			Difficulty:   string(q.Difficulty),
+			Points:       q.Points,
+			OrderNum:     q.OrderNum,
+			Answers:      answersDTO,
+		}
+	}
+
+	return c.JSON(dto.TestResponse{
+		ID:             test.ID.String(),
+		Title:          test.Title,
+		Description:    test.Description,
+		TotalQuestions: test.TotalQuestions,
+		Status:         string(test.Status),
+		MoodleSynced:   test.MoodleSynced,
+		CreatedAt:      test.CreatedAt.Format(time.RFC3339),
+		Questions:      questionsDTO,
+	})
 }
 
 // Delete godoc

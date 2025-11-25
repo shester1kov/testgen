@@ -14,10 +14,17 @@ export const testService = {
   },
 
   async getTests(page = 1, limit = 10): Promise<PaginatedResponse<Test>> {
-    const response = await api.get<ApiResponse<PaginatedResponse<Test>>>('/tests', {
-      params: { page, limit },
+    const response: any = await api.get('/tests', {
+      params: { page, page_size: limit },
     })
-    return response as PaginatedResponse<Test>
+    // Backend returns { tests: [...], total: ..., page: ..., page_size: ... }
+    // Transform to { data: [...], total: ... } format
+    return {
+      data: response.tests || [],
+      total: response.total || 0,
+      page: response.page,
+      page_size: response.page_size,
+    }
   },
 
   async getTest(id: string): Promise<Test> {
@@ -46,3 +53,5 @@ export const testService = {
     return response as Test
   },
 }
+
+export default testService

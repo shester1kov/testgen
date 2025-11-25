@@ -49,7 +49,7 @@ func TestGenerateUseCase_Execute(t *testing.T) {
 		ParsedText: "parsed content",
 	}
 
-	factory := llm.NewLLMFactory("perplexity-key", "", "")
+	factory := llm.NewLLMFactory("perplexity-key", "", "", "", "")
 
 	tests := []struct {
 		name        string

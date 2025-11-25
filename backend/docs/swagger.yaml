@@ -47,6 +47,9 @@ definitions:
     properties:
       created_at:
         type: string
+      error_msg:
+        description: Pointer to omit if null
+        type: string
       file_name:
         type: string
       file_size:
@@ -54,6 +57,9 @@ definitions:
       file_type:
         type: string
       id:
+        type: string
+      parsed_text:
+        description: Pointer to omit if null
         type: string
       status:
         type: string
@@ -73,17 +79,6 @@ definitions:
     properties:
       error:
         $ref: '#/definitions/dto.ErrorDetail'
-    type: object
-  dto.GenerateQuestionsResponse:
-    properties:
-      count:
-        type: integer
-      message:
-        type: string
-      questions:
-        items:
-          $ref: '#/definitions/dto.QuestionDTO'
-        type: array
     type: object
   dto.GenerateTestRequest:
     properties:
@@ -884,10 +879,10 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Test created with generated questions
           schema:
-            $ref: '#/definitions/dto.GenerateQuestionsResponse'
+            $ref: '#/definitions/dto.TestResponse'
         "400":
           description: Invalid input or document not parsed
           schema:
@@ -901,7 +896,7 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "500":
-          description: Generation failed
+          description: Generation failed or database error
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:

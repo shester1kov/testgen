@@ -17,7 +17,7 @@ func (mockStrategy) GenerateQuestions(ctx context.Context, params GenerationPara
 func (mockStrategy) GetProviderName() string { return "mock" }
 
 func TestLLMFactory_CreateStrategy(t *testing.T) {
-	factory := NewLLMFactory("perplexity", "openai", "yandex")
+	factory := NewLLMFactory("perplexity", "openai", "yandex", "folder123", "yandexgpt-lite")
 
 	strategy, err := factory.CreateStrategy("perplexity")
 	require.NoError(t, err)
@@ -36,7 +36,7 @@ func TestLLMFactory_CreateStrategy(t *testing.T) {
 }
 
 func TestLLMFactory_GetAvailableProviders(t *testing.T) {
-	factory := NewLLMFactory("a", "", "b")
+	factory := NewLLMFactory("a", "", "b", "folder", "yandexgpt-lite")
 	providers := factory.GetAvailableProviders()
 	require.ElementsMatch(t, []string{"perplexity", "yandexgpt"}, providers)
 }
@@ -61,11 +61,12 @@ func TestStrategies_RequireAPIKeys(t *testing.T) {
 	_, err = NewOpenAIStrategy("").GenerateQuestions(context.Background(), GenerationParams{NumQuestions: 1})
 	require.Error(t, err)
 
-	_, err = NewYandexGPTStrategy("").GenerateQuestions(context.Background(), GenerationParams{NumQuestions: 1})
+	_, err = NewYandexGPTStrategy("", "", "").GenerateQuestions(context.Background(), GenerationParams{NumQuestions: 1})
 	require.Error(t, err)
 }
 
 func TestStrategies_ProduceMockData(t *testing.T) {
+	// Perplexity and OpenAI still use mock data in tests
 	q, err := NewPerplexityStrategy("key").GenerateQuestions(context.Background(), GenerationParams{NumQuestions: 2, Difficulty: "hard"})
 	require.NoError(t, err)
 	require.Len(t, q, 2)
@@ -75,9 +76,10 @@ func TestStrategies_ProduceMockData(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, q, 1)
 	require.Equal(t, "openai", NewOpenAIStrategy("key").GetProviderName())
+}
 
-	q, err = NewYandexGPTStrategy("key").GenerateQuestions(context.Background(), GenerationParams{NumQuestions: 3})
-	require.NoError(t, err)
-	require.NotEmpty(t, q)
-	require.Equal(t, "yandexgpt", NewYandexGPTStrategy("key").GetProviderName())
+func TestYandexGPTStrategy_GetProviderName(t *testing.T) {
+	// YandexGPT now makes real API calls, so we only test the provider name
+	strategy := NewYandexGPTStrategy("key", "folder123", "yandexgpt-lite")
+	require.Equal(t, "yandexgpt", strategy.GetProviderName())
 }

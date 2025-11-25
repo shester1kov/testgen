@@ -112,6 +112,8 @@ func main() {
 		cfg.LLM.PerplexityAPIKey,
 		cfg.LLM.OpenAIAPIKey,
 		cfg.LLM.YandexAPIKey,
+		cfg.LLM.YandexFolderID,
+		cfg.LLM.YandexModel,
 	)
 
 	// Initialize Moodle components
@@ -141,7 +143,7 @@ func main() {
 		cfg.File.UploadDir,
 		cfg.File.MaxFileSize,
 	)
-	testHandler := handler.NewTestHandler(testRepo, documentRepo, llmFactory)
+	testHandler := handler.NewTestHandler(testRepo, documentRepo, questionRepo, answerRepo, llmFactory)
 	moodleHandler := handler.NewMoodleHandler(
 		testRepo,
 		questionRepo,
@@ -167,6 +169,12 @@ func main() {
 	}))
 
 	// Health check endpoint
+	// @Summary Health check
+	// @Description Check if the API is running and healthy
+	// @Tags health
+	// @Produce json
+	// @Success 200 {object} map[string]string
+	// @Router /health [get]
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status":  "ok",
@@ -181,6 +189,12 @@ func main() {
 	router.SetupRoutes(app, authHandler, userHandler, documentHandler, testHandler, moodleHandler, jwtManager, cfg.Cookie.Name)
 
 	// Root endpoint
+	// @Summary API version information
+	// @Description Get API version and available endpoints
+	// @Tags info
+	// @Produce json
+	// @Success 200 {object} map[string]interface{}
+	// @Router /api/v1 [get]
 	app.Get("/api/v1", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"message": "Test Generation System API v1",

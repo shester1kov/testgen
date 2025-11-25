@@ -365,9 +365,7 @@ Environment variables:
 
 Comprehensive test suite in `pkg/logger/logger_test.go`:
 
-- 13 test cases covering all logging functionality
 - Tests for log levels, structured fields, file output
-- 100% code coverage for core logger functionality
 
 ### Frontend Logging (TypeScript)
 
@@ -473,7 +471,6 @@ async function login(credentials: LoginRequest) {
 
 Comprehensive test suite in `src/utils/__tests__/logger.spec.ts`:
 
-- 41 test cases covering all logging functionality
 - Tests for all log levels (DEBUG, INFO, WARN, ERROR)
 - HTTP request/response/error logging tests
 - Store action/error logging tests
@@ -826,10 +823,6 @@ go mod download
 go install github.com/google/wire/cmd/wire@latest
 wire
 
-# Запуск миграций
-migrate -path internal/infrastructure/persistence/migrations \
-        -database "postgres://user:pass@localhost:5432/testgen?sslmode=disable" up
-
 # Запуск сервера (development)
 go run cmd/api/main.go
 
@@ -908,17 +901,6 @@ docker-compose exec backend migrate -path /migrations \
 ### Database
 
 ```bash
-# Создание новой миграции
-migrate create -ext sql -dir backend/internal/infrastructure/persistence/migrations -seq init_schema
-
-# Применение миграций
-migrate -path backend/internal/infrastructure/persistence/migrations \
-        -database "postgres://localhost:5432/testgen?sslmode=disable" up
-
-# Откат миграции
-migrate -path backend/internal/infrastructure/persistence/migrations \
-        -database "postgres://localhost:5432/testgen?sslmode=disable" down 1
-
 # Подключение к PostgreSQL
 docker-compose exec postgres psql -U testgen_user -d testgen_db
 ```
@@ -1034,21 +1016,37 @@ VITE_SUPPORTED_FORMATS=pdf,docx,pptx,txt
 
 ### Admin
 
-- Управление пользователями
-- Просмотр всех документов и тестов
-- Доступ к логам и метрикам
+- **Полный доступ к системе:**
+  - Управление пользователями (просмотр, изменение ролей)
+  - Загрузка и управление документами
+  - Создание, редактирование и удаление тестов
+  - Экспорт в Moodle
+  - Просмотр всех документов и тестов
+  - Доступ к логам и метрикам
 
 ### Teacher
 
-- Загрузка документов
-- Генерация и редактирование тестов
-- Экспорт в Moodle
-- Просмотр своих тестов
+- **Создание контента:**
+  - Загрузка документов
+  - Генерация и редактирование тестов
+  - Экспорт в Moodle
+  - Просмотр своих тестов и документов
+- **Управление пользователями (ограниченное):**
+  - Просмотр списка пользователей
+  - Назначение тестов студентам (в будущем)
+  - **НЕ МОЖЕТ** изменять роли пользователей
 
-### Student (для будущего расширения)
+### Student
 
-- Прохождение тестов
-- Просмотр результатов
+- **Только чтение и прохождение:**
+  - Просмотр назначенных тестов
+  - Прохождение тестов
+  - Просмотр результатов
+  - **НЕ ИМЕЕТ** доступа к:
+    - Загрузке документов
+    - Созданию тестов
+    - Редактированию тестов
+    - Списку пользователей
 
 ## Security Requirements (ГОСТ Р ИСО/МЭК 27001-2012)
 
@@ -1116,7 +1114,7 @@ VITE_SUPPORTED_FORMATS=pdf,docx,pptx,txt
 #### Coverage Target
 
 - Backend: >70%
-- Frontend: >60% (currently achieved with 112 tests)
+- Frontend: >60%
 
 ## Performance Requirements
 
