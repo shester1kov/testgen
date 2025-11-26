@@ -64,3 +64,24 @@ func (r *documentRepository) CountByUserID(ctx context.Context, userID uuid.UUID
 		Count(&count).Error
 	return count, err
 }
+
+func (r *documentRepository) FindAll(ctx context.Context, limit, offset int) ([]*entity.Document, error) {
+	var documents []*entity.Document
+	err := r.db.WithContext(ctx).
+		Preload("User").
+		Where("deleted_at IS NULL").
+		Limit(limit).
+		Offset(offset).
+		Order("created_at DESC").
+		Find(&documents).Error
+	return documents, err
+}
+
+func (r *documentRepository) CountAll(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&entity.Document{}).
+		Where("deleted_at IS NULL").
+		Count(&count).Error
+	return count, err
+}

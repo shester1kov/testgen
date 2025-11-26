@@ -2,16 +2,16 @@
   <div>
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-text-primary mb-2">Tests</h1>
+        <h1 class="text-3xl font-bold text-text-primary mb-2">{{ testsTitle }}</h1>
         <p class="text-text-secondary">
-          {{ isTeacherOrAdmin ? 'Generate and manage your test questions' : 'View your assigned tests' }}
+          {{ isTeacherOrAdmin ? 'Генерируйте и управляйте тестовыми вопросами' : 'Просматривайте назначенные тесты' }}
         </p>
       </div>
       <button v-if="isTeacherOrAdmin" @click="navigateToCreate" class="btn-neon">
         <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
-        Generate Test
+        Сгенерировать тест
       </button>
     </div>
 
@@ -22,7 +22,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
       </div>
-      <p class="text-text-secondary">Loading tests...</p>
+      <p class="text-text-secondary">Загрузка тестов...</p>
     </div>
 
     <!-- Error State -->
@@ -31,11 +31,11 @@
         <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <h3 class="text-lg font-semibold text-red-400">Error loading tests</h3>
+        <h3 class="text-lg font-semibold text-red-400">Ошибка загрузки тестов</h3>
       </div>
       <p class="text-red-300 mb-4">{{ testsStore.error }}</p>
       <button @click="loadTests" class="btn-neon">
-        Try Again
+        Попробовать снова
       </button>
     </div>
 
@@ -47,12 +47,12 @@
         </svg>
       </div>
       <h3 class="text-xl font-semibold text-text-primary mb-2">
-        {{ isTeacherOrAdmin ? 'No tests yet' : 'No assigned tests' }}
+        {{ isTeacherOrAdmin ? 'Тестов пока нет' : 'Нет назначенных тестов' }}
       </h3>
       <p class="text-text-muted">
         {{ isTeacherOrAdmin
-          ? 'Create your first test from uploaded documents using the "Generate Test" button above'
-          : 'You have no tests assigned yet. Please contact your teacher.'
+          ? 'Создайте свой первый тест из загруженных документов, нажав кнопку "Сгенерировать тест" выше'
+          : 'У вас пока нет назначенных тестов. Пожалуйста, свяжитесь с преподавателем.'
         }}
       </p>
     </div>
@@ -80,6 +80,13 @@
         <p v-if="test.description" class="text-text-muted text-sm mb-4 line-clamp-2">
           {{ test.description }}
         </p>
+
+        <div v-if="test.user_name || test.user_email" class="flex items-center gap-2 mb-3">
+          <span class="px-2 py-0.5 bg-cyber-blue/10 border border-cyber-blue/30 rounded text-xs text-cyber-blue">
+            <span v-if="test.user_name">{{ test.user_name }}</span>
+            <span v-if="test.user_email" class="text-text-muted ml-1">({{ test.user_email }})</span>
+          </span>
+        </div>
 
         <div class="flex items-center justify-between text-sm text-text-secondary">
           <div class="flex items-center gap-4">
@@ -134,6 +141,10 @@ const isTeacherOrAdmin = computed(() => {
   const role = authStore.user?.role
   return role === 'teacher' || role === 'admin'
 })
+
+const isAdmin = computed(() => authStore.user?.role === 'admin')
+
+const testsTitle = computed(() => isAdmin.value ? 'Все тесты' : 'Тесты')
 
 function navigateToCreate() {
   router.push('/tests/create')

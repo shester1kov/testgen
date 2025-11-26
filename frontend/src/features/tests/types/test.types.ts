@@ -1,6 +1,8 @@
 export interface Test {
   id: string
   user_id: string
+  user_name?: string  // Only for admin
+  user_email?: string // Only for admin
   document_id?: string
   title: string
   description?: string

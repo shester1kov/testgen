@@ -182,14 +182,14 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get paginated list of documents uploaded by the current user",
+                "description": "Get paginated list of documents. Admin sees all documents with user info, others see only their own",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "documents"
                 ],
-                "summary": "List user's documents",
+                "summary": "List documents",
                 "parameters": [
                     {
                         "type": "integer",
@@ -673,6 +673,43 @@
                 }
             }
         },
+        "/stats/dashboard": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get statistics for the dashboard (documents, tests, questions count)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "stats"
+                ],
+                "summary": "Get dashboard statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.DashboardStatsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/tests": {
             "get": {
                 "security": [
@@ -680,7 +717,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get paginated list of tests created by the current user",
+                "description": "Get paginated list of tests created by the current user. Admin sees all tests with user info, others see only their own",
                 "produces": [
                     "application/json"
                 ],
@@ -851,7 +888,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get details of a specific test by its ID",
+                "description": "Get details of a specific test by its ID with questions and answers",
                 "produces": [
                     "application/json"
                 ],
@@ -895,6 +932,80 @@
                     },
                     "404": {
                         "description": "Test not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update test title and description",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tests"
+                ],
+                "summary": "Update a test",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Test ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update test request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateTestRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TestResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Test not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -951,6 +1062,217 @@
                     },
                     "404": {
                         "description": "Test not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/tests/{id}/export/json": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Export a test and its questions to JSON format for download",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tests"
+                ],
+                "summary": "Export test to JSON format",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Test ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TestResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid test ID",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Test not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/tests/{id}/export/xml": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Export a test and its questions to Moodle XML format for download",
+                "produces": [
+                    "application/xml"
+                ],
+                "tags": [
+                    "tests"
+                ],
+                "summary": "Export test to Moodle XML format",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Test ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "XML file",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid test ID or test has no questions",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Test not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Export failed",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/tests/{testId}/questions/{questionId}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update question text, type, difficulty, points and answers",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tests"
+                ],
+                "summary": "Update a question",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Test ID",
+                        "name": "testId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Question ID",
+                        "name": "questionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update question request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateQuestionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.QuestionDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Question not found",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -1147,6 +1469,23 @@
                 }
             }
         },
+        "dto.DashboardStatsResponse": {
+            "type": "object",
+            "properties": {
+                "documents_count": {
+                    "type": "integer",
+                    "example": 15
+                },
+                "questions_count": {
+                    "type": "integer",
+                    "example": 120
+                },
+                "tests_count": {
+                    "type": "integer",
+                    "example": 8
+                }
+            }
+        },
         "dto.DocumentListResponse": {
             "type": "object",
             "properties": {
@@ -1197,6 +1536,17 @@
                     "type": "string"
                 },
                 "title": {
+                    "type": "string"
+                },
+                "user_email": {
+                    "description": "Only for admin",
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                },
+                "user_name": {
+                    "description": "Only for admin",
                     "type": "string"
                 }
             }
@@ -1471,6 +1821,85 @@
                 },
                 "total_questions": {
                     "type": "integer"
+                },
+                "user_email": {
+                    "description": "Only for admin",
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                },
+                "user_name": {
+                    "description": "Only for admin",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateAnswerRequest": {
+            "type": "object",
+            "required": [
+                "answer_text"
+            ],
+            "properties": {
+                "answer_text": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "If nil, create new answer",
+                    "type": "string"
+                },
+                "is_correct": {
+                    "type": "boolean"
+                },
+                "order_num": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.UpdateQuestionRequest": {
+            "type": "object",
+            "properties": {
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.UpdateAnswerRequest"
+                    }
+                },
+                "difficulty": {
+                    "type": "string",
+                    "enum": [
+                        "easy",
+                        "medium",
+                        "hard"
+                    ]
+                },
+                "points": {
+                    "type": "number"
+                },
+                "question_text": {
+                    "type": "string",
+                    "minLength": 3
+                },
+                "question_type": {
+                    "type": "string",
+                    "enum": [
+                        "single_choice",
+                        "multiple_choice",
+                        "true_false",
+                        "short_answer"
+                    ]
+                }
+            }
+        },
+        "dto.UpdateTestRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string",
+                    "minLength": 3
                 }
             }
         },

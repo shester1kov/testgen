@@ -2,8 +2,8 @@
   <div>
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-text-primary mb-2">Documents</h1>
-        <p class="text-text-secondary">Upload and manage your learning materials</p>
+        <h1 class="text-3xl font-bold text-text-primary mb-2">Документы</h1>
+        <p class="text-text-secondary">Загружайте и управляйте учебными материалами</p>
       </div>
     </div>
 
@@ -36,7 +36,7 @@
               {{ selectedDocument.parsed_text }}
             </div>
             <div v-else class="text-center py-12 text-text-muted">
-              <p>This document has not been parsed yet.</p>
+              <p>Этот документ ещё не был обработан.</p>
             </div>
           </div>
         </div>

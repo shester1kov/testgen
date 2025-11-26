@@ -3,6 +3,9 @@ package dto
 // DocumentUploadResponse represents document upload response
 type DocumentUploadResponse struct {
 	ID         string  `json:"id"`
+	UserID     string  `json:"user_id"`
+	UserName   *string `json:"user_name,omitempty"`   // Only for admin
+	UserEmail  *string `json:"user_email,omitempty"`  // Only for admin
 	Title      string  `json:"title"`
 	FileName   string  `json:"file_name"`
 	FileType   string  `json:"file_type"`

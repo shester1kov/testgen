@@ -30,6 +30,18 @@ definitions:
     required:
     - title
     type: object
+  dto.DashboardStatsResponse:
+    properties:
+      documents_count:
+        example: 15
+        type: integer
+      questions_count:
+        example: 120
+        type: integer
+      tests_count:
+        example: 8
+        type: integer
+    type: object
   dto.DocumentListResponse:
     properties:
       documents:
@@ -64,6 +76,14 @@ definitions:
       status:
         type: string
       title:
+        type: string
+      user_email:
+        description: Only for admin
+        type: string
+      user_id:
+        type: string
+      user_name:
+        description: Only for admin
         type: string
     type: object
   dto.ErrorDetail:
@@ -248,6 +268,61 @@ definitions:
         type: string
       total_questions:
         type: integer
+      user_email:
+        description: Only for admin
+        type: string
+      user_id:
+        type: string
+      user_name:
+        description: Only for admin
+        type: string
+    type: object
+  dto.UpdateAnswerRequest:
+    properties:
+      answer_text:
+        type: string
+      id:
+        description: If nil, create new answer
+        type: string
+      is_correct:
+        type: boolean
+      order_num:
+        type: integer
+    required:
+    - answer_text
+    type: object
+  dto.UpdateQuestionRequest:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/dto.UpdateAnswerRequest'
+        type: array
+      difficulty:
+        enum:
+        - easy
+        - medium
+        - hard
+        type: string
+      points:
+        type: number
+      question_text:
+        minLength: 3
+        type: string
+      question_type:
+        enum:
+        - single_choice
+        - multiple_choice
+        - true_false
+        - short_answer
+        type: string
+    type: object
+  dto.UpdateTestRequest:
+    properties:
+      description:
+        type: string
+      title:
+        minLength: 3
+        type: string
     type: object
   dto.UpdateUserRoleRequest:
     properties:
@@ -401,7 +476,8 @@ paths:
       - auth
   /documents:
     get:
-      description: Get paginated list of documents uploaded by the current user
+      description: Get paginated list of documents. Admin sees all documents with
+        user info, others see only their own
       parameters:
       - default: 1
         description: Page number
@@ -430,7 +506,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: List user's documents
+      summary: List documents
       tags:
       - documents
     post:
@@ -718,9 +794,33 @@ paths:
       summary: Validate Moodle connection
       tags:
       - moodle
+  /stats/dashboard:
+    get:
+      description: Get statistics for the dashboard (documents, tests, questions count)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DashboardStatsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get dashboard statistics
+      tags:
+      - stats
   /tests:
     get:
-      description: Get paginated list of tests created by the current user
+      description: Get paginated list of tests created by the current user. Admin
+        sees all tests with user info, others see only their own
       parameters:
       - default: 1
         description: Page number
@@ -829,7 +929,7 @@ paths:
       tags:
       - tests
     get:
-      description: Get details of a specific test by its ID
+      description: Get details of a specific test by its ID with questions and answers
       parameters:
       - description: Test ID
         in: path
@@ -862,6 +962,190 @@ paths:
       security:
       - BearerAuth: []
       summary: Get test by ID
+      tags:
+      - tests
+    put:
+      consumes:
+      - application/json
+      description: Update test title and description
+      parameters:
+      - description: Test ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update test request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateTestRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TestResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Test not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a test
+      tags:
+      - tests
+  /tests/{id}/export/json:
+    get:
+      description: Export a test and its questions to JSON format for download
+      parameters:
+      - description: Test ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TestResponse'
+        "400":
+          description: Invalid test ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Test not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export test to JSON format
+      tags:
+      - tests
+  /tests/{id}/export/xml:
+    get:
+      description: Export a test and its questions to Moodle XML format for download
+      parameters:
+      - description: Test ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/xml
+      responses:
+        "200":
+          description: XML file
+          schema:
+            type: string
+        "400":
+          description: Invalid test ID or test has no questions
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Test not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Export failed
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export test to Moodle XML format
+      tags:
+      - tests
+  /tests/{testId}/questions/{questionId}:
+    put:
+      consumes:
+      - application/json
+      description: Update question text, type, difficulty, points and answers
+      parameters:
+      - description: Test ID
+        in: path
+        name: testId
+        required: true
+        type: string
+      - description: Question ID
+        in: path
+        name: questionId
+        required: true
+        type: string
+      - description: Update question request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateQuestionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.QuestionDTO'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Question not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a question
       tags:
       - tests
   /tests/generate:

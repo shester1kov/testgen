@@ -8,10 +8,10 @@
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
-        Back to Tests
+        Назад к тестам
       </router-link>
-      <h1 class="text-3xl font-bold text-text-primary mb-2">Generate Test</h1>
-      <p class="text-text-secondary">Generate test questions from your documents using AI</p>
+      <h1 class="text-3xl font-bold text-text-primary mb-2">Создать тест</h1>
+      <p class="text-text-secondary">Генерируйте тестовые вопросы из ваших документов с помощью ИИ</p>
     </div>
 
     <div class="card-cyber">
@@ -19,7 +19,7 @@
         <!-- Select Document -->
         <div class="mb-6">
           <label class="block text-sm font-medium text-text-primary mb-2">
-            Select Document
+            Выберите документ
             <span class="text-red-500">*</span>
           </label>
 
@@ -29,7 +29,7 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span class="text-sm">Loading documents...</span>
+            <span class="text-sm">Загрузка документов...</span>
           </div>
 
           <select
@@ -39,7 +39,7 @@
             required
           >
             <option value="">
-              {{ isLoadingDocuments ? 'Loading...' : '-- Choose a document --' }}
+              {{ isLoadingDocuments ? 'Загрузка...' : '-- Выберите документ --' }}
             </option>
             <option
               v-for="doc in parsedDocuments"
@@ -51,25 +51,25 @@
           </select>
 
           <p v-if="!isLoadingDocuments && parsedDocuments.length === 0" class="text-text-muted text-sm mt-2">
-            No parsed documents available. Please upload and parse a document first on the
-            <router-link to="/documents" class="text-cyber-blue hover:underline">Documents page</router-link>.
+            Нет обработанных документов. Пожалуйста, загрузите и обработайте документ на
+            <router-link to="/documents" class="text-cyber-blue hover:underline">странице документов</router-link>.
           </p>
           <p v-else-if="!isLoadingDocuments && parsedDocuments.length > 0" class="text-text-muted text-sm mt-2">
-            {{ parsedDocuments.length }} document{{ parsedDocuments.length > 1 ? 's' : '' }} available
+            Доступно документов: {{ parsedDocuments.length }}
           </p>
         </div>
 
         <!-- Test Title -->
         <div class="mb-6">
           <label class="block text-sm font-medium text-text-primary mb-2">
-            Test Title
+            Название теста
             <span class="text-red-500">*</span>
           </label>
           <input
             v-model="form.title"
             type="text"
             class="input-cyber w-full"
-            placeholder="e.g., Introduction to Programming Quiz"
+            placeholder="Например, Введение в программирование"
             required
             minlength="3"
           />
@@ -78,7 +78,7 @@
         <!-- Number of Questions -->
         <div class="mb-6">
           <label class="block text-sm font-medium text-text-primary mb-2">
-            Number of Questions
+            Количество вопросов
             <span class="text-red-500">*</span>
           </label>
           <input
@@ -94,7 +94,7 @@
         <!-- Difficulty -->
         <div class="mb-6">
           <label class="block text-sm font-medium text-text-primary mb-2">
-            Difficulty
+            Сложность
             <span class="text-red-500">*</span>
           </label>
           <div class="grid grid-cols-3 gap-4">
@@ -108,7 +108,7 @@
                   : 'bg-bg-secondary text-text-secondary border-2 border-border-primary hover:border-green-500 hover:bg-green-500/10'
               ]"
             >
-              Easy
+              Легкий
             </button>
             <button
               type="button"
@@ -120,7 +120,7 @@
                   : 'bg-bg-secondary text-text-secondary border-2 border-border-primary hover:border-yellow-500 hover:bg-yellow-500/10'
               ]"
             >
-              Medium
+              Средний
             </button>
             <button
               type="button"
@@ -132,7 +132,7 @@
                   : 'bg-bg-secondary text-text-secondary border-2 border-border-primary hover:border-red-500 hover:bg-red-500/10'
               ]"
             >
-              Hard
+              Сложный
             </button>
           </div>
         </div>
@@ -140,13 +140,13 @@
         <!-- LLM Provider -->
         <div class="mb-6">
           <label class="block text-sm font-medium text-text-primary mb-2">
-            AI Provider
+            ИИ Провайдер
           </label>
           <select
             v-model="form.llmProvider"
             class="input-cyber w-full"
           >
-            <option value="yandexgpt">YandexGPT (Recommended for Russia)</option>
+            <option value="yandexgpt">YandexGPT (Рекомендуется для России)</option>
             <option value="perplexity">Perplexity AI</option>
             <option value="openai">OpenAI GPT-4</option>
           </select>
@@ -163,7 +163,7 @@
             to="/tests"
             class="inline-flex items-center justify-center px-6 py-3 border-2 border-border-primary text-text-secondary rounded-lg hover:border-neon-orange hover:text-neon-orange transition-all font-medium"
           >
-            Cancel
+            Отмена
           </router-link>
           <button
             type="submit"
@@ -180,7 +180,7 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            {{ isLoading ? 'Generating...' : isLoadingDocuments ? 'Loading...' : 'Generate Test' }}
+            {{ isLoading ? 'Генерация...' : isLoadingDocuments ? 'Загрузка...' : 'Сгенерировать тест' }}
           </button>
         </div>
       </form>
@@ -240,7 +240,7 @@ onMounted(async () => {
     })
   } catch (err: any) {
     logger.error('Failed to load documents', 'CreateTestView', err)
-    errorMessage.value = 'Failed to load documents. Please try again.'
+    errorMessage.value = 'Не удалось загрузить документы. Пожалуйста, попробуйте снова.'
   } finally {
     isLoadingDocuments.value = false
   }
@@ -268,7 +268,7 @@ async function handleSubmit() {
     router.push(`/tests/${response.id}`)
   } catch (err: any) {
     logger.error('Failed to generate test', 'CreateTestView', err)
-    errorMessage.value = err.response?.data?.error || 'Failed to generate test. Please try again.'
+    errorMessage.value = err.response?.data?.error || 'Не удалось сгенерировать тест. Пожалуйста, попробуйте снова.'
   } finally {
     isLoading.value = false
   }

@@ -1,6 +1,8 @@
 export interface Document {
   id: string
   user_id: string
+  user_name?: string  // Only for admin
+  user_email?: string // Only for admin
   title: string
   file_name: string
   file_path: string

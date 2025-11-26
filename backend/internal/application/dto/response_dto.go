@@ -107,3 +107,10 @@ func NewMessageResponse(message string) MessageResponse {
 		Message: message,
 	}
 }
+
+// DashboardStatsResponse represents dashboard statistics
+type DashboardStatsResponse struct {
+	DocumentsCount int64 `json:"documents_count" example:"15"`
+	TestsCount     int64 `json:"tests_count" example:"8"`
+	QuestionsCount int64 `json:"questions_count" example:"120"`
+}

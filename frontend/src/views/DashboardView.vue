@@ -1,23 +1,45 @@
 <template>
   <div>
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-text-primary mb-2">Dashboard</h1>
+      <h1 class="text-3xl font-bold text-text-primary mb-2">Дашборд</h1>
       <p class="text-text-secondary">
         {{ isTeacherOrAdmin
-          ? 'Welcome to TestGen - AI-Powered Test Generation'
-          : 'Welcome to TestGen - View and take your assigned tests'
+          ? 'Добро пожаловать в TestGen - Генерация тестов на основе ИИ'
+          : 'Добро пожаловать в TestGen - Просматривайте и проходите назначенные тесты'
         }}
       </p>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="card-cyber text-center py-12 mb-8">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-cyber-blue/20 flex items-center justify-center animate-pulse">
+        <svg class="w-8 h-8 text-cyber-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </div>
+      <p class="text-text-secondary">Загрузка статистики...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="card-cyber border-red-500/20 bg-red-500/5 p-6 mb-8">
+      <div class="flex items-center gap-3 mb-4">
+        <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="text-lg font-semibold text-red-400">Ошибка загрузки статистики</h3>
+      </div>
+      <p class="text-red-300 mb-4">{{ error }}</p>
+      <button @click="loadStats" class="btn-neon">Попробовать снова</button>
+    </div>
+
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
       <!-- Documents Card (Teacher/Admin only) -->
       <div v-if="isTeacherOrAdmin" class="card-cyber">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-text-muted text-sm uppercase tracking-wider">Total Documents</p>
-            <p class="text-3xl font-bold text-text-primary mt-2">0</p>
+            <p class="text-text-muted text-sm uppercase tracking-wider">Всего документов</p>
+            <p class="text-3xl font-bold text-text-primary mt-2">{{ stats.documents_count }}</p>
           </div>
           <div class="w-12 h-12 rounded-lg bg-neon-orange/20 flex items-center justify-center">
             <svg class="w-6 h-6 text-neon-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,9 +54,9 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-text-muted text-sm uppercase tracking-wider">
-              {{ isTeacherOrAdmin ? 'Generated Tests' : 'Assigned Tests' }}
+              {{ isTeacherOrAdmin ? 'Созданных тестов' : 'Назначенных тестов' }}
             </p>
-            <p class="text-3xl font-bold text-text-primary mt-2">0</p>
+            <p class="text-3xl font-bold text-text-primary mt-2">{{ stats.tests_count }}</p>
           </div>
           <div class="w-12 h-12 rounded-lg bg-cyber-blue/20 flex items-center justify-center">
             <svg class="w-6 h-6 text-cyber-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,10 +71,10 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-text-muted text-sm uppercase tracking-wider">
-              {{ isTeacherOrAdmin ? 'Total Questions' : 'Average Score' }}
+              {{ isTeacherOrAdmin ? 'Всего вопросов' : 'Средний балл' }}
             </p>
             <p class="text-3xl font-bold text-text-primary mt-2">
-              {{ isTeacherOrAdmin ? '0' : '0%' }}
+              {{ isTeacherOrAdmin ? stats.questions_count : '0%' }}
             </p>
           </div>
           <div class="w-12 h-12 rounded-lg bg-cyber-purple/20 flex items-center justify-center">
@@ -70,7 +92,7 @@
 
     <!-- Quick Actions -->
     <div class="card-cyber">
-      <h2 class="text-xl font-bold text-text-primary mb-4">Quick Actions</h2>
+      <h2 class="text-xl font-bold text-text-primary mb-4">Быстрые действия</h2>
 
       <!-- Teacher/Admin Actions -->
       <div v-if="isTeacherOrAdmin" class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -84,8 +106,8 @@
             </svg>
           </div>
           <div>
-            <p class="font-semibold text-text-primary group-hover:text-neon-orange transition-colors">Upload Document</p>
-            <p class="text-sm text-text-muted">Add new learning material</p>
+            <p class="font-semibold text-text-primary group-hover:text-neon-orange transition-colors">Загрузить документ</p>
+            <p class="text-sm text-text-muted">Добавить новый учебный материал</p>
           </div>
         </router-link>
 
@@ -99,8 +121,8 @@
             </svg>
           </div>
           <div>
-            <p class="font-semibold text-text-primary group-hover:text-neon-orange transition-colors">Create Test</p>
-            <p class="text-sm text-text-muted">Generate new test questions</p>
+            <p class="font-semibold text-text-primary group-hover:text-neon-orange transition-colors">Создать тест</p>
+            <p class="text-sm text-text-muted">Сгенерировать новые вопросы</p>
           </div>
         </router-link>
       </div>
@@ -117,8 +139,8 @@
             </svg>
           </div>
           <div>
-            <p class="font-semibold text-text-primary group-hover:text-neon-orange transition-colors">View Tests</p>
-            <p class="text-sm text-text-muted">See your assigned tests</p>
+            <p class="font-semibold text-text-primary group-hover:text-neon-orange transition-colors">Просмотр тестов</p>
+            <p class="text-sm text-text-muted">Посмотреть назначенные тесты</p>
           </div>
         </router-link>
 
@@ -129,8 +151,8 @@
             </svg>
           </div>
           <div>
-            <p class="font-semibold text-text-primary">Practice Mode</p>
-            <p class="text-sm text-text-muted">Coming soon</p>
+            <p class="font-semibold text-text-primary">Режим практики</p>
+            <p class="text-sm text-text-muted">Скоро</p>
           </div>
         </div>
       </div>
@@ -139,13 +161,43 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/features/auth/stores/authStore'
+import { statsService, type DashboardStats } from '@/services/statsService'
+import logger from '@/utils/logger'
 
 const authStore = useAuthStore()
 
 const isTeacherOrAdmin = computed(() => {
   const role = authStore.user?.role
   return role === 'teacher' || role === 'admin'
+})
+
+const stats = ref<DashboardStats>({
+  documents_count: 0,
+  tests_count: 0,
+  questions_count: 0,
+})
+
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+async function loadStats() {
+  loading.value = true
+  error.value = null
+
+  try {
+    stats.value = await statsService.getDashboardStats()
+    logger.info('Dashboard stats loaded successfully', 'DashboardView', stats.value)
+  } catch (err: any) {
+    error.value = err.message || 'Не удалось загрузить статистику'
+    logger.error('Failed to load dashboard stats', 'DashboardView', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadStats()
 })
 </script>

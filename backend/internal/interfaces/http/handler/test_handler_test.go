@@ -53,6 +53,14 @@ func (m *mockTestRepository) CountByUserID(ctx context.Context, userID uuid.UUID
 	return args.Get(0).(int64), args.Error(1)
 }
 
+func (m *mockTestRepository) FindAll(ctx context.Context, limit, offset int) ([]*entity.Test, error) {
+	return nil, nil
+}
+
+func (m *mockTestRepository) CountAll(ctx context.Context) (int64, error) {
+	return 0, nil
+}
+
 type mockTestDocRepository struct{ mock.Mock }
 
 func (m *mockTestDocRepository) Create(ctx context.Context, doc *entity.Document) error { return nil }
@@ -83,6 +91,14 @@ func (m *mockTestDocRepository) CountByUserID(ctx context.Context, userID uuid.U
 	return args.Get(0).(int64), args.Error(1)
 }
 
+func (m *mockTestDocRepository) FindAll(ctx context.Context, limit, offset int) ([]*entity.Document, error) {
+	return nil, nil
+}
+
+func (m *mockTestDocRepository) CountAll(ctx context.Context) (int64, error) {
+	return 0, nil
+}
+
 type mockQuestionRepository struct{ mock.Mock }
 
 func (m *mockQuestionRepository) Create(ctx context.Context, question *entity.Question) error {
@@ -108,6 +124,14 @@ func (m *mockQuestionRepository) ReorderQuestions(ctx context.Context, testID uu
 	return nil
 }
 
+func (m *mockQuestionRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
+	return 0, nil
+}
+
+func (m *mockQuestionRepository) CountAll(ctx context.Context) (int64, error) {
+	return 0, nil
+}
+
 type mockAnswerRepository struct{ mock.Mock }
 
 func (m *mockAnswerRepository) Create(ctx context.Context, answer *entity.Answer) error {
@@ -130,6 +154,26 @@ func (m *mockAnswerRepository) DeleteByQuestionID(ctx context.Context, questionI
 	return nil
 }
 
+type mockTestUserRepository struct{ mock.Mock }
+
+func (m *mockTestUserRepository) Create(ctx context.Context, user *entity.User) error { return nil }
+func (m *mockTestUserRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.User, error) {
+	args := m.Called(ctx, id)
+	if res := args.Get(0); res != nil {
+		return res.(*entity.User), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+func (m *mockTestUserRepository) FindByEmail(ctx context.Context, email string) (*entity.User, error) {
+	return nil, nil
+}
+func (m *mockTestUserRepository) Update(ctx context.Context, user *entity.User) error { return nil }
+func (m *mockTestUserRepository) Delete(ctx context.Context, id uuid.UUID) error      { return nil }
+func (m *mockTestUserRepository) List(ctx context.Context, limit, offset int) ([]*entity.User, error) {
+	return nil, nil
+}
+func (m *mockTestUserRepository) Count(ctx context.Context) (int64, error) { return 0, nil }
+
 func TestCreateTest_Success(t *testing.T) {
 	userID := uuid.New()
 	testRepo := new(mockTestRepository)
@@ -140,7 +184,7 @@ func TestCreateTest_Success(t *testing.T) {
 		test.ID = uuid.New()
 	}).Return(nil)
 
-	handler := NewTestHandler(testRepo, docRepo, new(mockQuestionRepository), new(mockAnswerRepository), nil)
+	handler := NewTestHandler(testRepo, docRepo, new(mockQuestionRepository), new(mockAnswerRepository), new(mockTestUserRepository), nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Post("/tests", handler.Create)
@@ -156,7 +200,7 @@ func TestCreateTest_Success(t *testing.T) {
 }
 
 func TestCreateTest_InvalidBody(t *testing.T) {
-	handler := NewTestHandler(new(mockTestRepository), new(mockTestDocRepository), new(mockQuestionRepository), new(mockAnswerRepository), nil)
+	handler := NewTestHandler(new(mockTestRepository), new(mockTestDocRepository), new(mockQuestionRepository), new(mockAnswerRepository), new(mockTestUserRepository), nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", uuid.New()); return c.Next() })
 	app.Post("/tests", handler.Create)
@@ -200,7 +244,7 @@ func TestGenerate_Success(t *testing.T) {
 	// Use perplexity provider which returns mock data in tests
 	mockFactory := llm.NewLLMFactory("test-key", "", "", "", "")
 
-	handler := NewTestHandler(testRepo, docRepo, questionRepo, answerRepo, mockFactory)
+	handler := NewTestHandler(testRepo, docRepo, questionRepo, answerRepo, new(mockTestUserRepository), mockFactory, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Post("/tests/generate", handler.Generate)
@@ -232,7 +276,7 @@ func TestGenerate_DocumentNotFound(t *testing.T) {
 	docRepo := new(mockTestDocRepository)
 	docRepo.On("FindByID", mock.Anything, mock.AnythingOfType("uuid.UUID")).Return(nil, assert.AnError)
 
-	handler := NewTestHandler(new(mockTestRepository), docRepo, new(mockQuestionRepository), new(mockAnswerRepository), nil)
+	handler := NewTestHandler(new(mockTestRepository), docRepo, new(mockQuestionRepository), new(mockAnswerRepository), new(mockTestUserRepository), nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Post("/tests/generate", handler.Generate)
@@ -263,7 +307,7 @@ func TestGenerate_DocumentNotParsed(t *testing.T) {
 	}
 	docRepo.On("FindByID", mock.Anything, docID).Return(document, nil)
 
-	handler := NewTestHandler(new(mockTestRepository), docRepo, new(mockQuestionRepository), new(mockAnswerRepository), nil)
+	handler := NewTestHandler(new(mockTestRepository), docRepo, new(mockQuestionRepository), new(mockAnswerRepository), new(mockTestUserRepository), nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Post("/tests/generate", handler.Generate)
@@ -298,7 +342,7 @@ func TestGenerate_InvalidProvider(t *testing.T) {
 	// Factory will return error for invalid provider (empty factory)
 	mockFactory := llm.NewLLMFactory("", "", "", "", "")
 
-	handler := NewTestHandler(new(mockTestRepository), docRepo, new(mockQuestionRepository), new(mockAnswerRepository), mockFactory)
+	handler := NewTestHandler(new(mockTestRepository), docRepo, new(mockQuestionRepository), new(mockAnswerRepository), new(mockTestUserRepository), mockFactory, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Post("/tests/generate", handler.Generate)
@@ -322,11 +366,17 @@ func TestListTests_Success(t *testing.T) {
 	userID := uuid.New()
 	testRepo := new(mockTestRepository)
 	docRepo := new(mockTestDocRepository)
+	userRepo := new(mockTestUserRepository)
+
+	// Mock user with teacher role
+	teacherRole := &entity.Role{ID: uuid.New(), Name: "teacher"}
+	teacherUser := &entity.User{ID: userID, Email: "teacher@test.com", RoleID: teacherRole.ID, Role: teacherRole}
+	userRepo.On("FindByID", mock.Anything, userID).Return(teacherUser, nil)
 
 	testRepo.On("FindByUserID", mock.Anything, userID, 20, 0).Return([]*entity.Test{{ID: uuid.New(), Title: "T1", UserID: userID}}, nil)
 	testRepo.On("CountByUserID", mock.Anything, userID).Return(int64(1), nil)
 
-	handler := NewTestHandler(testRepo, docRepo, new(mockQuestionRepository), new(mockAnswerRepository), nil)
+	handler := NewTestHandler(testRepo, docRepo, new(mockQuestionRepository), new(mockAnswerRepository), userRepo, nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Get("/tests", handler.List)
@@ -342,7 +392,7 @@ func TestGetByID_NotFound(t *testing.T) {
 	testRepo := new(mockTestRepository)
 	testRepo.On("FindByID", mock.Anything, mock.AnythingOfType("uuid.UUID")).Return(nil, assert.AnError)
 
-	handler := NewTestHandler(testRepo, new(mockTestDocRepository), new(mockQuestionRepository), new(mockAnswerRepository), nil)
+	handler := NewTestHandler(testRepo, new(mockTestDocRepository), new(mockQuestionRepository), new(mockAnswerRepository), new(mockTestUserRepository), nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Get("/tests/:id", handler.GetByID)
@@ -361,7 +411,7 @@ func TestDeleteTest_Success(t *testing.T) {
 	testRepo.On("FindByID", mock.Anything, testID).Return(&entity.Test{ID: testID, UserID: userID}, nil)
 	testRepo.On("Delete", mock.Anything, testID).Return(nil)
 
-	handler := NewTestHandler(testRepo, new(mockTestDocRepository), new(mockQuestionRepository), new(mockAnswerRepository), nil)
+	handler := NewTestHandler(testRepo, new(mockTestDocRepository), new(mockQuestionRepository), new(mockAnswerRepository), new(mockTestUserRepository), nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Delete("/tests/:id", handler.Delete)
@@ -438,7 +488,7 @@ func TestGetByID_Success_WithQuestionsAndAnswers(t *testing.T) {
 	}
 	answerRepo.On("FindByQuestionID", mock.Anything, questionID2).Return(answers2, nil)
 
-	handler := NewTestHandler(testRepo, new(mockTestDocRepository), questionRepo, answerRepo, nil)
+	handler := NewTestHandler(testRepo, new(mockTestDocRepository), questionRepo, answerRepo, new(mockTestUserRepository), nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Get("/tests/:id", handler.GetByID)
@@ -502,7 +552,7 @@ func TestGetByID_QuestionsLoadError(t *testing.T) {
 	testRepo.On("FindByID", mock.Anything, testID).Return(test, nil)
 	questionRepo.On("FindByTestID", mock.Anything, testID).Return(nil, assert.AnError)
 
-	handler := NewTestHandler(testRepo, new(mockTestDocRepository), questionRepo, new(mockAnswerRepository), nil)
+	handler := NewTestHandler(testRepo, new(mockTestDocRepository), questionRepo, new(mockAnswerRepository), new(mockTestUserRepository), nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Get("/tests/:id", handler.GetByID)
@@ -536,7 +586,7 @@ func TestGetByID_AnswersLoadError(t *testing.T) {
 	questionRepo.On("FindByTestID", mock.Anything, testID).Return(questions, nil)
 	answerRepo.On("FindByQuestionID", mock.Anything, questionID).Return(nil, assert.AnError)
 
-	handler := NewTestHandler(testRepo, new(mockTestDocRepository), questionRepo, answerRepo, nil)
+	handler := NewTestHandler(testRepo, new(mockTestDocRepository), questionRepo, answerRepo, new(mockTestUserRepository), nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Get("/tests/:id", handler.GetByID)
@@ -559,6 +609,12 @@ func TestListTests_ReturnsCompleteData(t *testing.T) {
 	testID2 := uuid.New()
 
 	testRepo := new(mockTestRepository)
+	userRepo := new(mockTestUserRepository)
+
+	// Mock user with teacher role
+	teacherRole := &entity.Role{ID: uuid.New(), Name: "teacher"}
+	teacherUser := &entity.User{ID: userID, Email: "teacher@test.com", RoleID: teacherRole.ID, Role: teacherRole}
+	userRepo.On("FindByID", mock.Anything, userID).Return(teacherUser, nil)
 
 	tests := []*entity.Test{
 		{
@@ -584,7 +640,7 @@ func TestListTests_ReturnsCompleteData(t *testing.T) {
 	testRepo.On("FindByUserID", mock.Anything, userID, 20, 0).Return(tests, nil)
 	testRepo.On("CountByUserID", mock.Anything, userID).Return(int64(2), nil)
 
-	handler := NewTestHandler(testRepo, new(mockTestDocRepository), new(mockQuestionRepository), new(mockAnswerRepository), nil)
+	handler := NewTestHandler(testRepo, new(mockTestDocRepository), new(mockQuestionRepository), new(mockAnswerRepository), userRepo, nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Get("/tests", handler.List)
@@ -631,12 +687,18 @@ func TestListTests_ReturnsCompleteData(t *testing.T) {
 func TestListTests_WithPagination(t *testing.T) {
 	userID := uuid.New()
 	testRepo := new(mockTestRepository)
+	userRepo := new(mockTestUserRepository)
+
+	// Mock user with teacher role
+	teacherRole := &entity.Role{ID: uuid.New(), Name: "teacher"}
+	teacherUser := &entity.User{ID: userID, Email: "teacher@test.com", RoleID: teacherRole.ID, Role: teacherRole}
+	userRepo.On("FindByID", mock.Anything, userID).Return(teacherUser, nil)
 
 	// Request page 2 with page_size 10
 	testRepo.On("FindByUserID", mock.Anything, userID, 10, 10).Return([]*entity.Test{}, nil)
 	testRepo.On("CountByUserID", mock.Anything, userID).Return(int64(25), nil)
 
-	handler := NewTestHandler(testRepo, new(mockTestDocRepository), new(mockQuestionRepository), new(mockAnswerRepository), nil)
+	handler := NewTestHandler(testRepo, new(mockTestDocRepository), new(mockQuestionRepository), new(mockAnswerRepository), userRepo, nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Get("/tests", handler.List)

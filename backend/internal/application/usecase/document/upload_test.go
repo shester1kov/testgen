@@ -50,13 +50,21 @@ func (m *MockDocumentRepository) Delete(ctx context.Context, id uuid.UUID) error
 	return args.Error(0)
 }
 
-func (m *MockDocumentRepository) Count(ctx context.Context, userID uuid.UUID) (int64, error) {
-	args := m.Called(ctx, userID)
-	return args.Get(0).(int64), args.Error(1)
+func (m *MockDocumentRepository) FindAll(ctx context.Context, limit, offset int) ([]*entity.Document, error) {
+	args := m.Called(ctx, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entity.Document), args.Error(1)
 }
 
 func (m *MockDocumentRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
 	args := m.Called(ctx, userID)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockDocumentRepository) CountAll(ctx context.Context) (int64, error) {
+	args := m.Called(ctx)
 	return args.Get(0).(int64), args.Error(1)
 }
 

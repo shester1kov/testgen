@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 class="text-2xl font-bold text-text-primary mb-6">Sign in to your account</h2>
+    <h2 class="text-2xl font-bold text-text-primary mb-6">Вход в систему</h2>
 
     <form @submit.prevent="handleLogin" class="space-y-6">
       <div>
@@ -16,13 +16,13 @@
       </div>
 
       <div>
-        <label for="password" class="block text-sm font-medium text-text-secondary mb-2">Password</label>
+        <label for="password" class="block text-sm font-medium text-text-secondary mb-2">Пароль</label>
         <input
           id="password"
           v-model="formData.password"
           type="password"
           required
-          placeholder="Enter your password"
+          placeholder="Введите пароль"
           class="input-neon w-full"
         />
       </div>
@@ -41,16 +41,16 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          Signing in...
+          Вход...
         </span>
-        <span v-else>Sign in</span>
+        <span v-else>Войти</span>
       </button>
     </form>
 
     <p class="mt-6 text-center text-sm text-text-secondary">
-      Don't have an account?
+      Нет аккаунта?
       <router-link to="/register" class="font-medium text-neon-orange hover:text-neon-orange-light transition-colors">
-        Register
+        Зарегистрироваться
       </router-link>
     </p>
   </div>
@@ -80,7 +80,7 @@ async function handleLogin() {
     await authStore.login(formData.value)
     router.push('/dashboard')
   } catch (err: any) {
-    error.value = err.message || 'Login failed'
+    error.value = err.message || 'Ошибка входа'
   } finally {
     loading.value = false
   }

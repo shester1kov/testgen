@@ -31,6 +31,28 @@ func (m *mockDocumentRepository) Create(ctx context.Context, document *entity.Do
 	return args.Error(0)
 }
 
+type mockDocUserRepository struct {
+	mock.Mock
+}
+
+func (m *mockDocUserRepository) Create(ctx context.Context, user *entity.User) error { return nil }
+func (m *mockDocUserRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.User, error) {
+	args := m.Called(ctx, id)
+	if res := args.Get(0); res != nil {
+		return res.(*entity.User), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+func (m *mockDocUserRepository) FindByEmail(ctx context.Context, email string) (*entity.User, error) {
+	return nil, nil
+}
+func (m *mockDocUserRepository) Update(ctx context.Context, user *entity.User) error { return nil }
+func (m *mockDocUserRepository) Delete(ctx context.Context, id uuid.UUID) error      { return nil }
+func (m *mockDocUserRepository) List(ctx context.Context, limit, offset int) ([]*entity.User, error) {
+	return nil, nil
+}
+func (m *mockDocUserRepository) Count(ctx context.Context) (int64, error) { return 0, nil }
+
 func (m *mockDocumentRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.Document, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
@@ -59,6 +81,19 @@ func (m *mockDocumentRepository) Delete(ctx context.Context, id uuid.UUID) error
 
 func (m *mockDocumentRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
 	args := m.Called(ctx, userID)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *mockDocumentRepository) FindAll(ctx context.Context, limit, offset int) ([]*entity.Document, error) {
+	args := m.Called(ctx, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entity.Document), args.Error(1)
+}
+
+func (m *mockDocumentRepository) CountAll(ctx context.Context) (int64, error) {
+	args := m.Called(ctx)
 	return args.Get(0).(int64), args.Error(1)
 }
 
@@ -100,7 +135,7 @@ func TestDocumentUpload_SucceedsWithSupportedType(t *testing.T) {
 		doc.ID = uuid.New()
 	}).Return(nil)
 
-	handler := NewDocumentHandler(repo, factory, uploadDir, 1024)
+	handler := NewDocumentHandler(repo, new(mockDocUserRepository), factory, uploadDir, 1024)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID)
@@ -130,7 +165,7 @@ func TestDocumentUpload_RejectsUnsupportedOrLargeFiles(t *testing.T) {
 	uploadDir := t.TempDir()
 	userID := uuid.New()
 
-	handler := NewDocumentHandler(repo, factory, uploadDir, 4)
+	handler := NewDocumentHandler(repo, new(mockDocUserRepository), factory, uploadDir, 4)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID)
@@ -156,11 +191,17 @@ func TestDocumentUpload_RejectsUnsupportedOrLargeFiles(t *testing.T) {
 
 func TestDocumentList_HandlesErrors(t *testing.T) {
 	repo := new(mockDocumentRepository)
+	userRepo := new(mockDocUserRepository)
 	factory := parser.NewDocumentParserFactory()
 	userID := uuid.New()
 
+	// Mock user with teacher role
+	teacherRole := &entity.Role{ID: uuid.New(), Name: "teacher"}
+	teacherUser := &entity.User{ID: userID, Email: "teacher@test.com", RoleID: teacherRole.ID, Role: teacherRole}
+	userRepo.On("FindByID", mock.Anything, userID).Return(teacherUser, nil)
+
 	repo.On("FindByUserID", mock.Anything, userID, 20, 0).Return(nil, assert.AnError)
-	handler := NewDocumentHandler(repo, factory, t.TempDir(), 1024)
+	handler := NewDocumentHandler(repo, userRepo, factory, t.TempDir(), 1024)
 
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
@@ -186,7 +227,7 @@ func TestDocumentGetByID_ForbiddenAndNotFound(t *testing.T) {
 	doc := &entity.Document{ID: uuid.New(), UserID: otherUser}
 	repo.On("FindByID", mock.Anything, doc.ID).Return(doc, nil)
 
-	handler := NewDocumentHandler(repo, factory, t.TempDir(), 1024)
+	handler := NewDocumentHandler(repo, new(mockDocUserRepository), factory, t.TempDir(), 1024)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID)
@@ -220,7 +261,7 @@ func TestDocumentDelete_RemovesFileAndHandlesRepoFailure(t *testing.T) {
 	repo.On("FindByID", mock.Anything, doc.ID).Return(doc, nil)
 	repo.On("Delete", mock.Anything, doc.ID).Return(assert.AnError)
 
-	handler := NewDocumentHandler(repo, factory, tempDir, 1024)
+	handler := NewDocumentHandler(repo, new(mockDocUserRepository), factory, tempDir, 1024)
 
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
@@ -252,7 +293,7 @@ func TestDocumentParse_SuccessAndParserError(t *testing.T) {
 	repo.On("FindByID", mock.Anything, doc.ID).Return(doc, nil)
 	repo.On("Update", mock.Anything, mock.AnythingOfType("*entity.Document")).Return(nil)
 
-	handler := NewDocumentHandler(repo, factory, tempDir, 1024)
+	handler := NewDocumentHandler(repo, new(mockDocUserRepository), factory, tempDir, 1024)
 
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
@@ -275,7 +316,7 @@ func TestDocumentParse_SuccessAndParserError(t *testing.T) {
 	doc.Status = entity.StatusUploaded
 	repo.On("FindByID", mock.Anything, doc.ID).Return(doc, nil)
 
-	handler = NewDocumentHandler(repo, factoryErr, tempDir, 1024)
+	handler = NewDocumentHandler(repo, new(mockDocUserRepository), factoryErr, tempDir, 1024)
 	app = fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID)

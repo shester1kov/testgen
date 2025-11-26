@@ -3,15 +3,15 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h2 class="text-lg font-semibold text-text-primary">My Documents</h2>
-        <p class="text-sm text-text-muted mt-1">{{ total }} document{{ total !== 1 ? 's' : '' }} total</p>
+        <h2 class="text-lg font-semibold text-text-primary">{{ documentListTitle }}</h2>
+        <p class="text-sm text-text-muted mt-1">Всего документов: {{ total }}</p>
       </div>
     </div>
 
     <!-- Loading state -->
     <div v-if="isLoading && documents.length === 0" class="flex flex-col items-center justify-center py-12">
       <div class="w-12 h-12 border-4 border-neon-orange/30 border-t-neon-orange rounded-full animate-spin mb-4"></div>
-      <p class="text-text-muted">Loading documents...</p>
+      <p class="text-text-muted">Загрузка документов...</p>
     </div>
 
     <!-- Empty state -->
@@ -22,8 +22,8 @@
             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       </div>
-      <h3 class="text-lg font-semibold text-text-primary mb-2">No documents yet</h3>
-      <p class="text-text-muted">Upload your first document to get started</p>
+      <h3 class="text-lg font-semibold text-text-primary mb-2">Документов пока нет</h3>
+      <p class="text-text-muted">Загрузите первый документ, чтобы начать</p>
     </div>
 
     <!-- Document grid -->
@@ -47,11 +47,11 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
-        Previous
+        Назад
       </button>
 
       <div class="text-sm text-text-muted">
-        Page <span class="text-neon-orange font-medium">{{ currentPage }}</span> of {{ totalPages }}
+        Страница <span class="text-neon-orange font-medium">{{ currentPage }}</span> из {{ totalPages }}
       </div>
 
       <button
@@ -60,7 +60,7 @@
         :disabled="currentPage === totalPages"
         @click="handlePageChange(currentPage + 1)"
       >
-        Next
+        Вперёд
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
@@ -81,16 +81,17 @@
         class="px-3 py-1.5 bg-cyber-pink/20 text-cyber-pink rounded-lg text-sm font-medium hover:bg-cyber-pink/30 transition-colors"
         @click="handleRetry"
       >
-        Retry
+        Повторить
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useDocumentsStore } from '../stores/documentsStore'
+import { useAuthStore } from '@/features/auth/stores/authStore'
 import DocumentCard from './DocumentCard.vue'
 import type { Document } from '../types/document.types'
 
@@ -99,7 +100,11 @@ const emit = defineEmits<{
 }>()
 
 const documentsStore = useDocumentsStore()
+const authStore = useAuthStore()
 const { documents, total, currentPage, totalPages, loading: isLoading, error } = storeToRefs(documentsStore)
+const { isAdmin } = storeToRefs(authStore)
+
+const documentListTitle = computed(() => isAdmin.value ? 'Все документы' : 'Мои документы')
 
 onMounted(() => {
   loadDocuments()

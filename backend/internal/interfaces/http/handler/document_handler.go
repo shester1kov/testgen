@@ -17,6 +17,7 @@ import (
 // DocumentHandler handles document operations
 type DocumentHandler struct {
 	documentRepo  repository.DocumentRepository
+	userRepo      repository.UserRepository
 	parserFactory *parser.DocumentParserFactory
 	uploadDir     string
 	maxFileSize   int64
@@ -25,6 +26,7 @@ type DocumentHandler struct {
 // NewDocumentHandler creates a new document handler
 func NewDocumentHandler(
 	documentRepo repository.DocumentRepository,
+	userRepo repository.UserRepository,
 	parserFactory *parser.DocumentParserFactory,
 	uploadDir string,
 	maxFileSize int64,
@@ -34,6 +36,7 @@ func NewDocumentHandler(
 
 	return &DocumentHandler{
 		documentRepo:  documentRepo,
+		userRepo:      userRepo,
 		parserFactory: parserFactory,
 		uploadDir:     uploadDir,
 		maxFileSize:   maxFileSize,
@@ -140,6 +143,7 @@ func (h *DocumentHandler) Upload(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(dto.DocumentUploadResponse{
 		ID:        document.ID.String(),
+		UserID:    document.UserID.String(),
 		Title:     document.Title,
 		FileName:  document.FileName,
 		FileType:  string(document.FileType),
@@ -150,8 +154,8 @@ func (h *DocumentHandler) Upload(c *fiber.Ctx) error {
 }
 
 // List godoc
-// @Summary List user's documents
-// @Description Get paginated list of documents uploaded by the current user
+// @Summary List documents
+// @Description Get paginated list of documents. Admin sees all documents with user info, others see only their own
 // @Tags documents
 // @Produce json
 // @Security BearerAuth
@@ -169,6 +173,14 @@ func (h *DocumentHandler) List(c *fiber.Ctx) error {
 		)
 	}
 
+	// Get user to check role
+	user, err := h.userRepo.FindByID(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch user"),
+		)
+	}
+
 	page := c.QueryInt("page", 1)
 	pageSize := c.QueryInt("page_size", 20)
 
@@ -181,18 +193,38 @@ func (h *DocumentHandler) List(c *fiber.Ctx) error {
 
 	offset := (page - 1) * pageSize
 
-	documents, err := h.documentRepo.FindByUserID(c.Context(), userID, pageSize, offset)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch documents"),
-		)
-	}
+	var documents []*entity.Document
+	var total int64
 
-	total, err := h.documentRepo.CountByUserID(c.Context(), userID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to count documents"),
-		)
+	// Admin sees all documents, others see only their own
+	if user.IsAdmin() {
+		documents, err = h.documentRepo.FindAll(c.Context(), pageSize, offset)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch documents"),
+			)
+		}
+
+		total, err = h.documentRepo.CountAll(c.Context())
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to count documents"),
+			)
+		}
+	} else {
+		documents, err = h.documentRepo.FindByUserID(c.Context(), userID, pageSize, offset)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch documents"),
+			)
+		}
+
+		total, err = h.documentRepo.CountByUserID(c.Context(), userID)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to count documents"),
+			)
+		}
 	}
 
 	result := make([]dto.DocumentUploadResponse, len(documents))
@@ -206,8 +238,19 @@ func (h *DocumentHandler) List(c *fiber.Ctx) error {
 			errorMsg = &doc.ErrorMsg
 		}
 
+		// Include user info for admin
+		var userName *string
+		var userEmail *string
+		if user.IsAdmin() && doc.User.ID != uuid.Nil {
+			userName = &doc.User.FullName
+			userEmail = &doc.User.Email
+		}
+
 		result[i] = dto.DocumentUploadResponse{
 			ID:         doc.ID.String(),
+			UserID:     doc.UserID.String(),
+			UserName:   userName,
+			UserEmail:  userEmail,
 			Title:      doc.Title,
 			FileName:   doc.FileName,
 			FileType:   string(doc.FileType),
@@ -279,6 +322,7 @@ func (h *DocumentHandler) GetByID(c *fiber.Ctx) error {
 
 	return c.JSON(dto.DocumentUploadResponse{
 		ID:         document.ID.String(),
+		UserID:     document.UserID.String(),
 		Title:      document.Title,
 		FileName:   document.FileName,
 		FileType:   string(document.FileType),

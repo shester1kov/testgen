@@ -22,6 +22,7 @@ func TestSetupRoutes_RegistersExpectedEndpoints(t *testing.T) {
 		&handler.DocumentHandler{},
 		&handler.TestHandler{},
 		&handler.MoodleHandler{},
+		&handler.StatsHandler{},
 		jwtManager,
 		"token",
 	)

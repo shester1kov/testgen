@@ -19,9 +19,11 @@ import (
 // ApplicationContainer holds all application dependencies
 type ApplicationContainer struct {
 	AuthHandler     *handler.AuthHandler
+	UserHandler     *handler.UserHandler
 	DocumentHandler *handler.DocumentHandler
 	TestHandler     *handler.TestHandler
 	MoodleHandler   *handler.MoodleHandler
+	StatsHandler    *handler.StatsHandler
 	JWTManager      *utils.JWTManager
 }
 
@@ -51,9 +53,11 @@ func InitializeApplication(cfg *config.Config, db *gorm.DB) (*ApplicationContain
 
 		// Handlers
 		provideAuthHandler,
+		handler.NewUserHandler,
 		handler.NewDocumentHandler,
 		handler.NewTestHandler,
 		handler.NewMoodleHandler,
+		handler.NewStatsHandler,
 
 		// File config providers
 		provideUploadDir,

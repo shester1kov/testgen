@@ -21,7 +21,7 @@
                      border border-transparent hover:border-dark-500"
               active-class="text-neon-orange bg-dark-700 border-dark-500 shadow-neon-sm"
             >
-              Dashboard
+              Дашборд
             </router-link>
             <router-link
               v-if="isTeacherOrAdmin"
@@ -31,7 +31,7 @@
                      border border-transparent hover:border-dark-500"
               active-class="text-neon-orange bg-dark-700 border-dark-500 shadow-neon-sm"
             >
-              Documents
+              Документы
             </router-link>
             <router-link
               to="/tests"
@@ -40,7 +40,7 @@
                      border border-transparent hover:border-dark-500"
               active-class="text-neon-orange bg-dark-700 border-dark-500 shadow-neon-sm"
             >
-              Tests
+              Тесты
             </router-link>
             <router-link
               v-if="isTeacherOrAdmin"
@@ -50,7 +50,7 @@
                      border border-transparent hover:border-dark-500"
               active-class="text-neon-orange bg-dark-700 border-dark-500 shadow-neon-sm"
             >
-              Users
+              Пользователи
             </router-link>
           </nav>
 
@@ -66,7 +66,7 @@
                      px-4 py-2 rounded-lg border border-dark-500 hover:border-neon-orange
                      transition-all duration-300 hover:shadow-neon-sm"
             >
-              Logout
+              Выход
             </button>
           </div>
         </div>

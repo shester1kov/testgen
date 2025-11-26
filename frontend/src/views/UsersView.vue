@@ -2,11 +2,11 @@
   <div>
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-text-primary mb-2">Users Management</h1>
+        <h1 class="text-3xl font-bold text-text-primary mb-2">Управление пользователями</h1>
         <p class="text-text-secondary">
           {{ isAdmin
-            ? 'Manage user roles and permissions'
-            : 'View students and assign tests to them'
+            ? 'Управляйте ролями и правами пользователей'
+            : 'Просматривайте студентов и назначайте им тесты'
           }}
         </p>
       </div>

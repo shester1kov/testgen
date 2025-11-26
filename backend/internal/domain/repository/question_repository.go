@@ -29,4 +29,10 @@ type QuestionRepository interface {
 
 	// ReorderQuestions updates the order of questions
 	ReorderQuestions(ctx context.Context, testID uuid.UUID, questionIDs []uuid.UUID) error
+
+	// CountByUserID counts questions for a specific user
+	CountByUserID(ctx context.Context, userID uuid.UUID) (int64, error)
+
+	// CountAll counts all questions in the system
+	CountAll(ctx context.Context) (int64, error)
 }

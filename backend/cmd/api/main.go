@@ -139,11 +139,12 @@ func main() {
 	userHandler := handler.NewUserHandler(userRepo, roleRepo)
 	documentHandler := handler.NewDocumentHandler(
 		documentRepo,
+		userRepo,
 		parserFactory,
 		cfg.File.UploadDir,
 		cfg.File.MaxFileSize,
 	)
-	testHandler := handler.NewTestHandler(testRepo, documentRepo, questionRepo, answerRepo, llmFactory)
+	testHandler := handler.NewTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, llmFactory, xmlExporter)
 	moodleHandler := handler.NewMoodleHandler(
 		testRepo,
 		questionRepo,
@@ -151,6 +152,7 @@ func main() {
 		xmlExporter,
 		moodleClient,
 	)
+	statsHandler := handler.NewStatsHandler(testRepo, documentRepo, questionRepo, userRepo)
 
 	// Initialize Fiber app
 	app := fiber.New(fiber.Config{
@@ -162,7 +164,7 @@ func main() {
 	app.Use(logger.RequestIDMiddleware())
 	app.Use(logger.HTTPMiddleware(appLogger))
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000, http://localhost:5173",
+		AllowOrigins:     "http://localhost:3000,http://localhost:5173",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
 		AllowCredentials: true,
@@ -186,7 +188,7 @@ func main() {
 	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	// Setup routes
-	router.SetupRoutes(app, authHandler, userHandler, documentHandler, testHandler, moodleHandler, jwtManager, cfg.Cookie.Name)
+	router.SetupRoutes(app, authHandler, userHandler, documentHandler, testHandler, moodleHandler, statsHandler, jwtManager, cfg.Cookie.Name)
 
 	// Root endpoint
 	// @Summary API version information
@@ -203,6 +205,7 @@ func main() {
 				"documents": "/api/v1/documents",
 				"tests":     "/api/v1/tests",
 				"moodle":    "/api/v1/moodle",
+				"stats":     "/api/v1/stats",
 			},
 		})
 	})

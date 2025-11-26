@@ -15,6 +15,12 @@
           {{ document.title }}
         </h3>
         <p class="text-xs text-text-muted truncate mt-0.5">{{ document.file_name }}</p>
+        <div v-if="document.user_name || document.user_email" class="flex items-center gap-2 mt-1">
+          <span class="px-2 py-0.5 bg-cyber-blue/10 border border-cyber-blue/30 rounded text-xs text-cyber-blue">
+            <span v-if="document.user_name">{{ document.user_name }}</span>
+            <span v-if="document.user_email" class="text-text-muted ml-1">({{ document.user_email }})</span>
+          </span>
+        </div>
         <div class="flex items-center gap-3 mt-2 text-xs text-text-muted">
           <span>{{ formatFileSize(document.file_size) }}</span>
           <span class="text-dark-500">•</span>

@@ -1,6 +1,6 @@
 <template>
   <div class="card-cyber">
-    <h2 class="text-lg font-semibold text-text-primary mb-4">Upload Document</h2>
+    <h2 class="text-lg font-semibold text-text-primary mb-4">Загрузить документ</h2>
 
     <div
       class="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-300"
@@ -21,17 +21,17 @@
         </div>
 
         <p class="text-base font-medium text-text-primary">
-          {{ isDragOver ? 'Drop file here' : 'Upload a document' }}
+          {{ isDragOver ? 'Отпустите файл здесь' : 'Загрузить документ' }}
         </p>
 
         <p class="text-sm text-text-muted">
-          Drag and drop or
+          Перетащите файл или
           <button type="button" class="text-neon-orange hover:text-neon-orange-light font-medium underline" @click.stop>
-            browse
+            выберите
           </button>
         </p>
 
-        <p class="text-xs text-text-muted">Supported: PDF, DOCX, PPTX, TXT, MD (max 50MB)</p>
+        <p class="text-xs text-text-muted">Поддерживаются: PDF, DOCX, PPTX, TXT, MD (макс. 50МБ)</p>
       </div>
     </div>
 
@@ -61,7 +61,7 @@
 
     <!-- Title input -->
     <div v-if="selectedFile" class="mt-4">
-      <label for="doc-title" class="block text-sm font-medium text-text-secondary mb-2">Document Title (optional)</label>
+      <label for="doc-title" class="block text-sm font-medium text-text-secondary mb-2">Название документа (необязательно)</label>
       <input
         id="doc-title"
         v-model="title"
@@ -79,7 +79,7 @@
         :disabled="isUploading"
         @click="clearFile"
       >
-        Cancel
+        Отмена
       </button>
       <button
         type="button"
@@ -92,7 +92,7 @@
           <path class="opacity-75" fill="currentColor"
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
-        {{ isUploading ? 'Uploading...' : 'Upload' }}
+        {{ isUploading ? 'Загрузка...' : 'Загрузить' }}
       </button>
     </div>
 

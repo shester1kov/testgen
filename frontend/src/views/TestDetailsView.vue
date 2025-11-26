@@ -8,7 +8,7 @@
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
-        Back to Tests
+        Назад к тестам
       </router-link>
 
       <!-- Loading State -->
@@ -23,27 +23,63 @@
           <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <h3 class="text-lg font-semibold text-red-400">Error loading test</h3>
+          <h3 class="text-lg font-semibold text-red-400">Ошибка загрузки теста</h3>
         </div>
         <p class="text-red-300 mb-4">{{ error }}</p>
         <button @click="loadTest" class="btn-neon">
-          Try Again
+          Попробовать снова
         </button>
       </div>
 
       <!-- Test Header -->
       <div v-else-if="test">
         <div class="flex items-start justify-between mb-4">
-          <div>
-            <h1 class="text-3xl font-bold text-text-primary mb-2">{{ test.title }}</h1>
+          <div class="flex-1">
+            <div class="flex items-center gap-3 mb-2">
+              <h1 class="text-3xl font-bold text-text-primary">{{ test.title }}</h1>
+              <button
+                @click="showTestEditModal = true"
+                class="p-2 text-cyber-blue hover:text-neon-orange transition-colors"
+                title="Редактировать тест"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+            </div>
             <p v-if="test.description" class="text-text-muted">{{ test.description }}</p>
           </div>
-          <span
-            :class="getStatusClass(test.status)"
-            class="px-4 py-2 rounded-full text-sm font-medium"
-          >
-            {{ test.status }}
-          </span>
+          <div class="flex items-center gap-3">
+            <!-- Export Buttons -->
+            <div class="flex items-center gap-2">
+              <button
+                @click="exportToJSON"
+                class="px-4 py-2 bg-cyber-blue/20 hover:bg-cyber-blue/30 border border-cyber-blue/50 rounded-lg text-cyber-blue font-medium transition-colors flex items-center gap-2"
+                title="Экспорт в JSON"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                JSON
+              </button>
+              <button
+                @click="exportToXML"
+                class="px-4 py-2 bg-neon-orange/20 hover:bg-neon-orange/30 border border-neon-orange/50 rounded-lg text-neon-orange font-medium transition-colors flex items-center gap-2"
+                title="Экспорт в Moodle XML"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                XML
+              </button>
+            </div>
+            <span
+              :class="getStatusClass(test.status)"
+              class="px-4 py-2 rounded-full text-sm font-medium"
+            >
+              {{ test.status }}
+            </span>
+          </div>
         </div>
 
         <!-- Test Meta Info -->
@@ -52,21 +88,21 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{{ test.total_questions }} questions</span>
+            <span>Вопросов: {{ test.total_questions }}</span>
           </div>
 
           <div class="flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Created {{ formatDate(test.created_at) }}</span>
+            <span>Создан {{ formatDate(test.created_at) }}</span>
           </div>
 
           <div v-if="test.moodle_synced" class="flex items-center gap-2 text-green-500">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            <span>Synced to Moodle</span>
+            <span>Синхронизирован с Moodle</span>
           </div>
         </div>
       </div>
@@ -101,6 +137,17 @@
                 <span class="text-xs text-text-muted">{{ question.points }} pts</span>
               </div>
               <p class="text-text-primary text-lg mb-4">{{ question.question_text }}</p>
+
+              <!-- Edit Button -->
+              <button
+                @click="openEditModal(question)"
+                class="mb-3 px-3 py-1.5 text-sm bg-cyber-blue/20 hover:bg-cyber-blue/30 border border-cyber-blue/50 rounded text-cyber-blue font-medium transition-colors flex items-center gap-1"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Редактировать вопрос
+              </button>
 
               <!-- Answers -->
               <div class="space-y-2">
@@ -150,9 +197,26 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
       </div>
-      <h3 class="text-xl font-semibold text-text-primary mb-2">No questions yet</h3>
-      <p class="text-text-muted">This test doesn't have any questions yet.</p>
+      <h3 class="text-xl font-semibold text-text-primary mb-2">Вопросов пока нет</h3>
+      <p class="text-text-muted">В этом тесте пока нет вопросов.</p>
     </div>
+
+    <!-- Question Edit Modal -->
+    <QuestionEditModal
+      :show="showEditModal"
+      :question="editingQuestion"
+      :test-id="id"
+      @close="closeEditModal"
+      @saved="handleQuestionSaved"
+    />
+
+    <!-- Test Edit Modal -->
+    <TestEditModal
+      :show="showTestEditModal"
+      :test="test"
+      @close="showTestEditModal = false"
+      @saved="handleTestSaved"
+    />
   </div>
 </template>
 
@@ -161,6 +225,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTestsStore } from '@/features/tests/stores/testsStore'
 import { TestStatus, QuestionType, Difficulty, type Question, type Answer } from '@/features/tests/types/test.types'
+import QuestionEditModal from '@/features/tests/components/QuestionEditModal.vue'
+import TestEditModal from '@/features/tests/components/TestEditModal.vue'
 import logger from '@/utils/logger'
 
 const route = useRoute()
@@ -169,6 +235,10 @@ const id = route.params.id as string
 
 const test = computed(() => testsStore.currentTest)
 const error = ref<string | null>(null)
+
+const showEditModal = ref(false)
+const editingQuestion = ref<Question | null>(null)
+const showTestEditModal = ref(false)
 
 const sortedQuestions = computed(() => {
   if (!test.value?.questions) return []
@@ -184,7 +254,7 @@ async function loadTest() {
   try {
     await testsStore.fetchTest(id)
   } catch (err: any) {
-    error.value = err.message || 'Failed to load test'
+    error.value = err.message || 'Не удалось загрузить тест'
     logger.error('Failed to load test', 'TestDetailsView', err)
   }
 }
@@ -222,13 +292,13 @@ function getDifficultyClass(difficulty: string): string {
 function formatQuestionType(type: string): string {
   switch (type) {
     case QuestionType.SINGLE_CHOICE:
-      return 'Single Choice'
+      return 'Один ответ'
     case QuestionType.MULTIPLE_CHOICE:
-      return 'Multiple Choice'
+      return 'Множественный выбор'
     case QuestionType.TRUE_FALSE:
-      return 'True/False'
+      return 'Верно/Неверно'
     case QuestionType.SHORT_ANSWER:
-      return 'Short Answer'
+      return 'Короткий ответ'
     default:
       return type
   }
@@ -237,6 +307,98 @@ function formatQuestionType(type: string): string {
 function formatDate(dateString: string): string {
   const date = new Date(dateString)
   return date.toLocaleString()
+}
+
+async function exportToJSON() {
+  if (!test.value) return
+
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+    const url = `${API_BASE_URL}/tests/${test.value.id}/export/json`
+
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.statusText}`)
+    }
+
+    const blob = await response.blob()
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = `test_${test.value.id}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(downloadUrl)
+
+    logger.info('Test exported to JSON successfully', 'TestDetailsView')
+  } catch (err: any) {
+    error.value = err.message || 'Не удалось экспортировать тест в JSON'
+    logger.error('Failed to export test to JSON', 'TestDetailsView', err)
+  }
+}
+
+async function exportToXML() {
+  if (!test.value) return
+
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+    const url = `${API_BASE_URL}/tests/${test.value.id}/export/xml`
+
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/xml',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.statusText}`)
+    }
+
+    const blob = await response.blob()
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = `${test.value.title}.xml`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(downloadUrl)
+
+    logger.info('Test exported to XML successfully', 'TestDetailsView')
+  } catch (err: any) {
+    error.value = err.message || 'Не удалось экспортировать тест в XML'
+    logger.error('Failed to export test to XML', 'TestDetailsView', err)
+  }
+}
+
+function openEditModal(question: Question) {
+  editingQuestion.value = question
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  editingQuestion.value = null
+}
+
+async function handleQuestionSaved(updatedQuestion: Question) {
+  logger.info('Question saved, reloading test', 'TestDetailsView', { questionId: updatedQuestion.id })
+  await loadTest()
+}
+
+async function handleTestSaved(updatedTest: any) {
+  logger.info('Test saved, reloading test', 'TestDetailsView', { testId: updatedTest.id })
+  await loadTest()
 }
 
 onMounted(() => {

@@ -68,3 +68,25 @@ func (r *testRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (i
 		Count(&count).Error
 	return count, err
 }
+
+func (r *testRepository) FindAll(ctx context.Context, limit, offset int) ([]*entity.Test, error) {
+	var tests []*entity.Test
+	err := r.db.WithContext(ctx).
+		Preload("User").
+		Preload("Document").
+		Where("deleted_at IS NULL").
+		Limit(limit).
+		Offset(offset).
+		Order("created_at DESC").
+		Find(&tests).Error
+	return tests, err
+}
+
+func (r *testRepository) CountAll(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&entity.Test{}).
+		Where("deleted_at IS NULL").
+		Count(&count).Error
+	return count, err
+}

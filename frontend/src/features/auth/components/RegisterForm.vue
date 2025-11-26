@@ -1,16 +1,16 @@
 <template>
   <div>
-    <h2 class="text-2xl font-bold text-text-primary mb-6">Create your account</h2>
+    <h2 class="text-2xl font-bold text-text-primary mb-6">Создать аккаунт</h2>
 
     <form @submit.prevent="handleRegister" class="space-y-6">
       <div>
-        <label for="full_name" class="block text-sm font-medium text-text-secondary mb-2">Full Name</label>
+        <label for="full_name" class="block text-sm font-medium text-text-secondary mb-2">Полное имя</label>
         <input
           id="full_name"
           v-model="formData.full_name"
           type="text"
           required
-          placeholder="John Doe"
+          placeholder="Иван Иванов"
           class="input-neon w-full"
         />
       </div>
@@ -28,13 +28,13 @@
       </div>
 
       <div>
-        <label for="password" class="block text-sm font-medium text-text-secondary mb-2">Password</label>
+        <label for="password" class="block text-sm font-medium text-text-secondary mb-2">Пароль</label>
         <input
           id="password"
           v-model="formData.password"
           type="password"
           required
-          placeholder="Create a strong password"
+          placeholder="Создайте надёжный пароль"
           class="input-neon w-full"
         />
       </div>
@@ -53,16 +53,16 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          Creating account...
+          Создание аккаунта...
         </span>
-        <span v-else>Register</span>
+        <span v-else>Зарегистрироваться</span>
       </button>
     </form>
 
     <p class="mt-6 text-center text-sm text-text-secondary">
-      Already have an account?
+      Уже есть аккаунт?
       <router-link to="/login" class="font-medium text-neon-orange hover:text-neon-orange-light transition-colors">
-        Sign in
+        Войти
       </router-link>
     </p>
   </div>
@@ -93,7 +93,7 @@ async function handleRegister() {
     await authStore.register(formData.value)
     router.push('/dashboard')
   } catch (err: any) {
-    error.value = err.message || 'Registration failed'
+    error.value = err.message || 'Ошибка регистрации'
   } finally {
     loading.value = false
   }

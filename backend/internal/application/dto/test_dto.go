@@ -7,6 +7,29 @@ type CreateTestRequest struct {
 	DocumentID  *string `json:"document_id" validate:"omitempty,uuid"`
 }
 
+// UpdateTestRequest represents test update request
+type UpdateTestRequest struct {
+	Title       string `json:"title" validate:"omitempty,min=3"`
+	Description string `json:"description"`
+}
+
+// UpdateQuestionRequest represents question update request
+type UpdateQuestionRequest struct {
+	QuestionText string              `json:"question_text" validate:"omitempty,min=3"`
+	QuestionType string              `json:"question_type" validate:"omitempty,oneof=single_choice multiple_choice true_false short_answer"`
+	Difficulty   string              `json:"difficulty" validate:"omitempty,oneof=easy medium hard"`
+	Points       *float64            `json:"points" validate:"omitempty,gt=0"`
+	Answers      []UpdateAnswerRequest `json:"answers"`
+}
+
+// UpdateAnswerRequest represents answer update request
+type UpdateAnswerRequest struct {
+	ID         *string `json:"id"`          // If nil, create new answer
+	AnswerText string  `json:"answer_text" validate:"required"`
+	IsCorrect  bool    `json:"is_correct"`
+	OrderNum   int     `json:"order_num"`
+}
+
 // GenerateTestRequest represents test generation request
 type GenerateTestRequest struct {
 	DocumentID    string   `json:"document_id" validate:"required,uuid"`
@@ -20,6 +43,9 @@ type GenerateTestRequest struct {
 // TestResponse represents test response
 type TestResponse struct {
 	ID             string          `json:"id"`
+	UserID         string          `json:"user_id"`
+	UserName       *string         `json:"user_name,omitempty"`  // Only for admin
+	UserEmail      *string         `json:"user_email,omitempty"` // Only for admin
 	Title          string          `json:"title"`
 	Description    string          `json:"description"`
 	TotalQuestions int             `json:"total_questions"`

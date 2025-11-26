@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
+        button { margin: 10px; padding: 10px 20px; cursor: pointer; background: #333; color: #0f0; border: 1px solid #0f0; }
+        pre { background: #000; padding: 10px; border: 1px solid #0f0; margin: 10px 0; }
+        .error { color: #ff0000; }
+        .success { color: #00ff00; }
+    </style>
+</head>
+<body>
+    <h1>Authentication Test</h1>
+
+    <div>
+        <h2>1. Login</h2>
+        <button onclick="testLogin()">Test Login</button>
+        <pre id="login-result"></pre>
+    </div>
+
+    <div>
+        <h2>2. Get Dashboard Stats (with cookie)</h2>
+        <button onclick="testStats()">Test Stats Endpoint</button>
+        <pre id="stats-result"></pre>
+    </div>
+
+    <div>
+        <h2>3. Check Cookies</h2>
+        <button onclick="checkCookies()">Check Cookies</button>
+        <pre id="cookies-result"></pre>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080/api/v1';
+
+        async function testLogin() {
+            const resultEl = document.getElementById('login-result');
+            resultEl.textContent = 'Testing login...';
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include', // Important for cookies
+                    body: JSON.stringify({
+                        email: 'admin@testgen.local',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultEl.innerHTML = `<span class="success">✓ Login successful!</span>\n${JSON.stringify(data, null, 2)}`;
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                } else {
+                    resultEl.innerHTML = `<span class="error">✗ Login failed: ${response.status}</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultEl.innerHTML = `<span class="error">✗ Error: ${error.message}</span>`;
+            }
+        }
+
+        async function testStats() {
+            const resultEl = document.getElementById('stats-result');
+            resultEl.textContent = 'Testing stats endpoint...';
+
+            try {
+                const response = await fetch(`${API_URL}/stats/dashboard`, {
+                    method: 'GET',
+                    credentials: 'include', // Important for cookies
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultEl.innerHTML = `<span class="success">✓ Stats fetched successfully!</span>\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultEl.innerHTML = `<span class="error">✗ Stats failed: ${response.status}</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultEl.innerHTML = `<span class="error">✗ Error: ${error.message}</span>`;
+            }
+        }
+
+        function checkCookies() {
+            const resultEl = document.getElementById('cookies-result');
+            const cookies = document.cookie;
+            const localStorage = window.localStorage.getItem('user');
+
+            resultEl.innerHTML = `Document cookies:\n${cookies || '(empty)'}\n\nlocalStorage user:\n${localStorage || '(empty)'}`;
+        }
+    </script>
+</body>
+</html>

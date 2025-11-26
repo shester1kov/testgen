@@ -72,3 +72,23 @@ func (r *questionRepository) ReorderQuestions(ctx context.Context, testID uuid.U
 		return nil
 	})
 }
+
+func (r *questionRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&entity.Question{}).
+		Joins("JOIN tests ON questions.test_id = tests.id").
+		Where("tests.user_id = ? AND tests.deleted_at IS NULL", userID).
+		Count(&count).Error
+	return count, err
+}
+
+func (r *questionRepository) CountAll(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&entity.Question{}).
+		Joins("JOIN tests ON questions.test_id = tests.id").
+		Where("tests.deleted_at IS NULL").
+		Count(&count).Error
+	return count, err
+}
