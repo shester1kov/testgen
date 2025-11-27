@@ -60,3 +60,6 @@ Thumbs.db
 nginx/ssl/*
 !nginx/ssl/.gitkeep
 .claude
+moodledata/
+moodle
+moodledata

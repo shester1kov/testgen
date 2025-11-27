@@ -1085,36 +1085,36 @@ VITE_SUPPORTED_FORMATS=pdf,docx,pptx,txt
 #### Test Files
 
 1. **Component Tests** (`src/features/auth/components/__tests__/`):
-   - `LoginForm.spec.ts` - 6 tests (form rendering, submission, error handling, loading states, navigation)
-   - `RegisterForm.spec.ts` - 5 tests (form without role selection, submission, error display, loading states, links)
+   - `LoginForm.spec.ts` - form rendering, submission, error handling, loading states, navigation
+   - `RegisterForm.spec.ts` - form without role selection, submission, error display, loading states, links
 
 2. **Store Tests** (`src/features/auth/stores/__tests__/`):
-   - `authStore.spec.ts` - 24 tests covering:
+   - `authStore.spec.ts`
      - Positive: login, register, logout, user fetch, initialization
      - Negative: invalid credentials, duplicate email, weak password, network errors, token errors, concurrent operations
 
 3. **Service Tests** (`src/services/__tests__/`):
-   - `authService.spec.ts` - 25 tests covering:
+   - `authService.spec.ts`
      - Positive: login, register, logout, getMe
      - Negative: validation errors, network errors, unauthorized access, special characters, SQL injection attempts, XSS attempts, long inputs
 
 4. **Utility Tests** (`src/utils/__tests__/`):
-   - `logger.spec.ts` - 41 tests (all log levels, HTTP logging, store logging, fields, formatters)
-   - `validators.spec.ts` - 5 tests (file size, file type, formatters)
-   - `formatters.spec.ts` - 6 tests (date formatting, relative time, text truncation)
+   - `logger.spec.ts` - all log levels, HTTP logging, store logging, fields, formatters
+   - `validators.spec.ts` - file size, file type, formatters
+   - `formatters.spec.ts` - date formatting, relative time, text truncation
 
 #### Key Testing Patterns
 
 - **Mock-based testing** with Vitest `vi.mock()`
 - **User registration without role** - role assigned by backend (default: student)
 - **AuthResponse includes token field** - required for JWT authentication
-- **Comprehensive negative testing** - 60+ negative test cases for security and edge cases
+- **Comprehensive negative testing** - negative test cases for security and edge cases
 - **localStorage handling** - tests account for undefined/null differences in test environment
 
 #### Coverage Target
 
-- Backend: >70%
-- Frontend: >60%
+- Backend: >80%
+- Frontend: >80%
 
 ## Performance Requirements
 

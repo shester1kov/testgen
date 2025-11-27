@@ -15,7 +15,7 @@ services:
     networks:
       - testgen_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME} -p ${DB_PORT}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME} -p ${DB_PORT}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,7 +29,7 @@ services:
     networks:
       - testgen_network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -145,6 +145,53 @@ services:
       - testgen_network
     restart: unless-stopped
 
+  # Moodle PostgreSQL Database (отдельная БД для Moodle)
+  moodle_db:
+    image: postgres:15-alpine
+    container_name: testgen_moodle_db
+    environment:
+      POSTGRES_USER: ${MOODLE_DB_USER}
+      POSTGRES_PASSWORD: ${MOODLE_DB_PASSWORD}
+      POSTGRES_DB: ${MOODLE_DB_NAME}
+      PGPORT: ${MOODLE_DB_PORT}
+    ports:
+      - "${MOODLE_DB_PORT}:${MOODLE_DB_PORT}"
+    volumes:
+      - moodle_db_data:/var/lib/postgresql/data
+    networks:
+      - testgen_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${MOODLE_DB_USER} -d ${MOODLE_DB_NAME} -p ${MOODLE_DB_PORT}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Moodle LMS
+  moodle:
+    image: moodlehq/moodle-php-apache:8.3
+    container_name: testgen_moodle
+    depends_on:
+      moodle_db:
+        condition: service_healthy
+    environment:
+      MOODLE_DB_TYPE: ${MOODLE_DB_TYPE}
+      MOODLE_DB_HOST: ${MOODLE_DB_HOST}
+      MOODLE_DB_PORT: ${MOODLE_DB_PORT}
+      MOODLE_DB_NAME: ${MOODLE_DB_NAME}
+      MOODLE_DB_USER: ${MOODLE_DB_USER}
+      MOODLE_DB_PASSWORD: ${MOODLE_DB_PASSWORD}
+      MOODLE_WWWROOT: ${MOODLE_WWWROOT}
+      MOODLE_DATAROOT: ${MOODLE_DATAROOT}
+    ports:
+      - "${MOODLE_WEB_PORT}:80"
+    volumes:
+      - ./moodle:/var/www/html
+      - ./moodledata:${MOODLE_DATAROOT}
+    networks:
+      - testgen_network
+    restart: unless-stopped
+
 networks:
   testgen_network:
     driver: bridge
@@ -154,3 +201,4 @@ volumes:
   backend_uploads:
   prometheus_data:
   grafana_data:
+  moodle_db_data:
