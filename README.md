@@ -212,12 +212,13 @@ npm run test
 npm run test:ui
 ```
 
-## Мониторинг
+## Мониторинг и Логирование
 
 ### Доступ к интерфейсам
 
 - **Grafana Dashboard**: http://localhost:3000 (admin/admin123)
-- **Prometheus**: http://localhost:9090
+- **Prometheus (метрики)**: http://localhost:9090
+- **Loki (логи)**: http://localhost:3100
 - **API Metrics**: http://localhost:8080/metrics
 - **Health Check**: http://localhost:8080/health
 
@@ -268,6 +269,66 @@ ab -n 1000 -c 10 http://localhost/health
 ```
 
 Затем откройте Grafana и посмотрите красивые графики!
+
+### Логирование с Loki
+
+**Loki** - система агрегации логов от Grafana Labs, работающая как "Prometheus для логов".
+
+#### Архитектура логирования:
+
+```
+Go Backend (JSON logs) → Docker stdout → Promtail → Loki → Grafana
+```
+
+#### Компоненты:
+
+- **Loki** - хранилище и индексация логов
+- **Promtail** - агент для сбора логов из Docker контейнеров
+- **Grafana** - визуализация и поиск логов
+
+#### Структурированные логи (JSON):
+
+Backend автоматически логирует в JSON формате с полями:
+- `level` - уровень логирования (debug, info, warn, error)
+- `timestamp` - время события
+- `message` - текст сообщения
+- `caller` - место в коде
+- `method`, `path`, `status`, `duration` - для HTTP запросов
+- `user_id`, `request_id` - контекстная информация
+
+#### Просмотр логов в Grafana:
+
+1. Откройте Grafana: <http://localhost:3000>
+2. Перейдите в **Explore** (компас слева)
+3. Выберите datasource **Loki**
+4. Используйте LogQL запросы:
+
+```logql
+# Все логи backend
+{service="backend"}
+
+# Только ошибки
+{service="backend"} |= "level=error"
+
+# Логи конкретного пользователя
+{service="backend"} | json | user_id="123e4567-e89b-12d3-a456-426614174000"
+
+# HTTP запросы со статусом 500
+{service="backend"} | json | status="500"
+
+# Логи за последние 5 минут с фильтром
+{service="backend"} | json | level="error" | line_format "{{.message}}"
+```
+
+#### Настройка формата логов:
+
+В `.env` файле:
+```bash
+LOG_LEVEL=info      # debug, info, warn, error
+LOG_FORMAT=json     # console (dev) или json (production)
+```
+
+**Важно**: Для корректной работы Promtail backend должен логировать в **JSON формате**!
 
 ## Безопасность
 

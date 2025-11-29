@@ -130,6 +130,35 @@ services:
       - testgen_network
     restart: unless-stopped
 
+  # Loki (Log Aggregation)
+  loki:
+    image: grafana/loki:latest
+    container_name: testgen_loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - testgen_network
+    restart: unless-stopped
+
+  # Promtail (Log Collector)
+  promtail:
+    image: grafana/promtail:latest
+    container_name: testgen_promtail
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - testgen_network
+    restart: unless-stopped
+
   # Grafana (Visualization)
   grafana:
     image: grafana/grafana:latest
@@ -148,6 +177,7 @@ services:
       - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
     depends_on:
       - prometheus
+      - loki
     networks:
       - testgen_network
     restart: unless-stopped
@@ -208,4 +238,5 @@ volumes:
   backend_uploads:
   prometheus_data:
   grafana_data:
+  loki_data:
   moodle_db_data:
