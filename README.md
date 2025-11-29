@@ -296,8 +296,27 @@ Backend автоматически логирует в JSON формате с п
 - `method`, `path`, `status`, `duration` - для HTTP запросов
 - `user_id`, `request_id` - контекстная информация
 
+#### Готовый Dashboard для логов:
+
+После запуска `docker-compose up -d` дашборд **TestGen Logs Dashboard** автоматически загружен в Grafana!
+
+**Что показывает:**
+- All Backend Logs - все логи backend в реальном времени
+- Log Levels Over Time - график уровней логирования (error, warn, info)
+- Errors/Warnings Gauge - количество ошибок и предупреждений за последние 5 минут
+- Error Logs Only - только ошибки для быстрого анализа
+- HTTP 5xx Errors - серверные ошибки HTTP
+- Log Distribution by Level - распределение логов по уровням за 24 часа
+- Top 10 Endpoints - самые активные эндпоинты за последний час
+
 #### Просмотр логов в Grafana:
 
+**Вариант 1: Готовый Dashboard**
+1. Откройте Grafana: <http://localhost:3000>
+2. Перейдите в **Dashboards** → **TestGen Logs Dashboard**
+3. Наслаждайтесь красивой визуализацией логов!
+
+**Вариант 2: Explore (для кастомных запросов)**
 1. Откройте Grafana: <http://localhost:3000>
 2. Перейдите в **Explore** (компас слева)
 3. Выберите datasource **Loki**

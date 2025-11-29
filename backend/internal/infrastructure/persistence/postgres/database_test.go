@@ -12,7 +12,7 @@ func TestRunMigrations_InvalidConnection(t *testing.T) {
 	db, err := sql.Open("postgres", "host=localhost port=0 user=invalid password=invalid dbname=invalid sslmode=disable")
 	require.NoError(t, err)
 
-	err = runMigrations(db, "invalid")
+	err = runMigrations(db, "invalid", nil) // Pass nil logger for test
 	assert.Error(t, err)
 }
 
@@ -24,6 +24,7 @@ func TestNewDatabase_InvalidConfig(t *testing.T) {
 		Password: "invalid",
 		DBName:   "invalid",
 		SSLMode:  "disable",
+		Logger:   nil, // Pass nil logger for test
 	}
 
 	db, err := NewDatabase(cfg)

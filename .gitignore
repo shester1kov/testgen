@@ -64,4 +64,6 @@ moodledata/
 moodle
 moodledata
 /moodle/
+moodle/
 test_moodle_import.sh
+moodle/local

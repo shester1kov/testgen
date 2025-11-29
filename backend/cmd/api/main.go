@@ -79,6 +79,7 @@ func main() {
 		Password: cfg.Database.Password,
 		DBName:   cfg.Database.DBName,
 		SSLMode:  cfg.Database.SSLMode,
+		Logger:   appLogger, // Pass logger for structured GORM logs
 	})
 	if err != nil {
 		appLogger.Fatal("Failed to connect to database", zap.Error(err))

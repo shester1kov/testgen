@@ -26,7 +26,7 @@ scrape_configs:
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         target_label: 'service'
     pipeline_stages:
-      # Parse JSON logs from backend
+      # Try to parse as JSON - errors will be ignored via drop stage below
       - json:
           expressions:
             level: level
@@ -39,14 +39,15 @@ scrape_configs:
             duration: duration
             user_id: user_id
             request_id: request_id
-      # Extract level label
+      # Drop logs that failed JSON parsing (non-JSON lines like Fiber banner)
+      - match:
+          selector: '{__error__=~"JSONParserErr.*"}'
+          action: drop
+      # Extract level label for successfully parsed JSON logs
       - labels:
           level:
           service:
-      # Set timestamp from log entry
+      # Set timestamp from JSON field if available
       - timestamp:
           source: timestamp
           format: RFC3339Nano
-      # Format output
-      - output:
-          source: message
