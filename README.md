@@ -94,7 +94,7 @@ docker-compose up -d
 - Backend API: http://localhost:8080
 - **Swagger UI**: http://localhost:8080/swagger/index.html
 - Prometheus: http://localhost:9090
-- Grafana: http://localhost:3001 (admin/admin)
+- Grafana: http://localhost:3000 (admin/admin123)
 
 ### Быстрый старт для Windows (без Docker)
 
@@ -214,10 +214,60 @@ npm run test:ui
 
 ## Мониторинг
 
+### Доступ к интерфейсам
+
+- **Grafana Dashboard**: http://localhost:3000 (admin/admin123)
 - **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (admin/admin)
-- **Метрики**: http://localhost:8080/metrics
+- **API Metrics**: http://localhost:8080/metrics
 - **Health Check**: http://localhost:8080/health
+
+### Готовый Dashboard в Grafana
+
+После запуска `docker-compose up -d` дашборд **TestGen API Dashboard** автоматически загружен в Grafana!
+
+**Что показывает:**
+- Request Rate (запросы/сек)
+- Total Requests (общее количество)
+- Response Time Percentiles (p50, p95, p99)
+- Requests In Progress (активные запросы)
+- HTTP Status Codes (2xx, 4xx, 5xx)
+- Requests by Endpoint (pie chart)
+- Requests by Method (pie chart)
+
+### Собираемые метрики
+
+Автоматически через `fiberprometheus` middleware:
+
+- `http_requests_total` - счётчик всех HTTP запросов (method, path, status_code)
+- `http_request_duration_seconds` - время выполнения (histogram для p50/p95/p99)
+- `http_requests_in_progress_total` - активные запросы
+
+### Примеры PromQL запросов
+
+```promql
+# Request rate за 5 минут
+rate(http_requests_total{job="testgen-backend"}[5m])
+
+# 95th percentile response time
+histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, path))
+
+# Количество ошибок 5xx
+sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+```
+
+### Тестирование мониторинга
+
+Сгенерируйте тестовый трафик для проверки графиков:
+
+```bash
+# Простой способ
+for i in {1..100}; do curl -s http://localhost/health > /dev/null & done
+
+# Нагрузочное тестирование с ab (Apache Bench)
+ab -n 1000 -c 10 http://localhost/health
+```
+
+Затем откройте Grafana и посмотрите красивые графики!
 
 ## Безопасность
 

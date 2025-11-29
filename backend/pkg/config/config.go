@@ -69,8 +69,9 @@ type LLMConfig struct {
 
 // MoodleConfig holds Moodle integration configuration
 type MoodleConfig struct {
-	URL   string
-	Token string
+	URL         string
+	Token       string
+	ImportToken string
 }
 
 // LoggerConfig holds logger configuration
@@ -127,8 +128,9 @@ func Load() *Config {
 			YandexModel:      getEnv("YANDEX_GPT_MODEL", "yandexgpt-lite"),
 		},
 		Moodle: MoodleConfig{
-			URL:   getEnv("MOODLE_URL", ""),
-			Token: getEnv("MOODLE_TOKEN", ""),
+			URL:         getEnv("MOODLE_URL", ""),
+			Token:       getEnv("MOODLE_TOKEN", ""),
+			ImportToken: getEnv("MOODLE_IMPORT_TOKEN", "testgen_secret_token_change_in_production"),
 		},
 		Logger: LoggerConfig{
 			Level:  getEnv("LOG_LEVEL", "info"),

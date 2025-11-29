@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"net/url"
 	"time"
@@ -14,16 +13,18 @@ import (
 
 // Client represents a Moodle web service client
 type Client struct {
-	baseURL    string
-	token      string
-	httpClient *http.Client
+	baseURL     string
+	token       string
+	importToken string
+	httpClient  *http.Client
 }
 
 // NewClient creates a new Moodle client
-func NewClient(baseURL, token string) *Client {
+func NewClient(baseURL, token, importToken string) *Client {
 	return &Client{
-		baseURL: baseURL,
-		token:   token,
+		baseURL:     baseURL,
+		token:       token,
+		importToken: importToken,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -32,64 +33,49 @@ func NewClient(baseURL, token string) *Client {
 
 // UploadQuizRequest represents quiz upload request
 type UploadQuizRequest struct {
-	CourseName string
-	QuizName   string
-	XMLContent string
+	CourseID   string `json:"courseid"`
+	CourseName string `json:"-"` // Not used in new implementation
+	QuizName   string `json:"quizname"`
+	XMLContent string `json:"xmlcontent"`
 }
 
 // UploadQuizResponse represents quiz upload response
 type UploadQuizResponse struct {
-	QuizID   string `json:"quiz_id"`
-	CourseID string `json:"course_id"`
-	Success  bool   `json:"success"`
-	Message  string `json:"message"`
+	QuizID           string `json:"quiz_id"` // Empty for question-only import
+	CourseID         string `json:"course_id"`
+	CategoryID       string `json:"category_id"`
+	CategoryName     string `json:"category_name"`
+	QuestionsImported int   `json:"questions_imported"`
+	QuestionBankURL  string `json:"question_bank_url"`
+	Note             string `json:"note"`
+	Success          bool   `json:"success"`
+	Message          string `json:"message"`
 }
 
-// UploadQuiz uploads a quiz to Moodle
-// TODO: Implement actual Moodle web service integration
-// This is a placeholder implementation
+// UploadQuiz uploads a quiz to Moodle using custom import endpoint
 func (c *Client) UploadQuiz(ctx context.Context, req UploadQuizRequest) (*UploadQuizResponse, error) {
-	// Prepare multipart form data
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-
-	// Add token
-	if err := writer.WriteField("wstoken", c.token); err != nil {
-		return nil, fmt.Errorf("failed to write token field: %w", err)
+	// Prepare JSON request body
+	requestBody := map[string]string{
+		"token":      c.importToken,
+		"courseid":   req.CourseID,
+		"quizname":   req.QuizName,
+		"xmlcontent": req.XMLContent,
 	}
 
-	// Add web service function
-	if err := writer.WriteField("wsfunction", "core_course_import_course"); err != nil {
-		return nil, fmt.Errorf("failed to write wsfunction field: %w", err)
-	}
-
-	// Add format
-	if err := writer.WriteField("moodlewsrestformat", "json"); err != nil {
-		return nil, fmt.Errorf("failed to write format field: %w", err)
-	}
-
-	// Add quiz XML content as file
-	part, err := writer.CreateFormFile("file", "quiz.xml")
+	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create form file: %w", err)
-	}
-	if _, err := io.WriteString(part, req.XMLContent); err != nil {
-		return nil, fmt.Errorf("failed to write XML content: %w", err)
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	if err := writer.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
-	}
-
-	// Build request URL
-	requestURL := fmt.Sprintf("%s/webservice/rest/server.php", c.baseURL)
+	// Build request URL to custom import endpoint
+	requestURL := fmt.Sprintf("%s/local/testgen_import.php", c.baseURL)
 
 	// Create HTTP request
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", requestURL, body)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", requestURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
+	httpReq.Header.Set("Content-Type", "application/json")
 
 	// Execute request
 	resp, err := c.httpClient.Do(httpReq)
@@ -98,15 +84,24 @@ func (c *Client) UploadQuiz(ctx context.Context, req UploadQuizRequest) (*Upload
 	}
 	defer resp.Body.Close()
 
+	// Read response body
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("moodle API returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	// Parse response
 	var result UploadQuizResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.Unmarshal(bodyBytes, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if !result.Success {
+		return nil, fmt.Errorf("moodle import failed: %s", result.Message)
 	}
 
 	return &result, nil

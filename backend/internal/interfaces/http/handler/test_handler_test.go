@@ -232,6 +232,18 @@ func TestGenerate_Success(t *testing.T) {
 	}
 	docRepo.On("FindByID", mock.Anything, docID).Return(document, nil)
 
+	// Mock user repository to return a non-admin user who owns the document
+	userRepo := new(mockTestUserRepository)
+	user := &entity.User{
+		ID:    userID,
+		Email: "test@example.com",
+		Role: &entity.Role{
+			ID:   uuid.New(),
+			Name: entity.RoleNameTeacher, // Non-admin role
+		},
+	}
+	userRepo.On("FindByID", mock.Anything, userID).Return(user, nil)
+
 	// Mock test creation
 	testRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.Test")).Return(nil)
 
@@ -244,7 +256,7 @@ func TestGenerate_Success(t *testing.T) {
 	// Use perplexity provider which returns mock data in tests
 	mockFactory := llm.NewLLMFactory("test-key", "", "", "", "")
 
-	handler := NewTestHandler(testRepo, docRepo, questionRepo, answerRepo, new(mockTestUserRepository), mockFactory, nil)
+	handler := NewTestHandler(testRepo, docRepo, questionRepo, answerRepo, userRepo, mockFactory, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Post("/tests/generate", handler.Generate)
@@ -307,7 +319,18 @@ func TestGenerate_DocumentNotParsed(t *testing.T) {
 	}
 	docRepo.On("FindByID", mock.Anything, docID).Return(document, nil)
 
-	handler := NewTestHandler(new(mockTestRepository), docRepo, new(mockQuestionRepository), new(mockAnswerRepository), new(mockTestUserRepository), nil, nil)
+	userRepo := new(mockTestUserRepository)
+	user := &entity.User{
+		ID:    userID,
+		Email: "test@example.com",
+		Role: &entity.Role{
+			ID:   uuid.New(),
+			Name: entity.RoleNameTeacher,
+		},
+	}
+	userRepo.On("FindByID", mock.Anything, userID).Return(user, nil)
+
+	handler := NewTestHandler(new(mockTestRepository), docRepo, new(mockQuestionRepository), new(mockAnswerRepository), userRepo, nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Post("/tests/generate", handler.Generate)
@@ -339,10 +362,21 @@ func TestGenerate_InvalidProvider(t *testing.T) {
 	}
 	docRepo.On("FindByID", mock.Anything, docID).Return(document, nil)
 
+	userRepo := new(mockTestUserRepository)
+	user := &entity.User{
+		ID:    userID,
+		Email: "test@example.com",
+		Role: &entity.Role{
+			ID:   uuid.New(),
+			Name: entity.RoleNameTeacher,
+		},
+	}
+	userRepo.On("FindByID", mock.Anything, userID).Return(user, nil)
+
 	// Factory will return error for invalid provider (empty factory)
 	mockFactory := llm.NewLLMFactory("", "", "", "", "")
 
-	handler := NewTestHandler(new(mockTestRepository), docRepo, new(mockQuestionRepository), new(mockAnswerRepository), new(mockTestUserRepository), mockFactory, nil)
+	handler := NewTestHandler(new(mockTestRepository), docRepo, new(mockQuestionRepository), new(mockAnswerRepository), userRepo, mockFactory, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error { c.Locals("userID", userID); return c.Next() })
 	app.Post("/tests/generate", handler.Generate)

@@ -42,6 +42,7 @@ import (
 	"github.com/shester1kov/testgen-backend/internal/interfaces/http/router"
 	"github.com/shester1kov/testgen-backend/pkg/config"
 	"github.com/shester1kov/testgen-backend/pkg/logger"
+	"github.com/shester1kov/testgen-backend/pkg/monitoring"
 	"github.com/shester1kov/testgen-backend/pkg/utils"
 )
 
@@ -120,7 +121,7 @@ func main() {
 	xmlExporter := moodle.NewMoodleXMLExporter()
 	var moodleClient *moodle.Client
 	if cfg.Moodle.URL != "" && cfg.Moodle.Token != "" {
-		moodleClient = moodle.NewClient(cfg.Moodle.URL, cfg.Moodle.Token)
+		moodleClient = moodle.NewClient(cfg.Moodle.URL, cfg.Moodle.Token, cfg.Moodle.ImportToken)
 	}
 
 	// Initialize handlers
@@ -159,12 +160,19 @@ func main() {
 		ErrorHandler: customErrorHandler,
 	})
 
+	// Setup Prometheus metrics (should be registered early)
+	monitoring.SetupPrometheus(app, monitoring.PrometheusConfig{
+		ServiceName: "testgen_api",
+		Namespace:   "testgen",
+		Subsystem:   "http",
+	})
+
 	// Middleware
 	app.Use(recover.New())
 	app.Use(logger.RequestIDMiddleware())
 	app.Use(logger.HTTPMiddleware(appLogger))
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000,http://localhost:5173",
+		AllowOrigins:     "http://localhost:3000,http://localhost:5173,http://localhost",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
 		AllowCredentials: true,

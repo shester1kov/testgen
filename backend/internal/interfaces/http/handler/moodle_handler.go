@@ -210,7 +210,13 @@ func (h *MoodleHandler) SyncToMoodle(c *fiber.Ctx) error {
 	}
 
 	// Update test with Moodle sync info
-	test.MarkMoodleSynced(uploadResp.QuizID)
+	// Use CategoryID as MoodleID since questions are imported to question bank
+	moodleID := uploadResp.QuizID
+	if moodleID == "" {
+		moodleID = uploadResp.CategoryID
+	}
+
+	test.MarkMoodleSynced(moodleID)
 	if err := h.testRepo.Update(c.Context(), test); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to update test"),
@@ -218,8 +224,8 @@ func (h *MoodleHandler) SyncToMoodle(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(dto.MoodleSyncResponse{
-		Message:  "test synchronized with Moodle",
-		MoodleID: uploadResp.QuizID,
+		Message:  uploadResp.Message + ". " + uploadResp.Note,
+		MoodleID: moodleID,
 		CourseID: uploadResp.CourseID,
 	})
 }

@@ -63,3 +63,5 @@ nginx/ssl/*
 moodledata/
 moodle
 moodledata
+/moodle/
+test_moodle_import.sh

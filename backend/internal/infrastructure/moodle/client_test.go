@@ -22,7 +22,7 @@ func TestUploadQuizSuccess(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	client := NewClient(server.URL, "token")
+	client := NewClient(server.URL, "token", "import-token")
 	client.httpClient = server.Client()
 
 	resp, err := client.UploadQuiz(context.Background(), UploadQuizRequest{CourseName: "c", QuizName: "q", XMLContent: "<xml/>"})
@@ -43,7 +43,7 @@ func TestUploadQuizErrors(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(server.URL, "token")
+		client := NewClient(server.URL, "token", "import-token")
 		client.httpClient = server.Client()
 
 		if _, err := client.UploadQuiz(context.Background(), UploadQuizRequest{XMLContent: "<xml/>"}); err == nil {
@@ -57,7 +57,7 @@ func TestUploadQuizErrors(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(server.URL, "token")
+		client := NewClient(server.URL, "token", "import-token")
 		client.httpClient = server.Client()
 
 		if _, err := client.UploadQuiz(context.Background(), UploadQuizRequest{XMLContent: "<xml/>"}); err == nil {
@@ -74,7 +74,7 @@ func TestGetCourses(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(server.URL, "token")
+		client := NewClient(server.URL, "token", "import-token")
 		client.httpClient = server.Client()
 
 		courses, err := client.GetCourses(context.Background())
@@ -92,7 +92,7 @@ func TestGetCourses(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(server.URL, "token")
+		client := NewClient(server.URL, "token", "import-token")
 		client.httpClient = server.Client()
 
 		if _, err := client.GetCourses(context.Background()); err == nil {
@@ -106,7 +106,7 @@ func TestGetCourses(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(server.URL, "token")
+		client := NewClient(server.URL, "token", "import-token")
 		client.httpClient = server.Client()
 
 		if _, err := client.GetCourses(context.Background()); err == nil {
@@ -122,7 +122,7 @@ func TestValidateConnection(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(server.URL, "token")
+		client := NewClient(server.URL, "token", "import-token")
 		client.httpClient = server.Client()
 
 		if err := client.ValidateConnection(context.Background()); err != nil {
@@ -136,7 +136,7 @@ func TestValidateConnection(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(server.URL, "token")
+		client := NewClient(server.URL, "token", "import-token")
 		client.httpClient = server.Client()
 
 		if err := client.ValidateConnection(context.Background()); err == nil {
@@ -150,7 +150,7 @@ func TestValidateConnection(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(server.URL, "token")
+		client := NewClient(server.URL, "token", "import-token")
 		client.httpClient = server.Client()
 
 		if err := client.ValidateConnection(context.Background()); err == nil {

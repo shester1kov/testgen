@@ -88,7 +88,7 @@ func provideLLMFactory(cfg *config.Config) *llm.LLMFactory {
 
 func provideMoodleClient(cfg *config.Config) *moodle.Client {
 	if cfg.Moodle.URL != "" && cfg.Moodle.Token != "" {
-		return moodle.NewClient(cfg.Moodle.URL, cfg.Moodle.Token)
+		return moodle.NewClient(cfg.Moodle.URL, cfg.Moodle.Token, cfg.Moodle.ImportToken)
 	}
 	return nil
 }
