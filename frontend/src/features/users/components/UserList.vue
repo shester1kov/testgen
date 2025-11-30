@@ -3,15 +3,15 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h2 class="text-lg font-semibold text-text-primary">Users Management</h2>
-        <p class="text-sm text-text-muted mt-1">{{ total }} user{{ total !== 1 ? 's' : '' }} total</p>
+        <h2 class="text-lg font-semibold text-text-primary">Управление пользователями</h2>
+        <p class="text-sm text-text-muted mt-1">Всего пользователей: {{ total }}</p>
       </div>
     </div>
 
     <!-- Loading state -->
     <div v-if="isLoading && users.length === 0" class="flex flex-col items-center justify-center py-12">
       <div class="w-12 h-12 border-4 border-neon-orange/30 border-t-neon-orange rounded-full animate-spin mb-4"></div>
-      <p class="text-text-muted">Loading users...</p>
+      <p class="text-text-muted">Загрузка пользователей...</p>
     </div>
 
     <!-- Empty state -->
@@ -22,8 +22,8 @@
             d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
       </div>
-      <h3 class="text-lg font-semibold text-text-primary mb-2">No users found</h3>
-      <p class="text-text-muted">There are no users in the system</p>
+      <h3 class="text-lg font-semibold text-text-primary mb-2">Пользователи не найдены</h3>
+      <p class="text-text-muted">В системе нет пользователей</p>
     </div>
 
     <!-- Users table -->
@@ -32,9 +32,9 @@
         <thead>
           <tr class="border-b border-dark-500">
             <th class="text-left py-3 px-4 text-sm font-semibold text-text-primary">Email</th>
-            <th class="text-left py-3 px-4 text-sm font-semibold text-text-primary">Full Name</th>
-            <th class="text-left py-3 px-4 text-sm font-semibold text-text-primary">Role</th>
-            <th v-if="canChangeRoles" class="text-right py-3 px-4 text-sm font-semibold text-text-primary">Actions</th>
+            <th class="text-left py-3 px-4 text-sm font-semibold text-text-primary">Полное имя</th>
+            <th class="text-left py-3 px-4 text-sm font-semibold text-text-primary">Роль</th>
+            <th v-if="canChangeRoles" class="text-right py-3 px-4 text-sm font-semibold text-text-primary">Действия</th>
           </tr>
         </thead>
         <tbody>
@@ -53,7 +53,7 @@
                 :disabled="isProcessing"
                 @click="openRoleModal(user)"
               >
-                Change Role
+                Изменить роль
               </button>
             </td>
           </tr>
@@ -72,11 +72,11 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
-        Previous
+        Назад
       </button>
 
       <div class="text-sm text-text-muted">
-        Page <span class="text-neon-orange font-medium">{{ currentPage }}</span> of {{ totalPages }}
+        Страница <span class="text-neon-orange font-medium">{{ currentPage }}</span> из {{ totalPages }}
       </div>
 
       <button
@@ -85,7 +85,7 @@
         :disabled="currentPage === totalPages"
         @click="handlePageChange(currentPage + 1)"
       >
-        Next
+        Вперёд
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
@@ -106,7 +106,7 @@
         class="px-3 py-1.5 bg-cyber-pink/20 text-cyber-pink rounded-lg text-sm font-medium hover:bg-cyber-pink/30 transition-colors"
         @click="handleRetry"
       >
-        Retry
+        Повторить
       </button>
     </div>
 
@@ -115,7 +115,7 @@
       <div v-if="showRoleModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click="closeRoleModal">
         <div class="card-cyber max-w-md w-full" @click.stop>
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-semibold text-text-primary">Change User Role</h3>
+            <h3 class="text-xl font-semibold text-text-primary">Изменение роли пользователя</h3>
             <button type="button" class="text-text-muted hover:text-neon-orange transition-colors" @click="closeRoleModal">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -124,13 +124,13 @@
           </div>
 
           <div v-if="selectedUser" class="mb-6">
-            <p class="text-sm text-text-muted mb-1">User</p>
+            <p class="text-sm text-text-muted mb-1">Пользователь</p>
             <p class="text-base text-text-primary font-medium">{{ selectedUser.email }}</p>
             <p class="text-sm text-text-secondary">{{ selectedUser.full_name }}</p>
           </div>
 
           <div class="mb-6">
-            <label class="block text-sm font-medium text-text-primary mb-2">New Role</label>
+            <label class="block text-sm font-medium text-text-primary mb-2">Новая роль</label>
             <div class="space-y-2">
               <label
                 v-for="role in availableRoles"
@@ -160,7 +160,7 @@
               class="flex-1 px-4 py-2 border border-dark-500 text-text-secondary rounded-lg text-sm font-medium hover:bg-dark-600 transition-all"
               @click="closeRoleModal"
             >
-              Cancel
+              Отмена
             </button>
             <button
               type="button"
@@ -168,7 +168,7 @@
               :disabled="!selectedRole || isProcessing"
               @click="handleRoleChange"
             >
-              {{ isProcessing ? 'Updating...' : 'Update Role' }}
+              {{ isProcessing ? 'Обновление...' : 'Изменить роль' }}
             </button>
           </div>
         </div>
@@ -196,9 +196,9 @@ const selectedUser = ref<User | null>(null)
 const selectedRole = ref<string>('')
 
 const availableRoles = [
-  { value: 'student', label: 'Student', description: 'Can view and take tests' },
-  { value: 'teacher', label: 'Teacher', description: 'Can create and manage tests' },
-  { value: 'admin', label: 'Administrator', description: 'Full system access' }
+  { value: 'student', label: 'Студент', description: 'Может просматривать и проходить тесты' },
+  { value: 'teacher', label: 'Преподаватель', description: 'Может создавать и управлять тестами' },
+  { value: 'admin', label: 'Администратор', description: 'Полный доступ к системе' }
 ]
 
 const canChangeRoles = computed(() => {

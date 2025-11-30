@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Test, TestGenerationRequest, TestExportRequest, MoodleSyncRequest } from '../types/test.types'
 import { testService } from '@/services/testService'
+import { isDesignMode, getMockTests } from '@/utils/designMode'
 
 export const useTestsStore = defineStore('tests', () => {
   // State
@@ -35,6 +36,17 @@ export const useTestsStore = defineStore('tests', () => {
     error.value = null
 
     try {
+      // Design mode: return mock tests
+      if (isDesignMode()) {
+        const mockTests = getMockTests() as any[]
+        tests.value = mockTests
+        total.value = mockTests.length
+        currentPage.value = 1
+        totalPages.value = 1
+        loading.value = false
+        return { data: mockTests, total: mockTests.length, page: 1, totalPages: 1 }
+      }
+
       const response = await testService.getTests(page, limit)
       tests.value = response.data
       total.value = response.total

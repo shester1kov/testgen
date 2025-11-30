@@ -11,7 +11,10 @@
     "test:ui": "vitest --ui",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint . --ext .vue,.js,.ts,.tsx --fix",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "design:enable": "bash scripts/enable-design-mode.sh",
+    "design:disable": "bash scripts/disable-design-mode.sh",
+    "design:build": "bash scripts/enable-design-mode.sh && npm run build"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",

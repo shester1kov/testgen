@@ -3,11 +3,13 @@ package auth
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
+	"github.com/shester1kov/testgen-backend/pkg/security"
 	"github.com/shester1kov/testgen-backend/pkg/utils"
 	"gorm.io/gorm"
 )
@@ -30,10 +32,14 @@ func NewRegisterUseCase(userRepo repository.UserRepository, roleRepo repository.
 
 // Execute executes the register use case
 func (uc *RegisterUseCase) Execute(ctx context.Context, req dto.RegisterRequest) (*dto.AuthResponse, error) {
+	// Sanitize user input to prevent XSS attacks
+	sanitizedEmail := strings.TrimSpace(strings.ToLower(req.Email))
+	sanitizedFullName := security.SanitizeInput(req.FullName)
+
 	// Check if user already exists
-	existingUser, err := uc.userRepo.FindByEmail(ctx, req.Email)
+	existingUser, err := uc.userRepo.FindByEmail(ctx, sanitizedEmail)
 	if err == nil && existingUser != nil {
-		return nil, fmt.Errorf("user with email %s already exists", req.Email)
+		return nil, fmt.Errorf("user with email %s already exists", sanitizedEmail)
 	}
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, fmt.Errorf("failed to check existing user: %w", err)
@@ -48,8 +54,8 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, req dto.RegisterRequest)
 	// Create new user entity
 	user := &entity.User{
 		ID:       uuid.New(),
-		Email:    req.Email,
-		FullName: req.FullName,
+		Email:    sanitizedEmail,
+		FullName: sanitizedFullName,
 		RoleID:   studentRole.ID,
 		Role:     studentRole,
 	}

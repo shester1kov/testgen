@@ -9,6 +9,7 @@ import (
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
+	"github.com/shester1kov/testgen-backend/pkg/security"
 )
 
 // MoodleHandler handles Moodle integration operations
@@ -149,6 +150,9 @@ func (h *MoodleHandler) SyncToMoodle(c *fiber.Ctx) error {
 		)
 	}
 
+	// Sanitize course name
+	sanitizedCourseName := security.SanitizeInput(req.CourseName)
+
 	// Get test
 	test, err := h.testRepo.FindByID(c.Context(), testID)
 	if err != nil || test.UserID != userID {
@@ -193,7 +197,7 @@ func (h *MoodleHandler) SyncToMoodle(c *fiber.Ctx) error {
 
 	// Upload to Moodle
 	uploadResp, err := h.moodleClient.UploadQuiz(c.Context(), moodle.UploadQuizRequest{
-		CourseName: req.CourseName,
+		CourseName: sanitizedCourseName,
 		QuizName:   test.Title,
 		XMLContent: xmlContent,
 	})

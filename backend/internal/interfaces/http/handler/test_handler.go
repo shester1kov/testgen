@@ -10,6 +10,7 @@ import (
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
+	"github.com/shester1kov/testgen-backend/pkg/security"
 )
 
 type TestHandler struct {
@@ -69,7 +70,11 @@ func (h *TestHandler) Create(c *fiber.Ctx) error {
 		)
 	}
 
-	test := &entity.Test{UserID: userID, Title: req.Title, Description: req.Description}
+	// Sanitize user input to prevent XSS attacks
+	sanitizedTitle := security.SanitizeInput(req.Title)
+	sanitizedDescription := security.SanitizeMultiline(req.Description)
+
+	test := &entity.Test{UserID: userID, Title: sanitizedTitle, Description: sanitizedDescription}
 	if req.DocumentID != nil {
 		docID, _ := uuid.Parse(*req.DocumentID)
 		test.DocumentID = &docID
@@ -166,12 +171,15 @@ func (h *TestHandler) Generate(c *fiber.Ctx) error {
 		)
 	}
 
+	// Sanitize user input
+	sanitizedTitle := security.SanitizeInput(req.Title)
+
 	// Create Test entity
 	test := &entity.Test{
 		ID:             uuid.New(),
 		UserID:         userID,
 		DocumentID:     &docID,
-		Title:          req.Title,
+		Title:          sanitizedTitle,
 		TotalQuestions: len(questions),
 		Status:         entity.TestStatusDraft,
 		CreatedAt:      time.Now(),
@@ -187,10 +195,13 @@ func (h *TestHandler) Generate(c *fiber.Ctx) error {
 
 	// Save questions and answers to database
 	for i, q := range questions {
+		// Sanitize question text from LLM output (defense in depth)
+		sanitizedQuestionText := security.SanitizeMultiline(q.QuestionText)
+
 		question := &entity.Question{
 			ID:           uuid.New(),
 			TestID:       test.ID,
-			QuestionText: q.QuestionText,
+			QuestionText: sanitizedQuestionText,
 			QuestionType: entity.QuestionType(q.QuestionType),
 			Difficulty:   entity.Difficulty(q.Difficulty),
 			Points:       1.0, // Default points
@@ -207,10 +218,13 @@ func (h *TestHandler) Generate(c *fiber.Ctx) error {
 
 		// Save answers
 		for j, a := range q.Answers {
+			// Sanitize answer text from LLM output
+			sanitizedAnswerText := security.SanitizeInput(a.Text)
+
 			answer := &entity.Answer{
 				ID:         uuid.New(),
 				QuestionID: question.ID,
-				AnswerText: a.Text,
+				AnswerText: sanitizedAnswerText,
 				IsCorrect:  a.IsCorrect,
 				OrderNum:   j + 1,
 				CreatedAt:  time.Now(),
@@ -502,8 +516,12 @@ func (h *TestHandler) Update(c *fiber.Ctx) error {
 		)
 	}
 
+	// Sanitize user input
+	sanitizedTitle := security.SanitizeInput(req.Title)
+	sanitizedDescription := security.SanitizeMultiline(req.Description)
+
 	// Validate title if provided
-	if req.Title != "" && len(req.Title) < 3 {
+	if req.Title != "" && len(sanitizedTitle) < 3 {
 		return c.Status(fiber.StatusBadRequest).JSON(
 			dto.NewErrorResponse(dto.ErrCodeInvalidInput, "title must be at least 3 characters"),
 		)
@@ -511,9 +529,9 @@ func (h *TestHandler) Update(c *fiber.Ctx) error {
 
 	// Update fields if provided
 	if req.Title != "" {
-		test.Title = req.Title
+		test.Title = sanitizedTitle
 	}
-	test.Description = req.Description // Allow empty description
+	test.Description = sanitizedDescription // Allow empty description
 	test.UpdatedAt = time.Now()
 
 	// Save to database
@@ -604,8 +622,11 @@ func (h *TestHandler) UpdateQuestion(c *fiber.Ctx) error {
 		)
 	}
 
+	// Sanitize user input
+	sanitizedQuestionText := security.SanitizeMultiline(req.QuestionText)
+
 	// Validate question text if provided
-	if req.QuestionText != "" && len(req.QuestionText) < 3 {
+	if req.QuestionText != "" && len(sanitizedQuestionText) < 3 {
 		return c.Status(fiber.StatusBadRequest).JSON(
 			dto.NewErrorResponse(dto.ErrCodeInvalidInput, "question text must be at least 3 characters"),
 		)
@@ -613,7 +634,7 @@ func (h *TestHandler) UpdateQuestion(c *fiber.Ctx) error {
 
 	// Update fields if provided
 	if req.QuestionText != "" {
-		question.QuestionText = req.QuestionText
+		question.QuestionText = sanitizedQuestionText
 	}
 	if req.QuestionType != "" {
 		question.QuestionType = entity.QuestionType(req.QuestionType)
@@ -643,10 +664,13 @@ func (h *TestHandler) UpdateQuestion(c *fiber.Ctx) error {
 
 		// Create new answers
 		for _, answerReq := range req.Answers {
+			// Sanitize answer text
+			sanitizedAnswerText := security.SanitizeInput(answerReq.AnswerText)
+
 			answer := &entity.Answer{
 				ID:         uuid.New(),
 				QuestionID: questionID,
-				AnswerText: answerReq.AnswerText,
+				AnswerText: sanitizedAnswerText,
 				IsCorrect:  answerReq.IsCorrect,
 				OrderNum:   answerReq.OrderNum,
 				CreatedAt:  time.Now(),

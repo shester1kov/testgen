@@ -1,4 +1,5 @@
 <template>
+  <DesignModeBanner />
   <component :is="layout">
     <router-view :key="route.fullPath" />
   </component>
@@ -10,6 +11,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
+import DesignModeBanner from '@/components/DesignModeBanner.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()

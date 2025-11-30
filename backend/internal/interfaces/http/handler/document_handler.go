@@ -12,6 +12,7 @@ import (
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/parser"
+	"github.com/shester1kov/testgen-backend/pkg/security"
 )
 
 // DocumentHandler handles document operations
@@ -122,10 +123,13 @@ func (h *DocumentHandler) Upload(c *fiber.Ctx) error {
 		title = file.Filename
 	}
 
+	// Sanitize title to prevent XSS
+	sanitizedTitle := security.SanitizeInput(title)
+
 	// Create document record
 	document := &entity.Document{
 		UserID:   userID,
-		Title:    title,
+		Title:    sanitizedTitle,
 		FileName: file.Filename,
 		FilePath: savedPath,
 		FileType: entity.FileType(ext),

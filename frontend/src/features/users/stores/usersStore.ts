@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import userService from '@/services/userService'
 import type { User } from '@/features/auth/types/auth.types'
 import logger from '@/utils/logger'
+import { isDesignMode, getMockUsers } from '@/utils/designMode'
 
 export const useUsersStore = defineStore('users', () => {
   const users = ref<User[]>([])

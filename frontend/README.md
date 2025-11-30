@@ -1,5 +1,182 @@
-# Vue 3 + TypeScript + Vite
+# Документация по фронтенду
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Эта документация описывает устройство, запуск и поддержку фронтенд-части проекта на Vue 3 + TypeScript + Vite. Она предназначена для разработчиков команды и сопровождает код в директории `frontend`.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## 1. Архитектура и структура проекта
+
+- **Стек:** Vue 3 (`<script setup>`), TypeScript, Vite, Pinia для состояния, Vue Router для маршрутизации, Tailwind CSS 4 для стилизации, Axios для работы с API, Vee-Validate + Yup для форм.
+- **Файловая организация:**
+  - `src/main.ts` — точка входа приложения, подключает Pinia и роутер, восстанавливает авторизацию.
+  - `src/router` — конфигурация маршрутов и навигационные гард‑ы (проверка аутентификации и ролей).
+  - `src/features/*` — функциональные модули (auth, documents, tests, users) со своими компонентами, сторами и типами.
+  - `src/services` — слой API-клиентов на базе Axios с интерцепторами и типами ответов.
+  - `src/stores` — глобальные стора Pinia и их инициализация.
+  - `src/layouts` — общие шаблоны макетов (auth / main).
+  - `src/views` — страницы, собирающие компоненты и бизнес-логику.
+  - `src/utils` — вспомогательные утилиты (например, `logger.ts`).
+  - `src/tests` — общая настройка тестов (mocks для DOM и локального хранилища).
+- **Потоки данных:** Компоненты и страницы используют Pinia-сторы и сервисы из `src/services` для обращения к backend REST API. Ответы проходят через Axios-интерцепторы для логирования и унифицированной обработки ошибок.
+
+## 2. Установка и запуск проекта
+
+1. Убедитесь, что установлены Node.js 20+ и npm.
+2. Перейдите в директорию `frontend` и установите зависимости:
+
+   ```bash
+   npm install
+   ```
+
+3. Создайте файл `.env.local` (или используйте переменные окружения) со значениями:
+
+   ```env
+   VITE_API_BASE_URL=http://localhost:8080/api/v1
+   ```
+
+4. Запустите дев-сервер:
+
+   ```bash
+   npm run dev
+   ```
+
+   По умолчанию приложение будет доступно на `http://localhost:5173`.
+
+## 3. Компоненты и модули
+
+- **Auth (`src/features/auth`):** формы входа/регистрации, стора `authStore` с методами `login`, `register`, `logout`, `initializeAuth` и проверкой ролей.
+- **Documents (`src/features/documents`):** страницы списка документов, деталей и парсинга; взаимодействие через `documentService`.
+- **Tests (`src/features/tests`):** генерация, просмотр, экспорт и синхронизация тестов (`testService`).
+- **Users (`src/features/users`):** управление пользователями и ролями (`userService`).
+- **Layouts:** `MainLayout` для защищённых экранов и `AuthLayout` для публичных форм.
+- **Shared компоненты:** расположены в `src/components` и `src/layouts`, переиспользуются между страницами.
+
+## 4. Сторонние библиотеки и фреймворки
+
+- **Vue 3 / Vue Router / Pinia:** базовая платформа и маршрутизация/состояние.
+- **Tailwind CSS 4:** утилитарные классы, конфигурация в `tailwind.config.js` (используется плагин `@tailwindcss/vite`).
+- **Axios:** HTTP-клиент с интерцепторами (`src/services/api.ts`).
+- **Vee-Validate + Yup:** валидация форм и схемы.
+- **Headless UI + Heroicons:** доступные компоненты и иконки.
+- **Vitest + @vue/test-utils:** юнит-тесты и утилиты для Vue.
+
+Установка выполняется через `npm install` — все зависимости уже описаны в `package.json`. При добавлении новых библиотек фиксируйте версию и кратко описывайте назначение в этом разделе.
+
+## 5. Работа с API
+
+Интеракции с backend инкапсулированы в сервисах `src/services/*`, все используют базовый клиент `api.ts` (базовый URL из `VITE_API_BASE_URL`).
+
+- **Auth:**
+  - `POST /auth/login`, `POST /auth/register`, `POST /auth/logout`, `GET /auth/me` (`authService`).
+- **Документы:**
+  - `POST /documents` (создание через `FormData`), `GET /documents` (пагинация и фильтры), `GET /documents/:id`, `DELETE /documents/:id`, `POST /documents/:id/parse` (`documentService`).
+- **Тесты:**
+  - `POST /tests`, `GET /tests` (пагинация и фильтры), `GET /tests/:id`, `DELETE /tests/:id`, `POST /tests/generate`, `GET /moodle/tests/:test_id/export`, `POST /moodle/tests/:test_id/sync` (`testService`).
+- **Пользователи:**
+  - `GET /users` (фильтры/страницы), `PUT /users/:id/role` (`userService`).
+- **Статистика:**
+  - `GET /stats/dashboard` (`statsService`).
+
+Все запросы возвращают `response.data` напрямую благодаря интерцепторам. Ошибки приводятся к унифицированной форме `ApiError` с кодом, статусом и сообщением.
+
+## 6. Структура файлов и директорий
+
+```
+frontend/
+├── src/
+│   ├── assets/           # статические ресурсы
+│   ├── components/       # общие UI-компоненты
+│   ├── features/         # доменные модули (auth/documents/tests/users)
+│   ├── layouts/          # макеты страниц
+│   ├── router/           # маршруты и гард‑ы
+│   ├── services/         # HTTP-клиенты и типы ответов
+│   ├── stores/           # инициализация Pinia
+│   ├── tests/            # общая конфигурация тестов
+│   ├── types/            # общие типы DTO
+│   ├── utils/            # утилиты (логгер и т.д.)
+│   └── views/            # страницы приложения
+├── public/               # статические файлы Vite
+├── vite.config.ts        # конфигурация сборки
+└── vitest.config.ts      # конфигурация тестов
+```
+
+## 7. Локализация и интернационализация
+
+Локализация пока не включена. Рекомендуемый подход:
+
+1. Добавить `vue-i18n` и создать `src/locales` с JSON/TS словарями (`en`, `ru`, ...).
+2. Инициализировать i18n в `main.ts` и пробросить в приложение.
+3. Использовать `t('key')` в компонентах и хранить текстовые константы вне шаблонов.
+4. Для форматов дат/времени использовать `Intl.DateTimeFormat` с выбранной локалью.
+5. Документировать процесс добавления нового языка (копия базового словаря + проверка ключей).
+
+## 8. Сборка и развертывание
+
+- **Production-сборка:**
+
+  ```bash
+  npm run build
+  ```
+
+  Итоговые артефакты появляются в `dist/`.
+- **Предпросмотр сборки:** `npm run preview`.
+- **Развертывание:**
+  - Сервировать содержимое `dist/` через любой статический сервер (Nginx, CDN, static hosting).
+  - Убедиться, что прокси/сервер корректно перенаправляет HTML5 history API запросы на `index.html` и проксирует `/api` на backend по адресу `VITE_API_BASE_URL`.
+  - Настроить переменные окружения `VITE_API_BASE_URL` под окружение (staging/production).
+
+## 9. Обработка ошибок и устранение проблем
+
+- **HTTP-ошибки:** перехватываются в `src/services/api.ts`, логируются через `logger` и возвращаются как `ApiError`. Для `401` вызывается очистка `localStorage` и редирект на `/login`.
+- **Валидация форм:** Vee-Validate + Yup предоставляют сообщения об ошибках напрямую в компонентах форм.
+- **Troubleshooting:**
+  - 404 на обновлении страницы — настроить сервер на fallback на `index.html`.
+  - Ошибка CORS — проверить `VITE_API_BASE_URL` и настройки backend CORS.
+  - Несрабатывает авторизация — убедиться, что cookies разрешены (`withCredentials: true`).
+
+## 10. Тестирование
+
+- **Запуск тестов:**
+
+  ```bash
+  npm run test
+  ```
+
+- **UI-режим Vitest:** `npm run test:ui` (откроет UI раннера).
+- **Конфигурация:** `vitest.config.ts` и `src/tests/setup.ts` (mocks для `matchMedia` и `localStorage`).
+- **Добавление тестов:** создавайте файлы `*.spec.ts` рядом с кодом (например, в `src/services/__tests__`) и подключайте общие моки через `setupFiles`.
+
+## 11. Логирование и мониторинг
+
+- Используется `src/utils/logger.ts` с уровнями `DEBUG/INFO/WARN/ERROR`.
+- В дев-режиме вывод идёт в консоль; в проде предусмотрен хук `sendToRemote` для подключения Sentry/LogRocket.
+- HTTP-запросы/ответы логируются интерцепторами; ошибки стора и жизненный цикл компонентов имеют отдельные хелперы.
+- При необходимости интегрировать APM/monitoring — вызывайте `logger.sendToRemote` или добавьте отчёт в `log` метод.
+
+## 12. Дополнительные ресурсы и ссылки
+
+- [Vue 3 Docs](https://vuejs.org/)
+- [Vite](https://vitejs.dev/)
+- [Vue Router](https://router.vuejs.org/)
+- [Pinia](https://pinia.vuejs.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Vee-Validate](https://vee-validate.logaretm.com/v4/)
+- [Vitest](https://vitest.dev/)
+- [Axios](https://axios-http.com/)
+
+## 13. Версионирование и изменения
+
+- Документация версионируется вместе с кодом в Git. При изменениях архитектуры, API или зависимостей обновляйте соответствующие разделы и включайте ссылку на коммит/PR в описание изменений.
+- Рекомендуется вести краткий changelog в начале файла (добавляйте дату и суть изменения в отдельный подраздел).
+
+## 14. Совместная работа и командная документация
+
+- Используйте `npm run lint` и `npm run format` перед коммитом для единообразия кода.
+- Следуйте существующей структуре модулей `features/*`, чтобы код оставался изолированным по доменам.
+- Для обмена знаниями добавляйте примеры использования компонентов и сервисов рядом с кодом или в README модуля.
+- При добавлении API-методов документируйте их в разделе 5 и обновляйте типы в `src/types`.
+
+## 15. Расширяемость и дальнейшее развитие
+
+- **Новые домены:** создавайте новую директорию в `src/features`, выделяйте сторы/сервисы и добавляйте маршруты в `src/router` с нужными `meta` (`requiresAuth`, `requiredRoles`).
+- **UI-библиотека:** при росте компонентов вынесите общие элементы в `src/components` и добавьте документацию по пропсам/слотам.
+- **Производительность:** используйте ленивую загрузку маршрутов (уже настроена) и витиевый код-сплит при добавлении крупных модулей.
+- **Наблюдаемость:** подключите удалённый логгер в `logger.sendToRemote` и добавьте метрики (например, Web Vitals) при необходимости.

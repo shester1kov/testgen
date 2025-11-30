@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { User, LoginRequest, RegisterRequest } from '../types/auth.types'
 import { authService } from '@/services/authService'
 import { logger } from '@/utils/logger'
+import { isDesignMode, logDesignModeStatus, getMockUser } from '@/utils/designMode'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -11,10 +12,26 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref<string | null>(null)
 
   // Getters
-  const isAuthenticated = computed(() => !!user.value)
-  const userRole = computed(() => user.value?.role || null)
-  const isAdmin = computed(() => user.value?.role === 'admin')
-  const isTeacher = computed(() => user.value?.role === 'teacher')
+  const isAuthenticated = computed(() => {
+    // In design mode, always consider user as authenticated
+    if (isDesignMode()) return true
+    return !!user.value
+  })
+  const userRole = computed(() => {
+    // In design mode, return admin role for full access
+    if (isDesignMode()) return 'admin'
+    return user.value?.role || null
+  })
+  const isAdmin = computed(() => {
+    // In design mode, always admin
+    if (isDesignMode()) return true
+    return user.value?.role === 'admin'
+  })
+  const isTeacher = computed(() => {
+    // In design mode, has teacher rights too
+    if (isDesignMode()) return true
+    return user.value?.role === 'teacher'
+  })
 
   // Actions
   async function login(credentials: LoginRequest) {
@@ -23,6 +40,13 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
+      // Design mode: skip login, just resolve without setting user
+      if (isDesignMode()) {
+        logger.info('Design mode: Login bypassed', 'authStore')
+        // Return empty response - user remains null
+        return { user: null as any, token: '' }
+      }
+
       const response = await authService.login(credentials)
       user.value = response.user
 
@@ -48,6 +72,13 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
+      // Design mode: skip registration, just resolve without setting user
+      if (isDesignMode()) {
+        logger.info('Design mode: Registration bypassed', 'authStore')
+        // Return empty response - user remains null
+        return { user: null as any, token: '' }
+      }
+
       const response = await authService.register(data)
       user.value = response.user
 
@@ -86,6 +117,13 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
+      // Design mode: skip fetching user
+      if (isDesignMode()) {
+        logger.info('Design mode: Fetch user bypassed', 'authStore')
+        // Return null - user remains null
+        return null as any
+      }
+
       const userData = await authService.getMe()
       user.value = userData
       localStorage.setItem('user', JSON.stringify(userData))
@@ -102,6 +140,16 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function initializeAuth() {
+    // Log design mode status
+    logDesignModeStatus()
+
+    // Design mode: set mock user for components that need it
+    if (isDesignMode()) {
+      user.value = getMockUser() as any
+      logger.info('Design mode: Mock user set, free access to all pages', 'authStore', user.value)
+      return
+    }
+
     const storedUser = localStorage.getItem('user')
 
     if (storedUser) {
