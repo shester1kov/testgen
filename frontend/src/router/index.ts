@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/features/auth/stores/authStore'
-import { isDesignMode } from '@/utils/designMode'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -80,17 +79,10 @@ const router = createRouter({
 })
 
 // Navigation guard
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const requiredRoles = to.meta.requiredRoles as string[] | undefined
-
-  // Design mode: bypass all authentication checks
-  if (isDesignMode()) {
-    // Always allow navigation in design mode
-    next()
-    return
-  }
 
   // Check authentication
   if (requiresAuth && !authStore.isAuthenticated) {

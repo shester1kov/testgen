@@ -3,7 +3,6 @@ import { ref } from 'vue'
 import type { Document, DocumentUploadRequest } from '../types/document.types'
 import { documentService } from '../services/documentService'
 import { logger } from '@/utils/logger'
-import { isDesignMode, getMockDocuments } from '@/utils/designMode'
 
 export const useDocumentsStore = defineStore('documents', () => {
   // State
@@ -47,18 +46,6 @@ export const useDocumentsStore = defineStore('documents', () => {
     error.value = null
 
     try {
-      // Design mode: return mock documents
-      if (isDesignMode()) {
-        const mockDocs = getMockDocuments() as any[]
-        documents.value = mockDocs
-        total.value = mockDocs.length
-        currentPage.value = 1
-        totalPages.value = 1
-        logger.info('Design mode: Mock documents returned', 'documentsStore')
-        loading.value = false
-        return { documents: mockDocs, total: mockDocs.length, page: 1, page_size: limit }
-      }
-
       const response = await documentService.list(page, limit)
       documents.value = response.documents
       total.value = response.total

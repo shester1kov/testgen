@@ -703,205 +703,205 @@ Backend Metrics → Prometheus Client (HTTP middleware)
 
 - Высокая производительность (построен на fasthttp)
 - Express-like API (знакомый синтаксис для Node.js разработчиков)
-- Middleware chain support
-- WebSocket support
+- Поддержка цепочек middleware
+- Поддержка WebSocket
 - Cookie и Session management
-- Template engine support
-- Static file serving
+- Поддержка шаблонизаторов
+- Раздача статических файлов
 
 **ORM и работа с БД**:
 
 - GORM - полнофункциональный ORM
-  - Auto Migrations
-  - Associations (BelongsTo, HasOne, HasMany, ManyToMany)
-  - Hooks (BeforeCreate, AfterUpdate, BeforeDelete, etc.)
-  - Soft Deletes (deleted_at поле)
+  - Автоматические миграции
+  - Ассоциации (BelongsTo, HasOne, HasMany, ManyToMany)
+  - Хуки (BeforeCreate, AfterUpdate, BeforeDelete и др.)
+  - Мягкое удаление (поле deleted_at)
   - Prepared Statements (защита от SQL injection)
-  - Transaction support
+  - Поддержка транзакций
   - Scopes для переиспользования запросов
 - golang-migrate - версионирование миграций
   - Up/Down миграции
-  - Rollback support
-  - CLI tool
+  - Поддержка отката (rollback)
+  - Инструмент командной строки
 
 **Dependency Injection - Wire**:
 
-- Compile-time DI (нет runtime overhead)
-- Type-safe
+- Внедрение зависимостей на этапе компиляции (нет runtime overhead)
+- Типобезопасность
 - Генерация кода
 - Автоматическая проверка зависимостей
-- Provider sets
+- Наборы провайдеров
 
 **Мониторинг и логирование**:
 
 - Uber Zap logger
-  - Structured logging (JSON + Console)
-  - Multiple output targets
-  - Log levels (Debug, Info, Warn, Error, Fatal)
-  - Context fields (request_id, user_id, action)
-  - High performance
+  - Структурированное логирование (JSON + Console)
+  - Множество целей вывода
+  - Уровни логирования (Debug, Info, Warn, Error, Fatal)
+  - Контекстные поля (request_id, user_id, action)
+  - Высокая производительность
 - Prometheus client
-  - HTTP metrics (request count, duration, in-progress)
-  - Custom metrics
-  - Histogram для latency
-  - Counter для events
+  - HTTP метрики (количество запросов, длительность, активные)
+  - Пользовательские метрики
+  - Histogram для задержек
+  - Counter для событий
 
 **Парсинг документов**:
 
 - unidoc/unioffice (DOCX, PPTX)
-  - Full document structure parsing
-  - Text extraction
-  - Metadata reading
+  - Парсинг полной структуры документа
+  - Извлечение текста
+  - Чтение метаданных
 - ledongthuc/pdf (PDF)
-  - Text extraction
-  - Page-by-page parsing
+  - Извлечение текста
+  - Постраничный парсинг
 - goldmark (Markdown)
-  - CommonMark compliant
-  - Extensions support
+  - Совместимость с CommonMark
+  - Поддержка расширений
 - Standard library (TXT)
 
 **Безопасность**:
 
 - golang-jwt/jwt v5
-  - HS256 signing
-  - Claims validation
-  - Token expiration
+  - Подпись HS256
+  - Валидация claims
+  - Истечение токенов
 - golang.org/x/crypto/bcrypt
-  - Adaptive hashing
-  - Salt генерация
-  - Cost factor 10
+  - Адаптивное хеширование
+  - Генерация соли
+  - Фактор сложности 10
 
 **Тестирование**:
 
-- testify/suite - test suites
-- testify/assert - assertions
-- testify/mock - mocking
-- testify/require - critical assertions
-- Built-in testing - benchmarks
+- testify/suite - наборы тестов
+- testify/assert - проверки утверждений
+- testify/mock - создание моков
+- testify/require - критические проверки
+- Built-in testing - бенчмарки
 
 ### 4.2 Frontend (Vue 3.5)
 
 **Build Tool - Vite 7**:
 
-- Lightning fast HMR (Hot Module Replacement)
-- Rollup-based production builds
-- Built-in TypeScript support
-- Plugin ecosystem
-- CSS preprocessing
-- Asset optimization
+- Молниеносный HMR (Hot Module Replacement)
+- Продакшн сборки на основе Rollup
+- Встроенная поддержка TypeScript
+- Экосистема плагинов
+- Препроцессинг CSS
+- Оптимизация ассетов
 
 **Язык - TypeScript 5.6**:
 
-- Type safety
-- Interfaces и Types
-- Enums
-- Generics
-- Decorators
+- Типобезопасность
+- Интерфейсы и типы
+- Перечисления (enums)
+- Обобщения (generics)
+- Декораторы
 
 **Роутинг - Vue Router 4**:
 
-- History mode
-- Navigation guards (beforeEach, beforeResolve, afterEach)
-- Lazy loading
-- Nested routes
-- Named routes
-- Route meta fields
+- Режим истории (History mode)
+- Навигационные guards (beforeEach, beforeResolve, afterEach)
+- Ленивая загрузка
+- Вложенные маршруты
+- Именованные маршруты
+- Мета-поля маршрутов
 
 **State Management - Pinia**:
 
-- Composition API style
-- TypeScript first
-- DevTools integration
-- Hot module replacement
-- Plugins
+- Стиль Composition API
+- TypeScript в приоритете
+- Интеграция с DevTools
+- Горячая замена модулей
+- Система плагинов
 - Actions, Getters, State
 
 **UI Framework**:
 
 - Tailwind CSS v4
-  - Utility-first approach
-  - JIT compilation
-  - Dark mode
-  - Responsive design
-  - Custom configuration
+  - Подход utility-first
+  - JIT компиляция
+  - Темный режим
+  - Адаптивный дизайн
+  - Пользовательская конфигурация
 - Headless UI
-  - Fully accessible
-  - Unstyled components
-  - Dialog, Menu, Listbox, etc.
+  - Полная доступность
+  - Компоненты без стилей
+  - Dialog, Menu, Listbox и др.
 - Heroicons
-  - 292+ icons
-  - Solid и Outline versions
-  - SVG format
+  - 292+ иконки
+  - Версии Solid и Outline
+  - Формат SVG
 
 **HTTP - Axios**:
 
-- Request/Response interceptors
-- Automatic JSON transformation
-- Cancel requests
-- Progress tracking
-- Cookie support
+- Перехватчики запросов/ответов
+- Автоматическое преобразование JSON
+- Отмена запросов
+- Отслеживание прогресса
+- Поддержка cookies
 
 **Validation**:
 
 - VeeValidate
-  - Field-level validation
-  - Form-level validation
-  - Custom rules
+  - Валидация на уровне полей
+  - Валидация на уровне форм
+  - Пользовательские правила
 - Yup
-  - Schema validation
-  - Type inference
-  - Custom validators
+  - Валидация схем
+  - Вывод типов
+  - Пользовательские валидаторы
 
 **Testing - Vitest**:
 
-- Jest compatible API
-- Fast execution (powered by Vite)
-- ESM first
-- TypeScript support
-- Coverage reporting (c8)
-- UI mode
-- 112+ tests
+- API совместимое с Jest
+- Быстрое выполнение (на основе Vite)
+- ESM в приоритете
+- Поддержка TypeScript
+- Отчеты о покрытии (c8)
+- Режим UI
+- 112+ тестов
 
 **Логирование**:
 
 - Custom Logger utility
-  - LogLevel enum (DEBUG, INFO, WARN, ERROR)
-  - Browser console integration
-  - Structured output
-  - HTTP logging via interceptors
-  - Store action logging
+  - Перечисление LogLevel (DEBUG, INFO, WARN, ERROR)
+  - Интеграция с консолью браузера
+  - Структурированный вывод
+  - HTTP логирование через interceptors
+  - Логирование действий в store
 
 ### 4.3 AI/ML
 
 **LLM Providers**:
 
 1. Perplexity API (основной)
-   - Model: llama-3.1-sonar-large-128k-online
-   - Context window: 128k tokens
-   - Online search integration
-   - JSON mode
-   - Streaming support
+   - Модель: llama-3.1-sonar-large-128k-online
+   - Контекстное окно: 128k токенов
+   - Интеграция онлайн-поиска
+   - Режим JSON
+   - Поддержка потоковой передачи
 
 2. OpenAI API (fallback)
-   - Models: GPT-4, GPT-3.5-turbo
-   - Function calling
-   - Vision capabilities
-   - Fine-tuning support
+   - Модели: GPT-4, GPT-3.5-turbo
+   - Вызов функций
+   - Возможности компьютерного зрения
+   - Поддержка дообучения
 
 3. YandexGPT (российский)
-   - Models: yandexgpt-lite, yandexgpt
-   - Folder-based authentication
-   - IAM token
-   - Streaming
+   - Модели: yandexgpt-lite, yandexgpt
+   - Аутентификация на основе папок
+   - IAM токен
+   - Потоковая передача
 
 **Implementation**:
 
 - Strategy Pattern
 - Factory Pattern
-- Configurable provider selection
-- Error handling с fallback
-- Rate limiting
-- Timeout management
+- Конфигурируемый выбор провайдера
+- Обработка ошибок с fallback
+- Ограничение частоты запросов
+- Управление таймаутами
 
 **Промпт Engineering**:
 
@@ -918,15 +918,15 @@ Backend Metrics → Prometheus Client (HTTP middleware)
 
 **PostgreSQL 15**:
 
-- UUID primary keys
+- Первичные ключи UUID
 - JSONB для метаданных
-- Full-text search (tsvector)
-- Partial indexes
-- Concurrent indexes
-- Foreign key constraints
-- Check constraints
-- Triggers для audit
-- Row-level security (опционально)
+- Полнотекстовый поиск (tsvector)
+- Частичные индексы
+- Конкурентные индексы
+- Ограничения внешних ключей
+- Ограничения проверки
+- Триггеры для аудита
+- Безопасность на уровне строк (опционально)
 
 **Миграции**:
 
@@ -949,12 +949,12 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_deleted_at ON users(deleted_at);
 ```
 
-**Redis 7** (optional):
+**Redis 7** (опционально):
 
-- Cache часто запрашиваемых данных
-- Session storage
-- Rate limiting counters
-- Pub/Sub для real-time updates
+- Кэширование часто запрашиваемых данных
+- Хранилище сессий
+- Счетчики ограничения частоты запросов
+- Pub/Sub для обновлений в реальном времени
 
 ### 4.5 Infrastructure
 
@@ -1114,22 +1114,22 @@ func AdminOnly() fiber.Handler {
 
 **SQL Injection**:
 
-- GORM prepared statements
-- Parameterized queries
-- No raw SQL concatenation
+- Подготовленные выражения GORM
+- Параметризованные запросы
+- Без конкатенации сырого SQL
 
 **XSS (Cross-Site Scripting)**:
 
 - HTTP-only cookies (нет доступа из JavaScript)
-- CSP headers
-- HTML sanitization на backend
-- Frontend sanitization при отображении
+- Заголовки CSP
+- Санитизация HTML на backend
+- Санитизация на frontend при отображении
 
 **CSRF (Cross-Site Request Forgery)**:
 
-- SameSite=Lax cookies
-- Double submit cookie pattern (опционально)
-- Token validation для mutating requests
+- Cookies с SameSite=Lax
+- Паттерн двойной отправки cookie (опционально)
+- Валидация токенов для изменяющих запросов
 
 **CORS**:
 
@@ -1146,16 +1146,16 @@ app.Use(cors.New(cors.Config{
 
 - Nginx rate limiting (10 req/s per IP)
 - Backend rate limiting для критичных эндпоинтов
-- Redis counters
+- Redis счетчики
 
 **Input Validation**:
 
 - go-playground/validator на backend
 - VeeValidate + Yup на frontend
-- File type validation
-- File size validation (max 50MB)
-- Email format validation
-- Password strength validation
+- Валидация типов файлов
+- Валидация размера файлов (макс 50MB)
+- Валидация формата email
+- Валидация надежности пароля
 
 ### 5.4 Audit Logging
 
@@ -1179,12 +1179,12 @@ CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at);
 
 **Logged actions**:
 
-- User login/logout
-- Role changes (Admin action)
-- Test generation
-- Test export
-- Document upload/delete
-- Moodle sync
+- Вход/выход пользователя
+- Изменение ролей (действие Admin)
+- Генерация тестов
+- Экспорт тестов
+- Загрузка/удаление документов
+- Синхронизация с Moodle
 
 ## 6. План разработки и управление
 
@@ -1202,17 +1202,17 @@ CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at);
 
 **Артефакты**:
 
-- Requirements Specification Document
-- User Stories (Admin, Teacher, Student)
+- Документ спецификации требований
+- Пользовательские истории (Admin, Teacher, Student)
 - Use Case диаграммы (UML)
-- Functional Requirements (FR-1...FR-7)
-- Non-functional Requirements (NFR-1...NFR-5)
+- Функциональные требования (FR-1...FR-7)
+- Нефункциональные требования (NFR-1...NFR-5)
 
 **Критерии завершения**:
 
-- ✅ Утверждены требования stakeholders
-- ✅ Определен MVP scope
-- ✅ Создан backlog
+- Утверждены требования stakeholders
+- Определен MVP scope
+- Создан backlog
 
 ### 6.2 Фаза 2: Проектирование (1 неделя)
 
@@ -1228,172 +1228,172 @@ CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at);
 
 **Артефакты**:
 
-- Software Design Document (SDD)
+- Документ проектирования ПО (SDD)
 - ERD диаграмма (Crow's Foot Notation)
-- API Specification (Swagger)
+- Спецификация API (Swagger)
 - UML диаграммы
-- Wireframes (Figma/Sketch)
-- Technology Stack Document
-- ADR (Architecture Decision Records)
+- Каркасы интерфейсов (Figma/Sketch)
+- Документ технологического стека
+- Записи архитектурных решений (ADR)
 
 **Критерии завершения**:
 
-- ✅ Утвержден дизайн архитектуры
-- ✅ Определена схема БД
-- ✅ Согласованы API контракты
-- ✅ Выбраны технологии
+- Утвержден дизайн архитектуры
+- Определена схема БД
+- Согласованы API контракты
+- Выбраны технологии
 
 ### 6.3 Фаза 3: Реализация Backend (3-4 недели)
 
 **Sprint 1 (неделя 1): Infrastructure + Auth**
 
 - Настройка проекта (Go modules, структура директорий)
-- Docker Compose configuration
-- PostgreSQL setup + миграции
-- Wire DI setup
-- JWT authentication
-- User CRUD + Role management
-- Unit tests для auth
+- Конфигурация Docker Compose
+- Настройка PostgreSQL + миграции
+- Настройка Wire DI
+- Аутентификация JWT
+- User CRUD + управление ролями
+- Unit тесты для auth
 
 **Sprint 2 (неделя 2): Document Management**
 
-- Document upload handler
+- Обработчик загрузки документов
 - Parser Factory (PDF, DOCX, PPTX, TXT, MD)
-- Document CRUD operations
-- Async parsing
-- Error handling
-- Unit tests для parsers
+- Document CRUD операции
+- Асинхронный парсинг
+- Обработка ошибок
+- Unit тесты для парсеров
 
 **Sprint 3 (неделя 3): LLM Integration + Test Generation**
 
 - LLM Strategy Pattern
 - LLM Factory
-- Integration с Perplexity/OpenAI/YandexGPT
-- Test generation use case
+- Интеграция с Perplexity/OpenAI/YandexGPT
+- Use case генерации тестов
 - Question/Answer CRUD
-- Unit tests для LLM
+- Unit тесты для LLM
 
 **Sprint 4 (неделя 4): Moodle Integration + Monitoring**
 
-- Moodle XML exporter
-- Moodle REST API client
-- Prometheus metrics
-- Zap logging
-- Health checks
-- Integration tests
+- Экспортер Moodle XML
+- Moodle REST API клиент
+- Метрики Prometheus
+- Логирование Zap
+- Проверки работоспособности
+- Интеграционные тесты
 
 **Артефакты**:
 
-- Working backend API
-- Swagger documentation
-- Unit tests (coverage ≥80%)
-- Integration tests
-- Docker images
+- Рабочий backend API
+- Документация Swagger
+- Unit тесты (покрытие ≥80%)
+- Интеграционные тесты
+- Docker образы
 
 ### 6.4 Фаза 4: Реализация Frontend (3-4 недели)
 
 **Sprint 1 (неделя 1): Setup + Auth**
 
-- Vite project setup
-- TypeScript configuration
-- Tailwind CSS setup
-- Vue Router setup
-- Pinia stores
-- Login/Register forms
-- Auth guards
-- Unit tests для auth
+- Настройка проекта Vite
+- Конфигурация TypeScript
+- Настройка Tailwind CSS
+- Настройка Vue Router
+- Хранилища Pinia
+- Формы входа/регистрации
+- Защитники маршрутов auth
+- Unit тесты для auth
 
 **Sprint 2 (неделя 2): Document Management UI**
 
-- Document upload component
-- Document list view
-- Document detail view
-- File validation
-- Progress indicators
-- Unit tests
+- Компонент загрузки документов
+- Представление списка документов
+- Детальное представление документа
+- Валидация файлов
+- Индикаторы прогресса
+- Unit тесты
 
 **Sprint 3 (неделя 3): Test Management UI**
 
-- Test generation form
-- Test list view
-- Test detail view
-- Question editor
-- Answer editor
-- Unit tests
+- Форма генерации тестов
+- Представление списка тестов
+- Детальное представление теста
+- Редактор вопросов
+- Редактор ответов
+- Unit тесты
 
 **Sprint 4 (неделя 4): Admin + Polish**
 
-- User management (Admin)
-- Dashboard with stats
-- Moodle export UI
-- Error handling
-- Loading states
-- Responsive design
-- Unit tests
+- Управление пользователями (Admin)
+- Панель со статистикой
+- UI экспорта Moodle
+- Обработка ошибок
+- Состояния загрузки
+- Адаптивный дизайн
+- Unit тесты
 
 **Артефакты**:
 
-- Working frontend application
-- Responsive UI
-- Unit tests (112+ tests)
-- Component library
+- Рабочее frontend приложение
+- Адаптивный UI
+- Unit тесты (112+ тестов)
+- Библиотека компонентов
 
 ### 6.5 Фаза 5: Тестирование + Hardening (2 недели)
 
 **Week 1: Testing**
 
-- Integration testing (E2E)
-- Performance testing (load tests с k6)
-- Security testing (SAST, dependency scan)
-- Cross-browser testing
-- Accessibility testing (WCAG 2.1)
-- Usability testing
-- Bug fixing
+- Интеграционное тестирование (E2E)
+- Тестирование производительности (нагрузочные тесты с k6)
+- Тестирование безопасности (SAST, сканирование зависимостей)
+- Кроссбраузерное тестирование
+- Тестирование доступности (WCAG 2.1)
+- Юзабилити-тестирование
+- Исправление багов
 
 **Week 2: Hardening**
 
-- Security hardening (penetration testing)
-- Performance optimization
-- Error handling improvements
-- Logging improvements
-- Monitoring setup (Prometheus + Grafana)
-- Documentation review
-- Code review
+- Усиление безопасности (тестирование на проникновение)
+- Оптимизация производительности
+- Улучшения обработки ошибок
+- Улучшения логирования
+- Настройка мониторинга (Prometheus + Grafana)
+- Проверка документации
+- Ревью кода
 
 **Артефакты**:
 
-- Test Report
-- Performance Report
-- Security Audit Report
-- Bug fixes
-- Optimizations
+- Отчет по тестированию
+- Отчет по производительности
+- Отчет по аудиту безопасности
+- Исправления багов
+- Оптимизации
 
 ### 6.6 Фаза 6: Документация + Релиз (1 неделя)
 
 **Документация**:
 
-- User Manual
-- API Documentation (Swagger)
-- Deployment Guide
-- Architecture Documentation
-- Runbooks for operations
-- Training materials
+- Руководство пользователя
+- Документация API (Swagger)
+- Руководство по развертыванию
+- Документация архитектуры
+- Руководства по эксплуатации
+- Обучающие материалы
 
 **Релиз**:
 
-- Production deployment
-- Monitoring setup
-- Backup configuration
-- User training sessions
-- Release notes
-- Post-release support plan
+- Развертывание в продакшн
+- Настройка мониторинга
+- Настройка резервного копирования
+- Обучающие сессии для пользователей
+- Примечания к релизу
+- План поддержки после релиза
 
 **Артефакты**:
 
-- Complete documentation
-- Production deployment
-- Training materials
-- Release notes
+- Полная документация
+- Продакшн развертывание
+- Обучающие материалы
+- Примечания к релизу
 
 ## 7. Макеты и прототипы
 
@@ -1403,76 +1403,76 @@ CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at);
 
 ```
 1. Логин → Dashboard
-2. Navigate to Documents
-3. Upload document (PDF/DOCX/PPTX/TXT/MD)
-4. Wait for parsing (progress bar)
-5. View parsed text
-6. Click "Generate Test"
-7. Configure parameters:
-   - Number of questions: 20
-   - Question types: Single Choice
-   - Difficulty: Medium
-8. Submit generation
-9. Wait for LLM (progress bar)
-10. View generated test
-11. Edit questions if needed
-12. Export to Moodle XML
-13. Download XML file
-14. Import in Moodle
+2. Переход к документам
+3. Загрузка документа (PDF/DOCX/PPTX/TXT/MD)
+4. Ожидание парсинга (прогресс-бар)
+5. Просмотр распарсенного текста
+6. Клик "Генерировать тест"
+7. Настройка параметров:
+   - Количество вопросов: 20
+   - Типы вопросов: Single Choice
+   - Сложность: Medium
+8. Отправка на генерацию
+9. Ожидание LLM (прогресс-бар)
+10. Просмотр сгенерированного теста
+11. Редактирование вопросов при необходимости
+12. Экспорт в Moodle XML
+13. Скачивание XML файла
+14. Импорт в Moodle
 ```
 
 **Администратор - Управление пользователями**:
 
 ```
 1. Логин → Dashboard
-2. Navigate to Users
-3. View users list (paginated)
-4. Select user
-5. Change role (teacher/student/admin)
-6. Confirm change
-7. View activity log
+2. Переход к пользователям
+3. Просмотр списка пользователей (с пагинацией)
+4. Выбор пользователя
+5. Изменение роли (teacher/student/admin)
+6. Подтверждение изменения
+7. Просмотр журнала активности
 ```
 
 ### 7.2 UI Components
 
 **Dashboard View**:
 
-- Header (logo, user menu, logout)
-- Sidebar (navigation)
-- Stats cards (documents count, tests count, questions count)
-- Recent activity
-- Quick actions (Upload Document, Create Test)
+- Заголовок (логотип, меню пользователя, выход)
+- Боковая панель (навигация)
+- Карточки статистики (количество документов, тестов, вопросов)
+- Недавняя активность
+- Быстрые действия (Загрузить документ, Создать тест)
 
 **Document Upload**:
 
-- Drag & drop area
-- File picker button
-- Supported formats badge
-- Max size indicator (50MB)
-- Progress bar
-- Success/Error messages
+- Область перетаскивания
+- Кнопка выбора файла
+- Бейдж поддерживаемых форматов
+- Индикатор максимального размера (50MB)
+- Прогресс-бар
+- Сообщения об успехе/ошибке
 
 **Test Generation Form**:
 
-- Document selector (dropdown)
-- Number of questions (slider 1-50)
-- Question types (checkboxes)
-- Difficulty (radio buttons: Easy/Medium/Hard)
-- Generate button
-- Cancel button
+- Селектор документа (выпадающий список)
+- Количество вопросов (слайдер 1-50)
+- Типы вопросов (чекбоксы)
+- Сложность (радио-кнопки: Easy/Medium/Hard)
+- Кнопка генерации
+- Кнопка отмены
 
 **Question Editor**:
 
-- Question text (textarea)
-- Question type selector
-- Difficulty selector
-- Points (number input)
-- Answer options (dynamic list)
-- Correct answer indicator (checkbox/radio)
-- Add answer button
-- Remove answer button
-- Save button
-- Cancel button
+- Текст вопроса (текстовая область)
+- Селектор типа вопроса
+- Селектор сложности
+- Баллы (числовой ввод)
+- Варианты ответов (динамический список)
+- Индикатор правильного ответа (чекбокс/радио)
+- Кнопка добавления ответа
+- Кнопка удаления ответа
+- Кнопка сохранения
+- Кнопка отмены
 
 ### 7.3 Responsive Design
 
@@ -1485,43 +1485,43 @@ CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at);
 
 **Mobile adaptations**:
 
-- Collapsible sidebar → hamburger menu
-- Stacked cards instead of grid
-- Touch-friendly buttons (min 44x44px)
-- Simplified forms
-- Bottom navigation bar
+- Сворачиваемая боковая панель → гамбургер-меню
+- Карточки в стопку вместо сетки
+- Кнопки для сенсорного управления (мин 44x44px)
+- Упрощенные формы
+- Нижняя панель навигации
 
 ### 7.4 Accessibility (ГОСТ Р ИСО 9241)
 
 **Клавиатурная навигация**:
 
-- Tab order
-- Focus indicators
-- Keyboard shortcuts (Ctrl+N - new document, Ctrl+T - new test)
-- Skip to content link
-- Modal trap focus
+- Порядок Tab
+- Индикаторы фокуса
+- Клавиатурные сокращения (Ctrl+N - новый документ, Ctrl+T - новый тест)
+- Ссылка пропуска к контенту
+- Захват фокуса в модальных окнах
 
 **Контрастность**:
 
-- WCAG AA compliance
+- Соответствие WCAG AA
 - 4.5:1 для обычного текста
 - 3:1 для крупного текста
-- High contrast mode
+- Режим высокой контрастности
 
 **Скринридеры**:
 
-- Semantic HTML (header, nav, main, footer)
-- ARIA labels
-- ARIA live regions для dynamic content
-- Alt text для изображений
-- Role attributes
+- Семантический HTML (header, nav, main, footer)
+- ARIA метки
+- ARIA live регионы для динамического контента
+- Alt текст для изображений
+- Role атрибуты
 
 **Масштабирование**:
 
-- Zoom support до 200%
-- Rem units для шрифтов
-- Fluid layout
-- No horizontal scroll
+- Поддержка масштабирования до 200%
+- Rem единицы для шрифтов
+- Адаптивная разметка
+- Без горизонтальной прокрутки
 
 ## 8. Стратегия тестирования
 
@@ -1530,7 +1530,7 @@ CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at);
 **Unit Tests**:
 
 ```go
-// Example: User entity test
+// Пример: тест сущности User
 func TestUser_SetPassword(t *testing.T) {
     user := &entity.User{}
     password := "TestPass123!"
@@ -1542,7 +1542,7 @@ func TestUser_SetPassword(t *testing.T) {
     assert.False(t, user.CheckPassword("WrongPassword"))
 }
 
-// Example: Repository test
+// Пример: тест репозитория
 func TestUserRepository_Create(t *testing.T) {
     db := setupTestDB(t)
     repo := postgres.NewUserRepository(db)
@@ -1562,15 +1562,15 @@ func TestUserRepository_Create(t *testing.T) {
 **Integration Tests**:
 
 ```go
-// Example: HTTP handler test
+// Пример: тест HTTP обработчика
 func TestAuthHandler_Login(t *testing.T) {
     app, cleanup := setupTestApp(t)
     defer cleanup()
 
-    // Create test user
+    // Создание тестового пользователя
     createUser(t, app, "test@example.com", "password123")
 
-    // Login request
+    // Запрос на логин
     req := httptest.NewRequest("POST", "/auth/login", strings.NewReader(`{
         "email": "test@example.com",
         "password": "password123"
@@ -1581,7 +1581,7 @@ func TestAuthHandler_Login(t *testing.T) {
     assert.NoError(t, err)
     assert.Equal(t, 200, resp.StatusCode)
 
-    // Check cookie
+    // Проверка cookie
     cookies := resp.Cookies()
     assert.NotEmpty(t, cookies)
     assert.Equal(t, "testgen_token", cookies[0].Name)
@@ -1599,17 +1599,17 @@ func TestAuthHandler_Login(t *testing.T) {
 **Команды**:
 
 ```bash
-# Run all tests
+# Запуск всех тестов
 go test ./... -v
 
-# With coverage
+# С покрытием
 go test ./... -coverprofile=coverage.out
 go tool cover -html=coverage.out
 
-# Specific package
+# Конкретный пакет
 go test ./internal/domain/entity -v
 
-# Benchmarks
+# Бенчмарки
 go test -bench=. -benchmem
 ```
 
@@ -1618,7 +1618,7 @@ go test -bench=. -benchmem
 **Unit Tests**:
 
 ```typescript
-// Example: Auth store test
+// Пример: тест store аутентификации
 describe('authStore', () => {
   it('should login successfully', async () => {
     const store = useAuthStore()
@@ -1649,7 +1649,7 @@ describe('authStore', () => {
 **Component Tests**:
 
 ```typescript
-// Example: LoginForm test
+// Пример: тест компонента LoginForm
 describe('LoginForm', () => {
   it('should render form fields', () => {
     const wrapper = mount(LoginForm)
@@ -1687,16 +1687,16 @@ describe('LoginForm', () => {
 **Команды**:
 
 ```bash
-# Run all tests
+# Запуск всех тестов
 npm run test
 
-# With coverage
+# С покрытием
 npm run test -- --coverage
 
-# Watch mode
+# Режим наблюдения
 npm run test -- --watch
 
-# UI mode
+# Режим UI
 npm run test:ui
 ```
 
@@ -1704,35 +1704,10 @@ npm run test:ui
 
 **Swagger UI**:
 
-- Interactive API testing
-- Try-it-out feature
-- Request/Response examples
-- Schema validation
-
-**Postman Collection**:
-
-- All endpoints
-- Environment variables
-- Pre-request scripts
-- Test scripts
-- Newman для CLI
-
-**Example Newman test**:
-
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Response has token", function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData.token).to.not.be.empty;
-});
-
-pm.test("Response time < 500ms", function () {
-    pm.expect(pm.response.responseTime).to.be.below(500);
-});
-```
+- Интерактивное тестирование API
+- Функция пробного запроса
+- Примеры запросов/ответов
+- Валидация схем
 
 ### 8.4 Performance Testing
 
@@ -1744,13 +1719,13 @@ import { check, sleep } from 'k6';
 
 export let options = {
   stages: [
-    { duration: '1m', target: 10 }, // ramp up
-    { duration: '3m', target: 50 }, // stay at 50 users
-    { duration: '1m', target: 0 },  // ramp down
+    { duration: '1m', target: 10 }, // постепенное увеличение
+    { duration: '3m', target: 50 }, // удержание на 50 пользователях
+    { duration: '1m', target: 0 },  // постепенное уменьшение
   ],
   thresholds: {
     http_req_duration: ['p(95)<500'], // 95% < 500ms
-    http_req_failed: ['rate<0.01'],   // <1% errors
+    http_req_failed: ['rate<0.01'],   // <1% ошибок
   },
 };
 
@@ -1764,13 +1739,13 @@ export default function () {
 }
 ```
 
-**Metrics**:
+**Метрики**:
 
-- Response time: p50, p95, p99
-- Throughput: requests/second
-- Error rate: %
-- Concurrent users: max
-- Database connections: active
+- Время ответа: p50, p95, p99
+- Пропускная способность: запросов/секунду
+- Процент ошибок: %
+- Одновременные пользователи: максимум
+- Подключения к БД: активные
 
 ### 8.5 Security Testing
 
@@ -1784,54 +1759,54 @@ export default function () {
 
 - OWASP ZAP
 - Burp Suite
-- SQL injection tests
-- XSS tests
-- CSRF tests
-- Authentication bypass tests
+- Тесты на SQL injection
+- Тесты на XSS
+- Тесты на CSRF
+- Тесты обхода аутентификации
 
 **Penetration Testing**:
 
-- Manual testing
-- Automated scanners
-- Vulnerability assessment
-- Exploitation attempts
-- Report generation
+- Ручное тестирование
+- Автоматизированные сканеры
+- Оценка уязвимостей
+- Попытки эксплуатации
+- Генерация отчетов
 
 ### 8.6 Критерии успеха
 
 **Functional**:
 
-- ✅ All API endpoints work correctly
-- ✅ File upload supports all formats (PDF, DOCX, PPTX, TXT, MD)
-- ✅ Parsing accuracy >95%
-- ✅ LLM generation success rate >90%
-- ✅ Moodle XML validates correctly
-- ✅ Authentication/Authorization works
+- All API endpoints work correctly
+- File upload supports all formats (PDF, DOCX, PPTX, TXT, MD)
+- Parsing accuracy >95%
+- LLM generation success rate >90%
+- Moodle XML validates correctly
+- Authentication/Authorization works
 
 **Performance**:
 
-- ✅ API response time <500ms (p95)
-- ✅ Document parsing <10s (files up to 50MB)
-- ✅ Test generation <30s (20 questions)
-- ✅ Support 50+ concurrent users
-- ✅ Database query time <100ms (p95)
+- API response time <500ms (p95)
+- Document parsing <10s (files up to 50MB)
+- Test generation <30s (20 questions)
+- Support 50+ concurrent users
+- Database query time <100ms (p95)
 
 **Security**:
 
-- ✅ No critical vulnerabilities (CVSS ≥7.0)
-- ✅ All inputs validated
-- ✅ SQL injection protected
-- ✅ XSS protected
-- ✅ CSRF protected
-- ✅ Audit logs working
+- No critical vulnerabilities (CVSS ≥7.0)
+- All inputs validated
+- SQL injection protected
+- XSS protected
+- CSRF protected
+- Audit logs working
 
 **Quality**:
 
-- ✅ Code coverage ≥80%
-- ✅ All tests passing
-- ✅ No linter errors
-- ✅ TypeScript strict mode
-- ✅ API documentation complete
+- Code coverage ≥80%
+- All tests passing
+- No linter errors
+- TypeScript strict mode
+- API documentation complete
 
 ## 9. Документация
 
@@ -1933,21 +1908,21 @@ export default function () {
 **Docker Deployment**:
 
 ```bash
-# 1. Clone repository
+# 1. Клонирование репозитория
 git clone <repo-url>
 cd testgen
 
-# 2. Configure environment
+# 2. Настройка окружения
 cp .env.example .env
-# Edit .env with your values
+# Отредактируйте .env своими значениями
 
-# 3. Start services
+# 3. Запуск сервисов
 docker-compose up -d
 
-# 4. Check health
+# 4. Проверка здоровья
 curl http://localhost:8080/health
 
-# 5. Access application
+# 5. Доступ к приложению
 # Frontend: http://localhost:5173
 # Backend API: http://localhost:8080
 # Swagger: http://localhost:8080/swagger/index.html
@@ -1992,44 +1967,44 @@ CREATE DATABASE testgen_db;
 **Health Checks**:
 
 ```bash
-# Backend health
+# Проверка здоровья Backend
 curl http://localhost:8080/health
 
-# Database connectivity
+# Проверка подключения к БД
 docker-compose exec postgres psql -U testgen_user -d testgen_db -c "SELECT 1"
 
-# Metrics
+# Метрики
 curl http://localhost:8080/metrics
 ```
 
 **Backup & Restore**:
 
 ```bash
-# Backup
+# Резервное копирование
 docker-compose exec postgres pg_dump -U testgen_user testgen_db > backup.sql
 
-# Restore
+# Восстановление
 docker-compose exec postgres psql -U testgen_user testgen_db < backup.sql
 ```
 
 **Logging**:
 
 ```bash
-# Backend logs
+# Логи Backend
 docker-compose logs -f backend
 
-# View in Grafana
-# Navigate to Loki datasource
-# Query: {service="backend"} |= "error"
+# Просмотр в Grafana
+# Перейдите к источнику данных Loki
+# Запрос: {service="backend"} |= "error"
 ```
 
 **Monitoring**:
 
 ```bash
-# Prometheus targets
+# Цели Prometheus
 curl http://localhost:9090/targets
 
-# Grafana dashboards
+# Дашборды Grafana
 # http://localhost:3000/d/testgen-api
 # http://localhost:3000/d/testgen-logs
 ```
@@ -2037,17 +2012,17 @@ curl http://localhost:9090/targets
 **Troubleshooting**:
 
 ```bash
-# Database not connecting
+# БД не подключается
 docker-compose ps
 docker-compose logs postgres
 
-# Backend not starting
+# Backend не запускается
 docker-compose logs backend
-# Check .env configuration
+# Проверьте конфигурацию .env
 
-# Frontend not loading
+# Frontend не загружается
 docker-compose logs frontend
-npm run build # rebuild
+npm run build # пересборка
 ```
 
 ## 10. Итоги и перспективы
@@ -2058,54 +2033,54 @@ npm run build # rebuild
 
 1. **Clean Architecture на практике**
    - Разделение на 4 слоя (Domain, Application, Infrastructure, Interfaces)
-   - Dependency Inversion Principle
-   - Testable архитектура
+   - Принцип инверсии зависимостей
+   - Тестируемая архитектура
    - Repository Pattern
-   - Use Cases
+   - Use Cases (варианты использования)
 
 2. **Full-stack разработка**
    - Backend: Go + Fiber + GORM
    - Frontend: Vue 3 + TypeScript + Vite
-   - State management: Pinia
-   - API design: RESTful principles
-   - Real-time updates
+   - Управление состоянием: Pinia
+   - Проектирование API: принципы RESTful
+   - Обновления в реальном времени
 
 3. **Database Design**
-   - PostgreSQL schema design
-   - Indexes optimization
-   - Migrations strategy
-   - Soft deletes
-   - Audit logging
+   - Проектирование схемы PostgreSQL
+   - Оптимизация индексов
+   - Стратегия миграций
+   - Мягкое удаление
+   - Журналирование аудита
 
 4. **AI/ML Integration**
-   - LLM API integration (Perplexity, OpenAI, YandexGPT)
-   - Промпт engineering
-   - Strategy Pattern для flexibility
-   - Error handling для AI calls
-   - Fallback mechanisms
+   - Интеграция LLM API (Perplexity, OpenAI, YandexGPT)
+   - Промпт-инжиниринг
+   - Strategy Pattern для гибкости
+   - Обработка ошибок для AI вызовов
+   - Механизмы отката
 
 5. **DevOps & Infrastructure**
-   - Docker containerization
-   - Docker Compose orchestration
-   - Nginx configuration
-   - Prometheus monitoring
-   - Grafana dashboards
-   - Loki log aggregation
+   - Контейнеризация Docker
+   - Оркестрация Docker Compose
+   - Конфигурация Nginx
+   - Мониторинг Prometheus
+   - Дашборды Grafana
+   - Агрегация логов Loki
 
 6. **Security**
-   - JWT authentication
-   - RBAC authorization
-   - bcrypt password hashing
-   - XSS/CSRF/SQL injection protection
-   - Audit logging
-   - Secure cookie handling
+   - Аутентификация JWT
+   - Авторизация RBAC
+   - Хеширование паролей bcrypt
+   - Защита от XSS/CSRF/SQL injection
+   - Журналирование аудита
+   - Безопасная обработка cookies
 
 7. **Testing**
-   - Unit testing (Go + Vue)
-   - Integration testing
-   - Mocking dependencies
-   - Test coverage analysis
-   - Performance testing (k6)
+   - Unit тестирование (Go + Vue)
+   - Интеграционное тестирование
+   - Создание моков зависимостей
+   - Анализ покрытия тестами
+   - Тестирование производительности (k6)
 
 **Предметная область**:
 
@@ -2116,15 +2091,15 @@ npm run build # rebuild
    - Качество вопросов
 
 2. **Moodle Integration**
-   - Moodle XML format
-   - Question categories
+   - Формат Moodle XML
+   - Категории вопросов
    - Web Services API
-   - Question bank
+   - Банк вопросов
 
 3. **Автоматизация в образовании**
    - Генерация контента с AI
    - Валидация качества
-   - Workflow оптимизация
+   - Оптимизация рабочих процессов
 
 ### 10.2 Достигнутые результаты
 
@@ -2133,159 +2108,159 @@ npm run build # rebuild
 - Полноценная система генерации тестов
 - 5 форматов документов (PDF, DOCX, PPTX, TXT, MD)
 - 3 LLM провайдера
-- Moodle integration
+- Интеграция с Moodle
 - RBAC с 3 ролями
-- Production-ready monitoring
-- Comprehensive testing
+- Мониторинг готовый к продакшн
+- Всестороннее тестирование
 
 **Метрики**:
 
 - ~100 Go файлов
 - ~64 Vue/TS файлов
 - 112+ frontend тестов
-- 20+ API endpoints
-- 7 database tables
-- 6+ design patterns
-- Full Swagger documentation
+- 20+ API эндпоинтов
+- 7 таблиц базы данных
+- 6+ паттернов проектирования
+- Полная документация Swagger
 
 **Performance**:
 
-- API response <500ms (p95)
-- Parsing <10s (50MB files)
-- Generation <30s (20 questions)
-- 50+ concurrent users support
+- Ответ API <500ms (p95)
+- Парсинг <10s (файлы до 50MB)
+- Генерация <30s (20 вопросов)
+- Поддержка 50+ одновременных пользователей
 
 ### 10.3 Возможные улучшения
 
 **MVP+ (3-6 месяцев)**:
 
 1. **Расширение функциональности**
-   - Matching questions
-   - Essay questions
-   - Cloze (fill-in-the-blank)
-   - Calculated questions
-   - Rich text editor (TinyMCE/Quill)
-   - Image upload для вопросов
-   - Formula support (MathJax/KaTeX)
+   - Вопросы на соответствие
+   - Эссе вопросы
+   - Вопросы с пропусками (заполнение пропусков)
+   - Вычисляемые вопросы
+   - Редактор форматированного текста (TinyMCE/Quill)
+   - Загрузка изображений для вопросов
+   - Поддержка формул (MathJax/KaTeX)
 
 2. **Улучшение UX**
-   - Drag-and-drop question ordering
-   - Bulk operations (delete, export)
-   - Question templates
-   - Favorites/bookmarks
-   - Search и filter
-   - Preview mode
-   - Collaborative editing
+   - Перетаскивание для упорядочивания вопросов
+   - Массовые операции (удаление, экспорт)
+   - Шаблоны вопросов
+   - Избранное/закладки
+   - Поиск и фильтрация
+   - Режим предпросмотра
+   - Совместное редактирование
 
 3. **Аналитика**
-   - Dashboard statistics
-   - Usage analytics
-   - Question quality metrics
-   - User activity reports
-   - Export reports (PDF, Excel)
+   - Статистика на дашборде
+   - Аналитика использования
+   - Метрики качества вопросов
+   - Отчеты о активности пользователей
+   - Экспорт отчетов (PDF, Excel)
 
 4. **Интеграция**
    - Google Classroom
    - Microsoft Teams
    - Canvas LMS
    - Blackboard
-   - SCORM export
+   - Экспорт SCORM
 
 **Среднесрочные (6-12 месяцев)**:
 
 1. **AI Improvements**
-   - Fine-tuned models для образования
-   - Prompt optimization (A/B testing)
-   - Question difficulty prediction
-   - Auto-tagging по темам
-   - Plagiarism detection
-   - Quality scoring
+   - Дообученные модели для образования
+   - Оптимизация промптов (A/B тестирование)
+   - Предсказание сложности вопросов
+   - Автоматическая пометка по темам
+   - Обнаружение плагиата
+   - Оценка качества
 
 2. **Масштабирование**
-   - Redis caching
-   - CDN для static files
-   - Database read replicas
-   - Horizontal scaling backend
-   - Load balancing
-   - Rate limiting improvements
+   - Кеширование Redis
+   - CDN для статических файлов
+   - Реплики базы данных для чтения
+   - Горизонтальное масштабирование backend
+   - Балансировка нагрузки
+   - Улучшения ограничения скорости
 
 3. **Advanced Features**
-   - Question versioning (Git-like)
-   - Question feedback от студентов
-   - Adaptive testing
-   - Test templates
-   - Question pools
-   - Randomization rules
+   - Версионирование вопросов (подобно Git)
+   - Обратная связь по вопросам от студентов
+   - Адаптивное тестирование
+   - Шаблоны тестов
+   - Пулы вопросов
+   - Правила рандомизации
 
 4. **Collaboration**
-   - Team workspaces
-   - Shared question banks
-   - Comments на вопросы
-   - Review workflow
-   - Approval process
+   - Командные рабочие пространства
+   - Общие банки вопросов
+   - Комментарии к вопросам
+   - Рабочий процесс проверки
+   - Процесс утверждения
 
 **Долгосрочные (1-2 года, Магистерская диссертация)**:
 
 1. **Микросервисы**
-   - Document parsing service
-   - LLM generation service
-   - Export service
-   - Analytics service
-   - Event-driven architecture
-   - Message queue (Kafka/RabbitMQ)
+   - Сервис парсинга документов
+   - Сервис генерации LLM
+   - Сервис экспорта
+   - Сервис аналитики
+   - Событийно-ориентированная архитектура
+   - Очередь сообщений (Kafka/RabbitMQ)
    - Service mesh (Istio)
 
 2. **Machine Learning**
-   - Custom models (Hugging Face)
-   - Local LLM deployment (Ollama)
-   - Transfer learning
-   - Model fine-tuning pipeline
-   - Active learning from feedback
+   - Кастомные модели (Hugging Face)
+   - Локальное развертывание LLM (Ollama)
+   - Трансферное обучение
+   - Конвейер дообучения моделей
+   - Активное обучение из обратной связи
 
 3. **Multi-tenancy SaaS**
-   - Organization management
-   - Resource isolation
-   - Billing и subscriptions
-   - Usage quotas
-   - White-labeling
-   - Custom domains
+   - Управление организациями
+   - Изоляция ресурсов
+   - Биллинг и подписки
+   - Квоты использования
+   - Белая метка
+   - Кастомные домены
 
 4. **Advanced Analytics**
-   - ML для quality prediction
-   - Anomaly detection
-   - Recommendation system
-   - Predictive analytics
-   - Real-time dashboards
+   - ML для предсказания качества
+   - Обнаружение аномалий
+   - Рекомендательная система
+   - Предиктивная аналитика
+   - Дашборды в реальном времени
 
 5. **Mobile & Offline**
-   - React Native app
-   - Offline-first architecture
-   - Sync strategy
-   - Push notifications
-   - Mobile-optimized UI
+   - Приложение React Native
+   - Архитектура offline-first
+   - Стратегия синхронизации
+   - Push уведомления
+   - UI оптимизированный для мобильных
 
 6. **Internationalization**
-   - Multi-language support
-   - RTL languages
-   - Localization
-   - Currency support
-   - Timezone handling
+   - Поддержка нескольких языков
+   - Языки с письмом справа налево
+   - Локализация
+   - Поддержка валют
+   - Обработка часовых поясов
 
 ### 10.4 Бизнес перспективы
 
-**Target Market**:
+**Целевой рынок**:
 
 - Университеты (500+ в России)
-- Онлайн-платформы (Coursera, Udemy аналоги)
+- Онлайн-платформы (аналоги Coursera, Udemy)
 - Корпоративное обучение
 - Школы (частные, государственные)
 
-**Monetization**:
+**Монетизация**:
 
-- Freemium model (5 тестов/месяц бесплатно)
-- Pro tier ($29/месяц) - unlimited tests
-- Enterprise tier ($199/месяц) - team features
-- Usage-based pricing для LLM costs
+- Freemium модель (5 тестов/месяц бесплатно)
+- Pro тариф ($29/месяц) - неограниченные тесты
+- Enterprise тариф ($199/месяц) - командные функции
+- Ценообразование по использованию для LLM затрат
 
 **ROI для клиентов**:
 
@@ -2306,32 +2281,28 @@ npm run build # rebuild
 
 2. **Демонстрирует профессиональный уровень разработки**
    - Clean Architecture
-   - Production-ready код
-   - Comprehensive testing
-   - Security best practices
-   - Observability
-   - Documentation
+   - Код готовый к продакшн
+   - Всестороннее тестирование
+   - Лучшие практики безопасности
+   - Наблюдаемость
+   - Документация
 
 3. **Использует современные технологии**
    - Go для backend
    - Vue 3 для frontend
    - PostgreSQL для данных
    - AI/ML для генерации
-   - Docker для deployment
-   - Prometheus + Grafana для monitoring
+   - Docker для развертывания
+   - Prometheus + Grafana для мониторинга
 
 4. **Готова к масштабированию**
-   - Stateless design
-   - Feature-based architecture
-   - Modular structure
-   - Extensible patterns
+   - Дизайн без состояния
+   - Архитектура на основе фич
+   - Модульная структура
+   - Расширяемые паттерны
 
 5. **Имеет коммерческий потенциал**
-   - Clear value proposition
-   - Target market (education)
-   - Monetization strategy
-   - Growth potential
-
-Проект успешно соответствует всем 10 пунктам практической задачи и может служить основой для магистерской диссертации, стартапа или портфолио для senior позиций.
-
-**Ключевой вывод**: Система демонстрирует глубокое понимание full-stack разработки, архитектурных паттернов, DevOps практик и специфики образовательной предметной области.
+   - Четкое ценностное предложение
+   - Целевой рынок (образование)
+   - Стратегия монетизации
+   - Потенциал роста
