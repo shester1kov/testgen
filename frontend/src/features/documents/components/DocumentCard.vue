@@ -127,12 +127,12 @@ function getStatusClass() {
 
 function getStatusText() {
   const texts: Record<string, string> = {
-    [DocumentStatus.UPLOADED]: 'Uploaded',
-    [DocumentStatus.PARSING]: 'Parsing...',
-    [DocumentStatus.PARSED]: 'Parsed',
-    [DocumentStatus.ERROR]: 'Error',
+    [DocumentStatus.UPLOADED]: 'Загружен',
+    [DocumentStatus.PARSING]: 'Анализ...',
+    [DocumentStatus.PARSED]: 'Разобран',
+    [DocumentStatus.ERROR]: 'Ошибка',
   }
-  return texts[props.document.status] || 'Unknown'
+  return texts[props.document.status] || 'Неизвестен'
 }
 
 function formatFileSize(bytes: number): string {
@@ -154,10 +154,10 @@ function formatDate(dateString: string): string {
   const diffInMs = nowOnly.getTime() - dateOnly.getTime()
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24))
 
-  if (diffInDays === 0) return 'Today'
-  if (diffInDays === 1) return 'Yesterday'
-  if (diffInDays > 1 && diffInDays < 7) return `${diffInDays} days ago`
-  if (diffInDays < 0) return 'Just now' // Future dates (timezone issues)
+  if (diffInDays === 0) return 'Сегодня'
+  if (diffInDays === 1) return 'Вчера'
+  if (diffInDays > 1 && diffInDays < 7) return `${diffInDays} дней назад`
+  if (diffInDays < 0) return 'Сейчас' // Future dates (timezone issues)
 
   return date.toLocaleDateString('en-US', {
     year: 'numeric',

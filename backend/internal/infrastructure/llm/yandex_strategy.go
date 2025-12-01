@@ -22,9 +22,9 @@ type YandexGPTStrategy struct {
 
 // YandexGPTRequest represents the request structure for YandexGPT API
 type YandexGPTRequest struct {
-	ModelURI          string                   `json:"modelUri"`
-	CompletionOptions YandexCompletionOptions  `json:"completionOptions"`
-	Messages          []YandexMessage          `json:"messages"`
+	ModelURI          string                  `json:"modelUri"`
+	CompletionOptions YandexCompletionOptions `json:"completionOptions"`
+	Messages          []YandexMessage         `json:"messages"`
 }
 
 // YandexCompletionOptions represents completion options
@@ -154,13 +154,11 @@ func (s *YandexGPTStrategy) GenerateQuestions(ctx context.Context, params Genera
 	}
 	defer resp.Body.Close()
 
-
 	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
-
 
 	// Log first 500 chars of response for debugging
 	bodyPreview := string(body)
@@ -178,7 +176,6 @@ func (s *YandexGPTStrategy) GenerateQuestions(ctx context.Context, params Genera
 	if err := json.Unmarshal(body, &yandexResp); err != nil {
 		return nil, fmt.Errorf("failed to parse yandex response: %w", err)
 	}
-
 
 	// Extract the generated text
 	if len(yandexResp.Result.Alternatives) == 0 {
@@ -246,11 +243,11 @@ func (s *YandexGPTStrategy) buildPrompt(params GenerationParams) string {
 5. Формулируй вопросы в общем виде, проверяя понимание концепций, а не запоминание примеров
 
 ПРИМЕРЫ:
-❌ ПЛОХО: "В приведённом выше примере наследования, какой метод будет вызван?"
-✅ ХОРОШО: "В следующем коде:\nclass Parent { void foo() {...} }\nclass Child extends Parent { void foo() {...} }\nChild obj = new Child();\nКакой метод будет вызван при obj.foo()?"
+ПЛОХО: "В приведённом выше примере наследования, какой метод будет вызван?"
+ХОРОШО: "В следующем коде:\nclass Parent { void foo() {...} }\nclass Child extends Parent { void foo() {...} }\nChild obj = new Child();\nКакой метод будет вызван при obj.foo()?"
 
-❌ ПЛОХО: "Согласно лекции, что такое полиморфизм?"
-✅ ХОРОШО: "Что такое полиморфизм в объектно-ориентированном программировании?"
+ПЛОХО: "Согласно лекции, что такое полиморфизм?"
+ХОРОШО: "Что такое полиморфизм в объектно-ориентированном программировании?"
 
 ФОРМАТ ОТВЕТА (строго JSON):
 {
@@ -292,7 +289,6 @@ func (s *YandexGPTStrategy) parseQuestions(text string, params GenerationParams)
 	text = strings.TrimSuffix(text, "```")
 	text = strings.TrimSpace(text)
 
-
 	var qResponse QuestionResponse
 	if err := json.Unmarshal([]byte(text), &qResponse); err != nil {
 		// Log first 500 chars of problematic text
@@ -302,7 +298,6 @@ func (s *YandexGPTStrategy) parseQuestions(text string, params GenerationParams)
 		}
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
-
 
 	if len(qResponse.Questions) == 0 {
 		return nil, fmt.Errorf("no questions generated")
