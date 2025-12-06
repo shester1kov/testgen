@@ -34,4 +34,6 @@ jobs:
         run: |
           git remote add gitlab git@gitlab.com:shester1kov/testgen.git || git remote set-url gitlab git@gitlab.com:shester1kov/testgen.git
           git fetch --unshallow 2>/dev/null || true
-          git push gitlab --mirror --force
+          git push gitlab --prune \
+            +refs/heads/*:refs/heads/* \
+            +refs/tags/*:refs/tags/*
