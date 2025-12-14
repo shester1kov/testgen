@@ -2,9 +2,20 @@
 
 Эта документация описывает устройство, запуск и поддержку фронтенд-части проекта на Vue 3 + TypeScript + Vite. Она предназначена для разработчиков команды и сопровождает код в директории `frontend`.
 
+[Макеты в figma](https://www.figma.com/design/6uWOdMaifyeszdhN6K8xhN/testgen?node-id=0-1&t=KummCOKyjjU9QrQ7-1)
+
+![Страница логина](https://github.com/user-attachments/assets/1ef2ea6d-f4e5-4a89-a1da-ed82fbb42539)
+
+![Дашборд](https://github.com/user-attachments/assets/25685c17-d085-4fbc-80c7-5d198e56803e)
+
+![Тесты](https://github.com/user-attachments/assets/ccd8dbb0-4e1f-4ce3-999f-6a5051fc7bd3)
+
+![Пользователи](https://github.com/user-attachments/assets/c68b372f-d2f0-4dce-8497-dc97f81828ce)
+
+
 ## 1. Архитектура и структура проекта
 
-- **Стек:** Vue 3 (`<script setup>`), TypeScript, Vite, Pinia для состояния, Vue Router для маршрутизации, Tailwind CSS 4 для стилизации, Axios для работы с API, Vee-Validate + Yup для форм.
+- **Стек:** Vue 3, TypeScript, Vite, Pinia для состояния, Vue Router для маршрутизации, Tailwind CSS 4 для стилизации, Axios для работы с API, Vee-Validate + Yup для форм.
 - **Файловая организация:**
   - `src/main.ts` — точка входа приложения, подключает Pinia и роутер, восстанавливает авторизацию.
   - `src/router` — конфигурация маршрутов и навигационные гард‑ы (проверка аутентификации и ролей).
