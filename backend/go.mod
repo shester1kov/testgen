@@ -1,10 +1,11 @@
 module github.com/shester1kov/testgen-backend
 
-go 1.24.0
+go 1.24.1
 
 toolchain go1.24.10
 
 require (
+	github.com/ansrivas/fiberprometheus/v2 v2.14.0
 	github.com/go-playground/validator/v10 v10.28.0
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/gofiber/swagger v1.1.1
@@ -13,7 +14,9 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.7.0
 	github.com/joho/godotenv v1.5.1
+	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	github.com/lib/pq v1.10.9
+	github.com/nguyenthenguyen/docx v0.0.0-20230621112118-9c8e795a11db
 	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/swag v1.16.6
 	go.uber.org/zap v1.27.1
@@ -21,12 +24,12 @@ require (
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
+	rsc.io/pdf v0.1.1
 )
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
-	github.com/ansrivas/fiberprometheus/v2 v2.14.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
@@ -45,7 +48,6 @@ require (
 	github.com/go-openapi/swag/yamlutils v0.25.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
