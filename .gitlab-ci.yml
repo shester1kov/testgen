@@ -136,7 +136,7 @@ deploy:production:
 
     - rm -rf nginx prometheus loki promtail grafana docker-compose.prod.yml .env
 
-    - ls -la $CI_PROJECT_DIR
+    - ls -laR $CI_PROJECT_DIR
     # Копируем docker-compose.prod.yml из репозитория
     - cp $CI_PROJECT_DIR/docker-compose.prod.yml /opt/testgen/
 
@@ -206,19 +206,19 @@ deploy:production:
     - ls -la /opt/testgen/
 
     - echo "=== Prometheus ==="
-    - ls -la /opt/testgen/prometheus/
+    - ls -laR /opt/testgen/prometheus/
     - if [ -f /opt/testgen/prometheus/prometheus.yml ]; then echo "prometheus.yml — файл, OK"; else echo "prometheus.yml не файл или отсутствует"; fi
 
     - echo "=== Loki ==="
-    - ls -la /opt/testgen/loki/
+    - ls -laR /opt/testgen/loki/
     - if [ -f /opt/testgen/loki/loki-config.yml ]; then echo "loki-config.yml — файл, OK"; else echo "loki-config.yml не файл или отсутствует"; fi
 
     - echo "=== Promtail ==="
-    - ls -la /opt/testgen/promtail/
+    - ls -laR /opt/testgen/promtail/
     - if [ -f /opt/testgen/promtail/promtail-config.yml ]; then echo "promtail-config.yml — файл, OK"; else echo "ОШИБКА"; fi
 
     - echo "=== Nginx ==="
-    - ls -la /opt/testgen/nginx/
+    - ls -laR /opt/testgen/nginx/
 
     - echo "=== Grafana ==="
     - ls -laR /opt/testgen/grafana/
