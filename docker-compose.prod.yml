@@ -106,8 +106,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx:/etc/nginx:ro
     depends_on:
       - backend
       - frontend
@@ -134,9 +133,9 @@ services:
     image: grafana/loki:latest
     container_name: testgen_loki
     volumes:
-      - ./loki:/etc/loki/:ro
+      - ./loki:/etc/loki:ro
       - loki_data:/loki
-    command: -config.file=/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/loki-config.yaml
     networks:
       - testgen_network
     restart: unless-stopped
