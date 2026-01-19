@@ -1,0 +1,113 @@
+stages:
+  - build
+  - test
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+
+# ============================================
+# BUILD STAGE
+# ============================================
+
+build:backend:
+  stage: build
+  image: docker:24-cli
+  services:
+    - docker:24-dind
+  before_script:
+    - docker info
+  script:
+    - cd backend
+    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA .
+    - docker save $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA > backend-image.tar
+  artifacts:
+    paths:
+      - backend-image.tar
+    expire_in: 1 hour
+  only:
+    - main
+    - merge_requests
+
+build:frontend:
+  stage: build
+  image: docker:24-cli
+  services:
+    - docker:24-dind
+  before_script:
+    - docker info
+  script:
+    - cd frontend
+    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA .
+    - docker save $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA > frontend-image.tar
+  artifacts:
+    paths:
+      - frontend-image.tar
+    expire_in: 1 hour
+  only:
+    - main
+    - merge_requests
+
+# ============================================
+# TEST STAGE
+# ============================================
+
+test:backend:
+  stage: test
+  image: golang:1.25-bookworm
+  services:
+    - postgres:15-alpine
+  variables:
+    POSTGRES_DB: testgen_test
+    POSTGRES_USER: test_user
+    POSTGRES_PASSWORD: test_password
+    DB_HOST: postgres
+    DB_PORT: "5432"
+    DB_NAME: testgen_test
+    DB_USER: test_user
+    DB_PASSWORD: test_password
+    DB_SSLMODE: disable
+  cache:
+    key: go-mod-$CI_COMMIT_REF_SLUG
+    paths:
+      - backend/.go-mod-cache
+  before_script:
+    - apk add --no-cache git
+    - cd backend
+    - export GOMODCACHE=$CI_PROJECT_DIR/backend/.go-mod-cache
+    - go mod download
+  script:
+    - go test ./... -v -cover -coverprofile=coverage.out
+    - go tool cover -func=coverage.out
+  coverage: '/total:.*?(\d+\.\d+)%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: backend/coverage.xml
+  only:
+    - main
+    - merge_requests
+
+test:frontend:
+  stage: test
+  image: node:24.11.1-alpine
+  cache:
+    key: npm-$CI_COMMIT_REF_SLUG
+    paths:
+      - frontend/node_modules/
+      - frontend/.npm
+  before_script:
+    - cd frontend
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npm run test -- --coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: frontend/coverage/cobertura-coverage.xml
+  only:
+    - main
+    - merge_requests
