@@ -226,11 +226,51 @@ npm run test:ui
 
 ### Доступ к интерфейсам
 
+**Development (Docker Compose):**
 - **Grafana Dashboard**: <http://localhost:3000> (admin/admin123)
 - **Prometheus (метрики)**: <http://localhost:9090>
 - **Loki (логи)**: <http://localhost:3100>
 - **API Metrics**: <http://localhost:8080/metrics>
 - **Health Check**: <http://localhost:8080/health>
+
+**Production (Nginx Reverse Proxy):**
+- **Grafana Dashboard**: <http://yourdomain.com/grafana/> (через Nginx)
+- **Prometheus (метрики)**: <http://yourdomain.com/prometheus/> (опционально)
+- **API Metrics**: <http://yourdomain.com/metrics>
+- **Health Check**: <http://yourdomain.com/health>
+
+### Production Setup - Мониторинг через Nginx
+
+**Рекомендуемый подход** - проксировать Grafana/Prometheus через Nginx вместо прямого открытия портов:
+
+**Преимущества:**
+- Единая точка входа через 80/443 с SSL/TLS
+- Дополнительная защита через Basic Auth
+- Firewall-friendly (только 80/443 открыты)
+- Централизованное логирование в Nginx
+
+**Настройка для production:**
+
+1. В `.env` файле укажите публичный URL:
+```bash
+GRAFANA_EXTERNAL_URL=https://yourdomain.com/grafana/
+PROMETHEUS_EXTERNAL_URL=https://yourdomain.com/prometheus/
+```
+
+2. Grafana доступна по адресу: `https://yourdomain.com/grafana/`
+3. Prometheus (опционально): `https://yourdomain.com/prometheus/`
+
+**Опциональная защита Basic Auth** (раскомментируйте в `nginx/nginx.conf`):
+```bash
+# Создать .htpasswd файл
+docker exec -it testgen_nginx sh
+apk add apache2-utils
+htpasswd -c /etc/nginx/.htpasswd admin
+```
+
+**Альтернатива**: Открыть порты напрямую (не рекомендуется для production):
+- Добавить в `docker-compose.prod.yml`: `ports: - "3000:3000"` для Grafana
+- Открыть порт 3000 в firewall сервера
 
 ### Готовый Dashboard в Grafana
 

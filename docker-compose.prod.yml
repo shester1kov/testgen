@@ -118,12 +118,18 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: testgen_prometheus
+    env_file:
+      - .env
     volumes:
       - ./prometheus:/etc/prometheus:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      # Support for Nginx reverse proxy at /prometheus/
+      # PROMETHEUS_EXTERNAL_URL should be set in .env (e.g., https://yourdomain.com/prometheus/)
+      - '--web.external-url=${PROMETHEUS_EXTERNAL_URL:-http://localhost/prometheus/}'
+      - '--web.route-prefix=/'
     networks:
       - testgen_network
     restart: unless-stopped
@@ -164,6 +170,12 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=${GF_USERS_ALLOW_SIGN_UP}
+      # Nginx reverse proxy configuration
+      - GF_SERVER_ROOT_URL=${GRAFANA_EXTERNAL_URL:-http://localhost/grafana/}
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      # Security settings
+      - GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED:-false}
+      - GF_AUTH_DISABLE_LOGIN_FORM=${GF_AUTH_DISABLE_LOGIN_FORM:-false}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
