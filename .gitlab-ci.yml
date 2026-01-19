@@ -209,15 +209,12 @@ deploy:production:
 
     - echo "=== Prometheus ==="
     - ls -la /opt/testgen/prometheus/
-    - if [ -f /opt/testgen/prometheus/prometheus.yml ]; then echo "prometheus.yml — файл, OK"; else echo "ОШИБКА: prometheus.yml не файл или отсутствует"; fi
 
     - echo "=== Loki ==="
     - ls -la /opt/testgen/loki/
-    - if [ -f /opt/testgen/loki/loki-config.yml ]; then echo "loki-config.yml — файл, OK"; else echo "ОШИБКА: loki-config.yml не файл или отсутствует"; fi
 
     - echo "=== Promtail ==="
     - ls -la /opt/testgen/promtail/
-    - if [ -f /opt/testgen/promtail/promtail-config.yml ]; then echo "promtail-config.yml — файл, OK"; else echo "ОШИБКА"; fi
 
     - echo "=== Nginx ==="
     - ls -la /opt/testgen/nginx/
