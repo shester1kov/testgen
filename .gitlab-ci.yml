@@ -17,11 +17,10 @@ build:backend:
   stage: build
   tags:
     - self-hosted
-  image: docker:24-cli
-  services:
-    - name: docker:24-dind
-      alias: docker
-      command: ["--registry-mirror=https://mirror.gcr.io"]
+  image: docker:27-cli
+  # Не используем services (используем Docker daemon хоста через /var/run/docker.sock)
+  variables:
+    DOCKER_HOST: unix:///var/run/docker.sock
   before_script:
     - docker info
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
@@ -40,11 +39,10 @@ build:frontend:
   stage: build
   tags:
     - self-hosted
-  image: docker:24-cli
-  services:
-    - name: docker:24-dind
-      alias: docker
-      command: ["--registry-mirror=https://mirror.gcr.io"]
+  image: docker:27-cli
+  # Не используем services (используем Docker daemon хоста через /var/run/docker.sock)
+  variables:
+    DOCKER_HOST: unix:///var/run/docker.sock
   before_script:
     - docker info
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
