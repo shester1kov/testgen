@@ -25,7 +25,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
 
-      - name: Gonfigure Git
+      - name: Configure Git
         run: |
           git config --global user.name "GitHub Mirror Bot"
           git config --global user.email "noreply@github.com"
@@ -35,5 +35,5 @@ jobs:
           git remote add gitlab git@gitlab.com:shester1kov/testgen.git || git remote set-url gitlab git@gitlab.com:shester1kov/testgen.git
           git fetch --unshallow 2>/dev/null || true
           git push gitlab --prune \
-            +refs/heads/*:refs/heads/* \
-            +refs/tags/*:refs/tags/*
+            refs/heads/*:refs/heads/* \
+            refs/tags/*:refs/tags/*
