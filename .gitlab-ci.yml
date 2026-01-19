@@ -136,6 +136,9 @@ deploy:production:
     - mkdir -p /opt/testgen
     - cd /opt/testgen
 
+    - rm -rf nginx prometheus loki promtail grafana docker-compose.prod.yml .env
+
+    - ls -la $CI_PROJECT_DIR
     # Копируем docker-compose.prod.yml из репозитория
     - cp $CI_PROJECT_DIR/docker-compose.prod.yml /opt/testgen/
 
@@ -199,6 +202,32 @@ deploy:production:
       LOG_LEVEL=${LOG_LEVEL:-info}
       LOG_FORMAT=${LOG_FORMAT:-json}
       EOF
+
+    # === ПРОВЕРКИ (для дебага) ===
+    - echo "=== Содержимое /opt/testgen ==="
+    - ls -la /opt/testgen/
+
+    - echo "=== Prometheus ==="
+    - ls -la /opt/testgen/prometheus/
+    - if [ -f /opt/testgen/prometheus/prometheus.yml ]; then echo "prometheus.yml — файл, OK"; else echo "ОШИБКА: prometheus.yml не файл или отсутствует"; fi
+
+    - echo "=== Loki ==="
+    - ls -la /opt/testgen/loki/
+    - if [ -f /opt/testgen/loki/loki-config.yml ]; then echo "loki-config.yml — файл, OK"; else echo "ОШИБКА: loki-config.yml не файл или отсутствует"; fi
+
+    - echo "=== Promtail ==="
+    - ls -la /opt/testgen/promtail/
+    - if [ -f /opt/testgen/promtail/promtail-config.yml ]; then echo "promtail-config.yml — файл, OK"; else echo "ОШИБКА"; fi
+
+    - echo "=== Nginx ==="
+    - ls -la /opt/testgen/nginx/
+
+    - echo "=== Grafana ==="
+    - ls -laR /opt/testgen/grafana/
+
+    # === Конец проверок ===
+
+    - docker compose down
 
     # Пуллим новые образы из registry
     - docker compose -f docker-compose.prod.yml pull
