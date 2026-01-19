@@ -61,7 +61,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - LOG_FORMAT=${LOG_FORMAT:-json}
     volumes:
-      - ./backend:/app
+      # - ./backend:/app  # Не нужно в production (код уже в образе)
       - backend_uploads:/app/uploads
     depends_on:
       postgres:

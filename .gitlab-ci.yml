@@ -83,7 +83,7 @@ test:backend:
     paths:
       - backend/.go-mod-cache
   before_script:
-    - apt-get --no-cache git
+    - apt-get update && apt-get install -y git
     - cd backend
     - export GOMODCACHE=$CI_PROJECT_DIR/backend/.go-mod-cache
     - go mod download
@@ -120,19 +120,51 @@ test:frontend:
 # DEPLOY STAGE
 # ============================================
 
-# deploy:production:
-#   stage: deploy
-#   tags:
-#     - self-hosted
-#   image: alpine:latest
-#   before_script:
-#     - apt-get --no-cache docker-compose
-#     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
-#   script:
-#     - docker-compose pull
-#     - docker-compose up -d --no-build
-#   after_script:
-#     - docker logout $CI_REGISTRY
-#   only:
-#     - main
-#   when: manual  # Ручной запуск деплоя
+deploy:production:
+  stage: deploy
+  tags:
+    - self-hosted
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache docker-cli docker-cli-compose
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    # Переходим в директорию проекта на сервере
+    - cd /opt/testgen || mkdir -p /opt/testgen && cd /opt/testgen
+
+    # Копируем docker-compose.prod.yml из репозитория
+    - cp $CI_PROJECT_DIR/docker-compose.prod.yml /opt/testgen/
+
+    # Копируем nginx конфигурацию
+    - mkdir -p /opt/testgen/nginx
+    - cp -r $CI_PROJECT_DIR/nginx/* /opt/testgen/nginx/ || true
+
+    # Создаем .env файл с переменными из GitLab CI/CD
+    - |
+      cat > .env << EOF
+      CI_PROJECT_PATH=$CI_PROJECT_PATH
+      IMAGE_TAG=latest
+      DB_USER=${DB_USER}
+      DB_PASSWORD=${DB_PASSWORD}
+      DB_NAME=${DB_NAME}
+      JWT_SECRET=${JWT_SECRET}
+      PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      VITE_API_BASE_URL=${VITE_API_BASE_URL}
+      EOF
+
+    # Пуллим новые образы из registry
+    - docker compose -f docker-compose.prod.yml pull
+
+    # Перезапускаем сервисы
+    - docker compose -f docker-compose.prod.yml up -d --no-build
+
+    # Чистим неиспользуемые образы
+    - docker image prune -f
+  after_script:
+    - docker logout $CI_REGISTRY
+  only:
+    - main
+  when: manual  # Ручной запуск деплоя
+  environment:
+    name: production
+    url: http://$SERVER_HOST
