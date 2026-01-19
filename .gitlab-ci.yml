@@ -19,7 +19,9 @@ build:backend:
     - self-hosted
   image: docker:24-cli
   services:
-    - docker:24-dind
+    - name: docker:24-dind
+      alias: docker
+      command: ["--registry-mirror=https://mirror.gcr.io"]
   before_script:
     - docker info
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
@@ -40,7 +42,9 @@ build:frontend:
     - self-hosted
   image: docker:24-cli
   services:
-    - docker:24-dind
+    - name: docker:24-dind
+      alias: docker
+      command: ["--registry-mirror=https://mirror.gcr.io"]
   before_script:
     - docker info
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
@@ -142,14 +146,36 @@ deploy:production:
     # Создаем .env файл с переменными из GitLab CI/CD
     - |
       cat > .env << EOF
-      CI_PROJECT_PATH=$CI_PROJECT_PATH
-      IMAGE_TAG=latest
+      CI_PROJECT_PATH=${CI_PROJECT_PATH}
+      IMAGE_TAG=${IMAGE_TAG}
       DB_USER=${DB_USER}
       DB_PASSWORD=${DB_PASSWORD}
       DB_NAME=${DB_NAME}
+      DB_HOST=${DB_HOST}
+      DB_PORT=${DB_PORT}
+      DB_SSLMODE=${DB_SSLMODE}
       JWT_SECRET=${JWT_SECRET}
-      PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
-      VITE_API_BASE_URL=${VITE_API_BASE_URL}
+      JWT_EXPIRATION=${JWT_EXPIRATION}
+      COOKIE_NAME=${COOKIE_NAME}
+      COOKIE_PATH=${COOKIE_PATH}
+      COOKIE_SECURE=${COOKIE_SECURE}
+      COOKIE_HTTP_ONLY=${COOKIE_HTTP_ONLY}
+      COOKIE_SAME_SITE=${COOKIE_SAME_SITE}
+      MAX_FILE_SIZE=${MAX_FILE_SIZE}
+      UPLOAD_DIR=${UPLOAD_DIR}
+      LLM_PROVIDER=${LLM_PROVIDER}
+      VITE_API_BASE_URL=${VITE_API_BASE_URL
+      VITE_MAX_FILE_SIZE=${VITE_MAX_FILE_SIZE}
+      VITE_SUPPORTED_FORMATS=${VITE_SUPPORTED_FORMATS}
+      ENABLE_METRICS=${ENABLE_METRICS}
+      GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP=${GF_USERS_ALLOW_SIGN_UP}
+      REDIS_HOST=${REDIS_HOST}
+      REDIS_PORT=${REDIS_PORT}
+      YANDEX_GPT_API_KEY=${YANDEX_GPT_API_KEY}
+      YANDEX_GPT_FOLDER_ID=${YANDEX_GPT_FOLDER_ID}
+      LOG_LEVEL=${LOG_LEVEL}
+      LOG_FORMAT=${LOG_FORMAT}
       EOF
 
     # Пуллим новые образы из registry
