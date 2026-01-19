@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
@@ -29,100 +28,52 @@ func (r *userRepository) Create(ctx context.Context, user *entity.User) error {
 		return err
 	}
 
-	// Cache the newly created user
-	_ = r.cache.Set(ctx, cache.UserByIDKey(user.ID), user, cache.UserTTL)
-	_ = r.cache.Set(ctx, cache.UserByEmailKey(user.Email), user, cache.UserTTL)
+	// Note: User entity is not cached because PasswordHash field (json:"-")
+	// cannot be serialized to JSON by Redis. Authentication always reads from DB.
 
 	return nil
 }
 
 func (r *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.User, error) {
-	// Try to get from cache first
-	cacheKey := cache.UserByIDKey(id)
+	// User entity is not cached to ensure PasswordHash field is always loaded.
+	// Redis json.Marshal skips fields with json:"-" tag, making cached users incomplete.
+
 	var user entity.User
-	err := r.cache.Get(ctx, cacheKey, &user)
-	if err == nil {
-		return &user, nil // Cache hit
-	}
-
-	// Cache miss or error - fetch from database
-	if !errors.Is(err, cache.ErrCacheMiss) {
-		// Log cache error but continue to database
-	}
-
-	err = r.db.WithContext(ctx).Preload("Role").Where("id = ? AND deleted_at IS NULL", id).First(&user).Error
+	err := r.db.WithContext(ctx).Preload("Role").Where("id = ? AND deleted_at IS NULL", id).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
-
-	// Store in cache for future requests
-	_ = r.cache.Set(ctx, cacheKey, &user, cache.UserTTL)
 
 	return &user, nil
 }
 
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*entity.User, error) {
-	// Try to get from cache first
-	cacheKey := cache.UserByEmailKey(email)
+	// User entity is not cached to ensure PasswordHash field is always loaded for authentication.
+	// Redis json.Marshal skips fields with json:"-" tag, making cached users incomplete.
+
 	var user entity.User
-	err := r.cache.Get(ctx, cacheKey, &user)
-	if err == nil {
-		return &user, nil // Cache hit
-	}
-
-	// Cache miss or error - fetch from database
-	if !errors.Is(err, cache.ErrCacheMiss) {
-		// Log cache error but continue to database
-	}
-
-	err = r.db.WithContext(ctx).Preload("Role").Where("email = ? AND deleted_at IS NULL", email).First(&user).Error
+	err := r.db.WithContext(ctx).Preload("Role").Where("email = ? AND deleted_at IS NULL", email).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
-
-	// Store in cache for future requests (both by ID and email)
-	_ = r.cache.Set(ctx, cacheKey, &user, cache.UserTTL)
-	_ = r.cache.Set(ctx, cache.UserByIDKey(user.ID), &user, cache.UserTTL)
 
 	return &user, nil
 }
 
 func (r *userRepository) Update(ctx context.Context, user *entity.User) error {
-	// Get old email before update for cache invalidation
-	var oldUser entity.User
-	if err := r.db.WithContext(ctx).Select("email").Where("id = ?", user.ID).First(&oldUser).Error; err != nil {
-		return err
-	}
-
 	// Use Model().Select() to explicitly update role_id
 	// Save() doesn't work well when Role association is preloaded
 	if err := r.db.WithContext(ctx).Model(user).Select("email", "password_hash", "full_name", "role_id", "updated_at").Updates(user).Error; err != nil {
 		return err
 	}
 
-	// Invalidate cache (both old and new email if changed)
-	_ = r.cache.Delete(ctx, cache.UserByIDKey(user.ID))
-	_ = r.cache.Delete(ctx, cache.UserByEmailKey(oldUser.Email))
-	if oldUser.Email != user.Email {
-		_ = r.cache.Delete(ctx, cache.UserByEmailKey(user.Email))
-	}
-
 	return nil
 }
 
 func (r *userRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	// Get user email for cache invalidation
-	var user entity.User
-	if err := r.db.WithContext(ctx).Select("email").Where("id = ?", id).First(&user).Error; err != nil {
-		return err
-	}
-
 	if err := r.db.WithContext(ctx).Model(&entity.User{}).Where("id = ?", id).Update("deleted_at", gorm.Expr("CURRENT_TIMESTAMP")).Error; err != nil {
 		return err
 	}
-
-	// Invalidate cache
-	_ = r.cache.Delete(ctx, cache.UserByIDKey(id), cache.UserByEmailKey(user.Email))
 
 	return nil
 }

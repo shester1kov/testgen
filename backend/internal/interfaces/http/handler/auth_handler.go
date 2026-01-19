@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"log"
 	"strings"
 	"time"
 
@@ -107,10 +106,6 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		)
 	}
 
-	// DEBUG: Log registration attempt
-	log.Printf("[REGISTER DEBUG] Creating user with email: %s", req.Email)
-	log.Printf("[REGISTER DEBUG] Raw password length: %d chars", len(req.Password))
-
 	// Create new user with student role
 	user := &entity.User{
 		Email:    req.Email,
@@ -119,25 +114,16 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	}
 
 	if err := user.SetPassword(req.Password); err != nil {
-		log.Printf("[REGISTER DEBUG] Failed to hash password: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeInternalError, "Failed to hash password"),
 		)
 	}
 
-	// DEBUG: Log password hash
-	log.Printf("[REGISTER DEBUG] Password hashed successfully")
-	log.Printf("[REGISTER DEBUG] Password hash (first 20 chars): %s...", user.PasswordHash[:20])
-	log.Printf("[REGISTER DEBUG] Password hash length: %d chars", len(user.PasswordHash))
-
 	if err := h.userRepo.Create(c.Context(), user); err != nil {
-		log.Printf("[REGISTER DEBUG] Failed to create user in DB: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "Failed to create user"),
 		)
 	}
-
-	log.Printf("[REGISTER DEBUG] User created successfully with ID: %s", user.ID)
 
 	// Load role for response
 	user.Role = studentRole
@@ -187,40 +173,25 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	// Normalize email to lowercase for case-insensitive matching
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 
-	// DEBUG: Log login attempt
-	log.Printf("[LOGIN DEBUG] Attempting login for email: %s", req.Email)
-	log.Printf("[LOGIN DEBUG] Raw password length: %d chars", len(req.Password))
-
 	// Find user by email
 	user, err := h.userRepo.FindByEmail(c.Context(), req.Email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			log.Printf("[LOGIN DEBUG] User not found in database for email: %s", req.Email)
 			return c.Status(fiber.StatusUnauthorized).JSON(
 				dto.NewErrorResponse(dto.ErrCodeInvalidCredentials, "Invalid email or password"),
 			)
 		}
-		log.Printf("[LOGIN DEBUG] Database error finding user: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "Failed to find user"),
 		)
 	}
 
-	// DEBUG: Log user found
-	log.Printf("[LOGIN DEBUG] User found - ID: %s, Email: %s", user.ID, user.Email)
-	log.Printf("[LOGIN DEBUG] Stored password hash (first 20 chars): %s...", user.PasswordHash[:20])
-	log.Printf("[LOGIN DEBUG] Stored password hash length: %d chars", len(user.PasswordHash))
-
 	// Check password
 	if !user.CheckPassword(req.Password) {
-		log.Printf("[LOGIN DEBUG] Password check FAILED for user: %s", user.Email)
-		log.Printf("[LOGIN DEBUG] Provided password length: %d", len(req.Password))
 		return c.Status(fiber.StatusUnauthorized).JSON(
 			dto.NewErrorResponse(dto.ErrCodeInvalidCredentials, "Invalid email or password"),
 		)
 	}
-
-	log.Printf("[LOGIN DEBUG] Password check SUCCESS for user: %s", user.Email)
 
 	// Generate JWT token
 	token, err := h.jwtManager.GenerateToken(user.ID, user.Email, user.GetRoleName())
