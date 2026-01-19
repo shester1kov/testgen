@@ -132,32 +132,33 @@ deploy:production:
     - apk add --no-cache docker-cli docker-cli-compose
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
-    # Переходим в директорию проекта на сервере
-    - cd /opt/testgen || mkdir -p /opt/testgen && cd /opt/testgen
+    # Переходим в директорию проекта на сервере (создаем если не существует)
+    - mkdir -p /opt/testgen
+    - cd /opt/testgen
 
     # Копируем docker-compose.prod.yml из репозитория
     - cp $CI_PROJECT_DIR/docker-compose.prod.yml /opt/testgen/
 
     # Копируем nginx конфигурацию
     - mkdir -p /opt/testgen/nginx
-    - cp -r $CI_PROJECT_DIR/nginx/* /opt/testgen/nginx/ || true
+    - cp -r $CI_PROJECT_DIR/nginx/* /opt/testgen/nginx/
 
     # Копируем конфигурации мониторинга
     - mkdir -p /opt/testgen/prometheus
-    - cp -r $CI_PROJECT_DIR/prometheus/* /opt/testgen/prometheus/ || true
+    - cp -r $CI_PROJECT_DIR/prometheus/* /opt/testgen/prometheus/
 
     - mkdir -p /opt/testgen/loki
-    - cp -r $CI_PROJECT_DIR/loki/* /opt/testgen/loki/ || true
+    - cp -r $CI_PROJECT_DIR/loki/* /opt/testgen/loki/
 
     - mkdir -p /opt/testgen/promtail
-    - cp -r $CI_PROJECT_DIR/promtail/* /opt/testgen/promtail/ || true
+    - cp -r $CI_PROJECT_DIR/promtail/* /opt/testgen/promtail/
 
     - mkdir -p /opt/testgen/grafana/provisioning/datasources
     - mkdir -p /opt/testgen/grafana/provisioning/dashboards
     - mkdir -p /opt/testgen/grafana/dashboards
-    - cp -r $CI_PROJECT_DIR/grafana/provisioning/datasources/* /opt/testgen/grafana/provisioning/datasources/ || true
-    - cp -r $CI_PROJECT_DIR/grafana/provisioning/dashboards/* /opt/testgen/grafana/provisioning/dashboards/ || true
-    - cp -r $CI_PROJECT_DIR/grafana/dashboards/* /opt/testgen/grafana/dashboards/ || true
+    - cp -r $CI_PROJECT_DIR/grafana/provisioning/datasources/* /opt/testgen/grafana/provisioning/datasources/
+    - cp -r $CI_PROJECT_DIR/grafana/provisioning/dashboards/* /opt/testgen/grafana/provisioning/dashboards/
+    - cp -r $CI_PROJECT_DIR/grafana/dashboards/* /opt/testgen/grafana/dashboards/
 
     # Создаем .env файл с переменными из GitLab CI/CD
     - |
