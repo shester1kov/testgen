@@ -47,7 +47,13 @@ build:frontend:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
     - cd frontend
-    - docker build -t $FRONTEND_IMAGE:latest .
+        - docker build -t $FRONTEND_IMAGE:latest .
+    - |
+      docker build \
+        --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8080/api/v1} \
+        --build-arg VITE_MAX_FILE_SIZE=${VITE_MAX_FILE_SIZE:-10485760} \
+        --build-arg VITE_SUPPORTED_FORMATS=${VITE_SUPPORTED_FORMATS:-pdf,docx,pptx,txt,md} \
+        -t $FRONTEND_IMAGE:latest .
     - docker push $FRONTEND_IMAGE:latest
   after_script:
     - docker logout $CI_REGISTRY

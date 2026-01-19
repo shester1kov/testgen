@@ -69,3 +69,4 @@ test_moodle_import.sh
 moodle/local
 
 *.out
+*.md
