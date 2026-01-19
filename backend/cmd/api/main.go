@@ -33,6 +33,7 @@ import (
 	"go.uber.org/zap"
 
 	_ "github.com/shester1kov/testgen-backend/docs"
+	"github.com/shester1kov/testgen-backend/internal/infrastructure/cache"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/parser"
@@ -86,11 +87,18 @@ func main() {
 	}
 	appLogger.Info("Database connection established")
 
-	// Initialize repositories
-	userRepo := postgres.NewUserRepository(db)
+	// Initialize Redis cache
+	redisClient, err := cache.NewRedisClient(cfg.Redis, appLogger.Logger)
+	if err != nil {
+		appLogger.Fatal("Failed to connect to Redis", zap.Error(err))
+	}
+	appLogger.Info("Redis cache connection established")
+
+	// Initialize repositories (with cache)
+	userRepo := postgres.NewUserRepository(db, redisClient)
 	roleRepo := postgres.NewRoleRepository(db)
-	documentRepo := postgres.NewDocumentRepository(db)
-	testRepo := postgres.NewTestRepository(db)
+	documentRepo := postgres.NewDocumentRepository(db, redisClient)
+	testRepo := postgres.NewTestRepository(db, redisClient)
 	questionRepo := postgres.NewQuestionRepository(db)
 	answerRepo := postgres.NewAnswerRepository(db)
 
@@ -240,8 +248,15 @@ func main() {
 	<-quit
 
 	appLogger.Info("Shutting down server...")
+
+	// Graceful shutdown
 	if err := app.Shutdown(); err != nil {
 		appLogger.Fatal("Server forced to shutdown", zap.Error(err))
+	}
+
+	// Close Redis connection
+	if err := redisClient.Close(); err != nil {
+		appLogger.Error("Failed to close Redis connection", zap.Error(err))
 	}
 
 	appLogger.Info("Server exited successfully")

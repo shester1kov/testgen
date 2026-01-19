@@ -54,7 +54,7 @@ func seedUserWithRole(t *testing.T, db *gorm.DB) (*entity.User, *entity.Role) {
 
 func TestUserRepository_CRUDAndQueries(t *testing.T) {
 	db := setupUserPositiveDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 
 	ctx := context.Background()
 
@@ -108,7 +108,7 @@ func TestUserRepository_CRUDAndQueries(t *testing.T) {
 // even when the Role association is preloaded (regression test for role update bug)
 func TestUserRepository_UpdateRoleWithPreloadedAssociation(t *testing.T) {
 	db := setupUserPositiveDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 	ctx := context.Background()
 
 	// Create student role
@@ -172,7 +172,7 @@ func TestUserRepository_UpdateRoleWithPreloadedAssociation(t *testing.T) {
 // TestUserRepository_UpdateMultipleFields tests that Update properly updates all specified fields
 func TestUserRepository_UpdateMultipleFields(t *testing.T) {
 	db := setupUserPositiveDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 	ctx := context.Background()
 
 	// Create role

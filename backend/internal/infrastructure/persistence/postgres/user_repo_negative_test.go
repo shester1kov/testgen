@@ -51,7 +51,7 @@ func setupUserTestDB(t *testing.T) *gorm.DB {
 // NEGATIVE TEST: Create user with duplicate email
 func TestUserRepository_Create_DuplicateEmail(t *testing.T) {
 	db := setupUserTestDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 
 	// Create role first
 	roleID := uuid.New()
@@ -87,7 +87,7 @@ func TestUserRepository_Create_DuplicateEmail(t *testing.T) {
 // NEGATIVE TEST: Find user by non-existent email
 func TestUserRepository_FindByEmail_NotFound(t *testing.T) {
 	db := setupUserTestDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 
 	user, err := repo.FindByEmail(context.Background(), "nonexistent@example.com")
 
@@ -98,7 +98,7 @@ func TestUserRepository_FindByEmail_NotFound(t *testing.T) {
 // NEGATIVE TEST: Find user by invalid UUID
 func TestUserRepository_FindByID_InvalidUUID(t *testing.T) {
 	db := setupUserTestDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 
 	// Generate a random UUID that doesn't exist
 	nonExistentID := uuid.New()
@@ -112,7 +112,7 @@ func TestUserRepository_FindByID_InvalidUUID(t *testing.T) {
 // NEGATIVE TEST: Update non-existent user
 func TestUserRepository_Update_NotFound(t *testing.T) {
 	db := setupUserTestDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 
 	// Try to update user that doesn't exist
 	user := &entity.User{
@@ -133,7 +133,7 @@ func TestUserRepository_Update_NotFound(t *testing.T) {
 // NEGATIVE TEST: Create user with empty email
 func TestUserRepository_Create_EmptyEmail(t *testing.T) {
 	db := setupUserTestDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 
 	roleID := uuid.New()
 	err := db.Exec("INSERT INTO roles (id, name, description) VALUES (?, ?, ?)",
@@ -158,7 +158,7 @@ func TestUserRepository_Create_EmptyEmail(t *testing.T) {
 // NEGATIVE TEST: Create user with nil context
 func TestUserRepository_Create_NilContext(t *testing.T) {
 	db := setupUserTestDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 
 	roleID := uuid.New()
 	err := db.Exec("INSERT INTO roles (id, name, description) VALUES (?, ?, ?)",
@@ -191,7 +191,7 @@ func TestUserRepository_Create_NilContext(t *testing.T) {
 // NEGATIVE TEST: FindByEmail with empty string
 func TestUserRepository_FindByEmail_EmptyString(t *testing.T) {
 	db := setupUserTestDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 
 	user, err := repo.FindByEmail(context.Background(), "")
 
@@ -202,7 +202,7 @@ func TestUserRepository_FindByEmail_EmptyString(t *testing.T) {
 // NEGATIVE TEST: FindByEmail with malformed email
 func TestUserRepository_FindByEmail_MalformedEmail(t *testing.T) {
 	db := setupUserTestDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 
 	malformedEmails := []string{
 		"not-an-email",
@@ -228,7 +228,7 @@ func TestUserRepository_FindByEmail_MalformedEmail(t *testing.T) {
 // NEGATIVE TEST: List with very large limit
 func TestUserRepository_List_LargeLimit(t *testing.T) {
 	db := setupUserTestDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 
 	// Request with unreasonably large limit
 	users, err := repo.List(context.Background(), 999999, 0)
@@ -241,7 +241,7 @@ func TestUserRepository_List_LargeLimit(t *testing.T) {
 // NEGATIVE TEST: List with negative offset
 func TestUserRepository_List_NegativeOffset(t *testing.T) {
 	db := setupUserTestDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 
 	// GORM might handle negative offset in different ways
 	users, err := repo.List(context.Background(), 10, -1)
@@ -255,7 +255,7 @@ func TestUserRepository_List_NegativeOffset(t *testing.T) {
 // NEGATIVE TEST: Delete already deleted user (soft delete)
 func TestUserRepository_Delete_AlreadyDeleted(t *testing.T) {
 	db := setupUserTestDB(t)
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db, newMockRedisClient())
 
 	// Create role
 	roleID := uuid.New()

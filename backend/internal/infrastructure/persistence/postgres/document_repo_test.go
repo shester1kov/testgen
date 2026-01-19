@@ -78,7 +78,7 @@ func createDocument(t *testing.T, db *gorm.DB, userID uuid.UUID) *entity.Documen
 
 func TestDocumentRepository_CRUD(t *testing.T) {
 	db := setupDocumentTestDB(t)
-	repo := NewDocumentRepository(db)
+	repo := NewDocumentRepository(db, newMockRedisClient())
 	userID := uuid.New()
 
 	require.NoError(t, db.Exec(
@@ -124,7 +124,7 @@ func TestDocumentRepository_CRUD(t *testing.T) {
 
 func TestDocumentRepository_CountAndFindErrors(t *testing.T) {
 	db := setupDocumentTestDB(t)
-	repo := NewDocumentRepository(db)
+	repo := NewDocumentRepository(db, newMockRedisClient())
 	userID := uuid.New()
 	createDocument(t, db, userID)
 

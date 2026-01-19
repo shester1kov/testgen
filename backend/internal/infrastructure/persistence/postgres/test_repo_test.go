@@ -112,7 +112,7 @@ func seedTest(t *testing.T, db *gorm.DB, includeRelations bool) *entity.Test {
 
 func TestTestRepository_CreateAndFetch(t *testing.T) {
 	db := setupTestRepoDB(t)
-	repo := NewTestRepository(db)
+	repo := NewTestRepository(db, newMockRedisClient())
 
 	test := seedTest(t, db, true)
 
@@ -138,7 +138,7 @@ func TestTestRepository_CreateAndFetch(t *testing.T) {
 
 func TestTestRepository_ErrorBranches(t *testing.T) {
 	db := setupTestRepoDB(t)
-	repo := NewTestRepository(db)
+	repo := NewTestRepository(db, newMockRedisClient())
 	test := seedTest(t, db, false)
 
 	require.NoError(t, db.Exec("DROP TABLE tests;").Error)
@@ -152,7 +152,7 @@ func TestTestRepository_ErrorBranches(t *testing.T) {
 
 func TestTestRepository_Create(t *testing.T) {
 	db := setupTestRepoDB(t)
-	repo := NewTestRepository(db)
+	repo := NewTestRepository(db, newMockRedisClient())
 
 	userID := uuid.New()
 	require.NoError(t, db.Exec("INSERT INTO users (id, email, password_hash, full_name, role_id) VALUES (?, ?, 'hash', 'User', ?)", userID.String(), "test@example.com", uuid.New().String()).Error)

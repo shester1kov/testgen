@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	Redis    RedisConfig
 	JWT      JWTConfig
 	Cookie   CookieConfig
 	File     FileConfig
@@ -33,6 +34,15 @@ type DatabaseConfig struct {
 	Password string
 	DBName   string
 	SSLMode  string
+}
+
+// RedisConfig holds Redis configuration
+type RedisConfig struct {
+	Host     string
+	Port     string
+	Password string
+	DB       int
+	PoolSize int
 }
 
 // JWTConfig holds JWT configuration
@@ -103,6 +113,13 @@ func Load() *Config {
 			DBName:   getEnv("DB_NAME", "testgen_db"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
+		Redis: RedisConfig{
+			Host:     getEnv("REDIS_HOST", "localhost"),
+			Port:     getEnv("REDIS_PORT", "6379"),
+			Password: getEnv("REDIS_PASSWORD", ""),
+			DB:       getEnvInt("REDIS_DB", 0),
+			PoolSize: getEnvInt("REDIS_POOL_SIZE", 10),
+		},
 		JWT: JWTConfig{
 			Secret:     getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 			Expiration: getEnv("JWT_EXPIRATION", "24h"),
@@ -163,6 +180,18 @@ func getEnvBool(key string, defaultValue bool) bool {
 		return defaultValue
 	}
 	return boolValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	intValue, err := strconv.Atoi(value)
+	if err != nil {
+		return defaultValue
+	}
+	return intValue
 }
 
 func getEnvInt64(key string, defaultValue int64) int64 {

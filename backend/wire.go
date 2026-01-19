@@ -6,12 +6,14 @@ package main
 import (
 	"github.com/google/wire"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
+	"github.com/shester1kov/testgen-backend/internal/infrastructure/cache"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/parser"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/persistence/postgres"
 	"github.com/shester1kov/testgen-backend/internal/interfaces/http/handler"
 	"github.com/shester1kov/testgen-backend/pkg/config"
+	"github.com/shester1kov/testgen-backend/pkg/logger"
 	"github.com/shester1kov/testgen-backend/pkg/utils"
 	"gorm.io/gorm"
 )
@@ -28,8 +30,11 @@ type ApplicationContainer struct {
 }
 
 // InitializeApplication sets up all dependencies using Wire
-func InitializeApplication(cfg *config.Config, db *gorm.DB) (*ApplicationContainer, error) {
+func InitializeApplication(cfg *config.Config, db *gorm.DB, log *logger.Logger) (*ApplicationContainer, error) {
 	wire.Build(
+		// Redis Cache
+		provideRedisClient,
+
 		// Repositories
 		postgres.NewUserRepository,
 		postgres.NewRoleRepository,
@@ -71,6 +76,10 @@ func InitializeApplication(cfg *config.Config, db *gorm.DB) (*ApplicationContain
 }
 
 // Provider functions for Wire
+
+func provideRedisClient(cfg *config.Config, log *logger.Logger) (*cache.RedisClient, error) {
+	return cache.NewRedisClient(cfg.Redis, log.Logger)
+}
 
 func provideJWTManager(cfg *config.Config) (*utils.JWTManager, error) {
 	return utils.NewJWTManager(cfg.JWT.Secret, cfg.JWT.Expiration)
