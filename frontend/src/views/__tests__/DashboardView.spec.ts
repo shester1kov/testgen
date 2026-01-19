@@ -5,6 +5,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '../DashboardView.vue'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import type { User } from '@/features/auth/types/auth.types'
+import { UserRole } from '@/features/auth/types/auth.types'
 import * as statsService from '@/services/statsService'
 import type { DashboardStats } from '@/services/statsService'
 
@@ -23,24 +24,21 @@ describe('DashboardView', () => {
     id: '1',
     email: 'admin@test.com',
     full_name: 'Admin User',
-    role: 'admin',
-    created_at: '2024-01-01T00:00:00Z',
+    role: UserRole.ADMIN,
   }
 
   const teacherUser: User = {
     id: '2',
     email: 'teacher@test.com',
     full_name: 'Teacher User',
-    role: 'teacher',
-    created_at: '2024-01-02T00:00:00Z',
+    role: UserRole.TEACHER,
   }
 
   const studentUser: User = {
     id: '3',
     email: 'student@test.com',
     full_name: 'Student User',
-    role: 'student',
-    created_at: '2024-01-03T00:00:00Z',
+    role: UserRole.STUDENT,
   }
 
   beforeEach(() => {
@@ -78,7 +76,7 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Welcome to TestGen - AI-Powered Test Generation')
+      expect(wrapper.text()).toContain('Добро пожаловать в TestGen - Генерация тестов на основе ИИ')
     })
 
     it('shows all three stat cards including Documents', () => {
@@ -90,9 +88,9 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Total Documents')
-      expect(wrapper.text()).toContain('Generated Tests')
-      expect(wrapper.text()).toContain('Total Questions')
+      expect(wrapper.text()).toContain('Всего документов')
+      expect(wrapper.text()).toContain('Созданных тестов')
+      expect(wrapper.text()).toContain('Всего вопросов')
     })
 
     it('shows Upload Document and Create Test actions', () => {
@@ -104,10 +102,10 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Upload Document')
-      expect(wrapper.text()).toContain('Add new learning material')
-      expect(wrapper.text()).toContain('Create Test')
-      expect(wrapper.text()).toContain('Generate new test questions')
+      expect(wrapper.text()).toContain('Загрузить документ')
+      expect(wrapper.text()).toContain('Добавить новый учебный материал')
+      expect(wrapper.text()).toContain('Создать тест')
+      expect(wrapper.text()).toContain('Сгенерировать новые вопросы')
     })
 
     it('links to /documents for Upload Document', () => {
@@ -147,7 +145,7 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Welcome to TestGen - AI-Powered Test Generation')
+      expect(wrapper.text()).toContain('Добро пожаловать в TestGen - Генерация тестов на основе ИИ')
     })
 
     it('shows all three stat cards including Documents', () => {
@@ -159,9 +157,9 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Total Documents')
-      expect(wrapper.text()).toContain('Generated Tests')
-      expect(wrapper.text()).toContain('Total Questions')
+      expect(wrapper.text()).toContain('Всего документов')
+      expect(wrapper.text()).toContain('Созданных тестов')
+      expect(wrapper.text()).toContain('Всего вопросов')
     })
 
     it('shows Upload Document and Create Test actions', () => {
@@ -173,8 +171,8 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Upload Document')
-      expect(wrapper.text()).toContain('Create Test')
+      expect(wrapper.text()).toContain('Загрузить документ')
+      expect(wrapper.text()).toContain('Создать тест')
     })
   })
 
@@ -188,7 +186,7 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Welcome to TestGen - View and take your assigned tests')
+      expect(wrapper.text()).toContain('Добро пожаловать в TestGen - Просматривайте и проходите назначенные тесты')
     })
 
     it('does NOT show Documents card', () => {
@@ -200,7 +198,7 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).not.toContain('Total Documents')
+      expect(wrapper.text()).not.toContain('Всего документов')
     })
 
     it('shows Assigned Tests instead of Generated Tests', () => {
@@ -212,8 +210,8 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Assigned Tests')
-      expect(wrapper.text()).not.toContain('Generated Tests')
+      expect(wrapper.text()).toContain('Назначенных тестов')
+      expect(wrapper.text()).not.toContain('Созданных тестов')
     })
 
     it('shows Average Score instead of Total Questions', () => {
@@ -225,9 +223,9 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Average Score')
+      expect(wrapper.text()).toContain('Средний балл')
       expect(wrapper.text()).toContain('0%')
-      expect(wrapper.text()).not.toContain('Total Questions')
+      expect(wrapper.text()).not.toContain('Всего вопросов')
     })
 
     it('does NOT show Upload Document action', () => {
@@ -239,8 +237,8 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).not.toContain('Upload Document')
-      expect(wrapper.text()).not.toContain('Add new learning material')
+      expect(wrapper.text()).not.toContain('Загрузить документ')
+      expect(wrapper.text()).not.toContain('Добавить новый учебный материал')
     })
 
     it('does NOT show Create Test action', () => {
@@ -252,8 +250,8 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).not.toContain('Create Test')
-      expect(wrapper.text()).not.toContain('Generate new test questions')
+      expect(wrapper.text()).not.toContain('Создать тест')
+      expect(wrapper.text()).not.toContain('Сгенерировать новые вопросы')
     })
 
     it('shows View Tests action linking to /tests', () => {
@@ -265,8 +263,8 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('View Tests')
-      expect(wrapper.text()).toContain('See your assigned tests')
+      expect(wrapper.text()).toContain('Просмотр тестов')
+      expect(wrapper.text()).toContain('Посмотреть назначенные тесты')
 
       const viewTestsLink = wrapper.find('a[href="/tests"]')
       expect(viewTestsLink.exists()).toBe(true)
@@ -281,13 +279,13 @@ describe('DashboardView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Practice Mode')
-      expect(wrapper.text()).toContain('Coming soon')
+      expect(wrapper.text()).toContain('Режим практики')
+      expect(wrapper.text()).toContain('Скоро')
 
       // Practice mode should be a div, not a link
       const practiceDiv = wrapper.find('div.opacity-50.cursor-not-allowed')
       expect(practiceDiv.exists()).toBe(true)
-      expect(practiceDiv.text()).toContain('Practice Mode')
+      expect(practiceDiv.text()).toContain('Режим практики')
     })
   })
 
@@ -302,8 +300,8 @@ describe('DashboardView', () => {
       })
 
       // Admin should see teacher/admin content
-      expect(wrapper.text()).toContain('Total Documents')
-      expect(wrapper.text()).toContain('Upload Document')
+      expect(wrapper.text()).toContain('Всего документов')
+      expect(wrapper.text()).toContain('Загрузить документ')
     })
 
     it('isTeacherOrAdmin is true for teacher', () => {
@@ -316,8 +314,8 @@ describe('DashboardView', () => {
       })
 
       // Teacher should see teacher/admin content
-      expect(wrapper.text()).toContain('Total Documents')
-      expect(wrapper.text()).toContain('Upload Document')
+      expect(wrapper.text()).toContain('Всего документов')
+      expect(wrapper.text()).toContain('Загрузить документ')
     })
 
     it('isTeacherOrAdmin is false for student', () => {
@@ -330,8 +328,8 @@ describe('DashboardView', () => {
       })
 
       // Student should NOT see teacher/admin content
-      expect(wrapper.text()).not.toContain('Total Documents')
-      expect(wrapper.text()).not.toContain('Upload Document')
+      expect(wrapper.text()).not.toContain('Всего документов')
+      expect(wrapper.text()).not.toContain('Загрузить документ')
     })
   })
 
@@ -385,14 +383,14 @@ describe('DashboardView', () => {
       await wrapper.vm.$nextTick()
 
       // Should show loading state
-      expect(wrapper.text()).toContain('Loading statistics...')
+      expect(wrapper.text()).toContain('Загрузка статистики...')
 
       // Resolve the promise
       resolveStats!(mockStats)
       await flushPromises()
 
       // Should no longer show loading
-      expect(wrapper.text()).not.toContain('Loading statistics...')
+      expect(wrapper.text()).not.toContain('Загрузка статистики...')
       expect(wrapper.text()).toContain('5')
       expect(wrapper.text()).toContain('10')
       expect(wrapper.text()).toContain('50')
@@ -416,7 +414,7 @@ describe('DashboardView', () => {
       await flushPromises()
 
       // Student should see "Assigned Tests" card with 0
-      expect(wrapper.text()).toContain('Assigned Tests')
+      expect(wrapper.text()).toContain('Назначенных тестов')
       expect(wrapper.text()).toContain('0')
     })
 
@@ -454,7 +452,7 @@ describe('DashboardView', () => {
 
       const tryAgainButton = wrapper.find('button')
       expect(tryAgainButton.exists()).toBe(true)
-      expect(tryAgainButton.text()).toContain('Try Again')
+      expect(tryAgainButton.text()).toContain('Попробовать снова')
     })
 
     it('retries loading stats when "Try Again" button is clicked', async () => {
@@ -479,7 +477,7 @@ describe('DashboardView', () => {
       await flushPromises()
 
       // Should show error (checking for partial message)
-      expect(wrapper.text()).toContain('Error loading statistics')
+      expect(wrapper.text()).toContain('Ошибка загрузки статистики')
       expect(statsService.statsService.getDashboardStats).toHaveBeenCalledTimes(1)
 
       // Click "Try Again"
@@ -489,7 +487,7 @@ describe('DashboardView', () => {
 
       // Should have retried and succeeded
       expect(statsService.statsService.getDashboardStats).toHaveBeenCalledTimes(2)
-      expect(wrapper.text()).not.toContain('Error loading statistics')
+      expect(wrapper.text()).not.toContain('Ошибка загрузки статистики')
       expect(wrapper.text()).toContain('5')
       expect(wrapper.text()).toContain('10')
       expect(wrapper.text()).toContain('50')
@@ -562,9 +560,9 @@ describe('DashboardView', () => {
       await flushPromises()
 
       // Student sees "Average Score" (0%) instead of question count
-      expect(wrapper.text()).toContain('Average Score')
+      expect(wrapper.text()).toContain('Средний балл')
       expect(wrapper.text()).toContain('0%')
-      expect(wrapper.text()).not.toContain('Total Questions')
+      expect(wrapper.text()).not.toContain('Всего вопросов')
     })
   })
 })

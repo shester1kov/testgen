@@ -50,7 +50,7 @@ describe('RegisterForm', () => {
         id: '123',
         email: 'test@example.com',
         full_name: 'Test User',
-        role: 'student', // Assigned by backend
+        role: 'student' as any, // Assigned by backend
       },
       token: 'mock-token',
     })
@@ -118,7 +118,7 @@ describe('RegisterForm', () => {
     await wrapper.vm.$nextTick()
 
     expect(submitButton.attributes('disabled')).toBeDefined()
-    expect(wrapper.text()).toContain('Creating account...')
+    expect(wrapper.text()).toContain('Создание аккаунта...')
 
     resolveRegister!({
       user: { id: '123', email: 'test@example.com', full_name: 'Test User', role: 'student' },
@@ -135,6 +135,6 @@ describe('RegisterForm', () => {
 
     const loginLink = wrapper.find('a[href="/login"]')
     expect(loginLink.exists()).toBe(true)
-    expect(loginLink.text()).toContain('Sign in')
+    expect(loginLink.text()).toContain('Войти')
   })
 })

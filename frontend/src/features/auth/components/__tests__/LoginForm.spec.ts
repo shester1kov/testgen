@@ -46,7 +46,7 @@ describe('LoginForm', () => {
         id: '123',
         email: 'test@example.com',
         full_name: 'Test User',
-        role: 'student',
+        role: 'student' as any,
       },
       token: 'mock-token',
     })
@@ -109,7 +109,7 @@ describe('LoginForm', () => {
     await wrapper.vm.$nextTick()
 
     expect(submitButton.attributes('disabled')).toBeDefined()
-    expect(wrapper.text()).toContain('Signing in...')
+    expect(wrapper.text()).toContain('Вход...')
 
     resolveLogin!({
       user: { id: '123', email: 'test@example.com', full_name: 'Test User', role: 'student' },
@@ -126,7 +126,7 @@ describe('LoginForm', () => {
 
     const registerLink = wrapper.find('a[href="/register"]')
     expect(registerLink.exists()).toBe(true)
-    expect(registerLink.text()).toContain('Register')
+    expect(registerLink.text()).toContain('Зарегистрироваться')
   })
 
   it('should redirect to dashboard on successful login', async () => {
@@ -142,7 +142,7 @@ describe('LoginForm', () => {
         id: '123',
         email: 'test@example.com',
         full_name: 'Test User',
-        role: 'student',
+        role: 'student' as any,
       },
       token: 'mock-token',
     })

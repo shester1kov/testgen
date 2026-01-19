@@ -5,6 +5,7 @@ import UsersView from '../UsersView.vue'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import UserList from '@/features/users/components/UserList.vue'
 import type { User } from '@/features/auth/types/auth.types'
+import { UserRole } from '@/features/auth/types/auth.types'
 
 vi.mock('@/services/authService')
 vi.mock('@/services/userService')
@@ -16,24 +17,21 @@ describe('UsersView', () => {
     id: '1',
     email: 'admin@test.com',
     full_name: 'Admin User',
-    role: 'admin',
-    created_at: '2024-01-01T00:00:00Z',
+    role: UserRole.ADMIN,
   }
 
   const teacherUser: User = {
     id: '2',
     email: 'teacher@test.com',
     full_name: 'Teacher User',
-    role: 'teacher',
-    created_at: '2024-01-02T00:00:00Z',
+    role: UserRole.TEACHER,
   }
 
   const studentUser: User = {
     id: '3',
     email: 'student@test.com',
     full_name: 'Student User',
-    role: 'student',
-    created_at: '2024-01-03T00:00:00Z',
+    role: UserRole.STUDENT,
   }
 
   beforeEach(() => {
@@ -54,8 +52,8 @@ describe('UsersView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Users Management')
-      expect(wrapper.text()).toContain('Manage user roles and permissions')
+      expect(wrapper.text()).toContain('Управление пользователями')
+      expect(wrapper.text()).toContain('Управляйте ролями и правами пользователей')
     })
 
     it('renders UserList component', () => {
@@ -85,8 +83,8 @@ describe('UsersView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Users Management')
-      expect(wrapper.text()).toContain('View students and assign tests to them')
+      expect(wrapper.text()).toContain('Управление пользователями')
+      expect(wrapper.text()).toContain('Просматривайте студентов и назначайте им тесты')
     })
 
     it('does NOT show admin description', () => {
@@ -100,7 +98,7 @@ describe('UsersView', () => {
         },
       })
 
-      expect(wrapper.text()).not.toContain('Manage user roles and permissions')
+      expect(wrapper.text()).not.toContain('Управление ролями пользователей и правами доступа')
     })
 
     it('renders UserList component', () => {
@@ -130,7 +128,7 @@ describe('UsersView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('Manage user roles and permissions')
+      expect(wrapper.text()).toContain('Управляйте ролями и правами пользователей')
     })
 
     it('returns false for teacher user', () => {
@@ -144,7 +142,7 @@ describe('UsersView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('View students and assign tests to them')
+      expect(wrapper.text()).toContain('Просматривайте студентов и назначайте им тесты')
     })
 
     it('returns false for student user', () => {
@@ -158,7 +156,7 @@ describe('UsersView', () => {
         },
       })
 
-      expect(wrapper.text()).toContain('View students and assign tests to them')
+      expect(wrapper.text()).toContain('Просматривайте студентов и назначайте им тесты')
     })
 
     it('returns false when user is null', () => {
@@ -173,7 +171,7 @@ describe('UsersView', () => {
       })
 
       // Should default to non-admin description
-      expect(wrapper.text()).toContain('View students and assign tests to them')
+      expect(wrapper.text()).toContain('Просматривайте студентов и назначайте им тесты')
     })
   })
 
@@ -191,7 +189,7 @@ describe('UsersView', () => {
 
       const heading = wrapper.find('h1')
       expect(heading.exists()).toBe(true)
-      expect(heading.text()).toBe('Users Management')
+      expect(heading.text()).toBe('Управление пользователями')
       expect(heading.classes()).toContain('text-3xl')
       expect(heading.classes()).toContain('font-bold')
     })
@@ -209,7 +207,7 @@ describe('UsersView', () => {
 
       const description = wrapper.find('p.text-text-secondary')
       expect(description.exists()).toBe(true)
-      expect(description.text()).toBe('Manage user roles and permissions')
+      expect(description.text()).toBe('Управляйте ролями и правами пользователей')
     })
   })
 })

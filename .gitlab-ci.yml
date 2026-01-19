@@ -142,11 +142,30 @@ deploy:production:
     - mkdir -p /opt/testgen/nginx
     - cp -r $CI_PROJECT_DIR/nginx/* /opt/testgen/nginx/ || true
 
+    # Копируем конфигурации мониторинга
+    - mkdir -p /opt/testgen/prometheus
+    - cp -r $CI_PROJECT_DIR/prometheus/* /opt/testgen/prometheus/ || true
+
+    - mkdir -p /opt/testgen/loki
+    - cp -r $CI_PROJECT_DIR/loki/* /opt/testgen/loki/ || true
+
+    - mkdir -p /opt/testgen/promtail
+    - cp -r $CI_PROJECT_DIR/promtail/* /opt/testgen/promtail/ || true
+
+    - mkdir -p /opt/testgen/grafana/provisioning/datasources
+    - mkdir -p /opt/testgen/grafana/provisioning/dashboards
+    - mkdir -p /opt/testgen/grafana/dashboards
+    - cp -r $CI_PROJECT_DIR/grafana/provisioning/datasources/* /opt/testgen/grafana/provisioning/datasources/ || true
+    - cp -r $CI_PROJECT_DIR/grafana/provisioning/dashboards/* /opt/testgen/grafana/provisioning/dashboards/ || true
+    - cp -r $CI_PROJECT_DIR/grafana/dashboards/* /opt/testgen/grafana/dashboards/ || true
+
     # Создаем .env файл с переменными из GitLab CI/CD
     - |
       cat > .env << EOF
+      ENV=${ENV:-production}
+      PORT=${PORT:-8080}
       CI_PROJECT_PATH=${CI_PROJECT_PATH}
-      IMAGE_TAG=${IMAGE_TAG}
+      IMAGE_TAG=${IMAGE_TAG:-latest}
       DB_USER=${DB_USER}
       DB_PASSWORD=${DB_PASSWORD}
       DB_NAME=${DB_NAME}
@@ -169,12 +188,15 @@ deploy:production:
       ENABLE_METRICS=${ENABLE_METRICS}
       GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       GF_USERS_ALLOW_SIGN_UP=${GF_USERS_ALLOW_SIGN_UP}
-      REDIS_HOST=${REDIS_HOST}
-      REDIS_PORT=${REDIS_PORT}
+      REDIS_HOST=${REDIS_HOST:-redis}
+      REDIS_PORT=${REDIS_PORT:-6379}
+      REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      REDIS_DB=${REDIS_DB:-0}
+      REDIS_POOL_SIZE=${REDIS_POOL_SIZE:-10}
       YANDEX_GPT_API_KEY=${YANDEX_GPT_API_KEY}
       YANDEX_GPT_FOLDER_ID=${YANDEX_GPT_FOLDER_ID}
-      LOG_LEVEL=${LOG_LEVEL}
-      LOG_FORMAT=${LOG_FORMAT}
+      LOG_LEVEL=${LOG_LEVEL:-info}
+      LOG_FORMAT=${LOG_FORMAT:-json}
       EOF
 
     # Пуллим новые образы из registry

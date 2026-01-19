@@ -38,7 +38,7 @@ describe('TestEditModal', () => {
       },
     })
 
-    expect(wrapper.find('h2').text()).toBe('Edit Test')
+    expect(wrapper.find('h2').text()).toBe('Редактировать тест')
     expect(wrapper.find('input[type="text"]').element.value).toBe('JavaScript Basics Test')
   })
 
@@ -116,7 +116,7 @@ describe('TestEditModal', () => {
     const titleInput = wrapper.find('input[type="text"]')
     await titleInput.setValue('ab') // Less than 3 characters
 
-    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Save Changes'))
+    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Сохранить'))
     expect(submitButton?.element.disabled).toBe(true)
   })
 
@@ -131,7 +131,7 @@ describe('TestEditModal', () => {
     const titleInput = wrapper.find('input[type="text"]')
     await titleInput.setValue('')
 
-    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Save Changes'))
+    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Сохранить'))
     expect(submitButton?.element.disabled).toBe(true)
   })
 
@@ -146,7 +146,7 @@ describe('TestEditModal', () => {
     const titleInput = wrapper.find('input[type="text"]')
     await titleInput.setValue('Valid Test Title')
 
-    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Save Changes'))
+    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Сохранить'))
     expect(submitButton?.element.disabled).toBe(false)
   })
 
@@ -158,7 +158,7 @@ describe('TestEditModal', () => {
       },
     })
 
-    const cancelButton = wrapper.findAll('button').find(btn => btn.text() === 'Cancel')
+    const cancelButton = wrapper.findAll('button').find(btn => btn.text() === 'Отмена')
     await cancelButton?.trigger('click')
 
     expect(wrapper.emitted('close')).toBeTruthy()
@@ -286,7 +286,7 @@ describe('TestEditModal', () => {
     await form.trigger('submit.prevent')
 
     // Should show loading text
-    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Saving'))
+    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Сохранение...'))
     expect(submitButton).toBeDefined()
     expect(submitButton?.element.disabled).toBe(true)
   })
@@ -305,7 +305,7 @@ describe('TestEditModal', () => {
     await form.trigger('submit.prevent')
 
     // Try to click cancel during loading
-    const cancelButton = wrapper.findAll('button').find(btn => btn.text() === 'Cancel')
+    const cancelButton = wrapper.findAll('button').find(btn => btn.text() === 'Отмена')
     expect(cancelButton?.element.disabled).toBe(true)
   })
 

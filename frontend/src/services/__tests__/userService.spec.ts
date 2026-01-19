@@ -18,15 +18,13 @@ describe('userService', () => {
             id: '1',
             email: 'user1@test.com',
             full_name: 'User One',
-            role: 'student',
-            created_at: '2024-01-01T00:00:00Z',
+            role: 'student' as any,
           },
           {
             id: '2',
             email: 'user2@test.com',
             full_name: 'User Two',
-            role: 'teacher',
-            created_at: '2024-01-02T00:00:00Z',
+            role: 'teacher' as any,
           },
         ],
         total: 2,
@@ -91,8 +89,7 @@ describe('userService', () => {
         id: '123',
         email: 'user@test.com',
         full_name: 'Test User',
-        role: 'admin',
-        created_at: '2024-01-01T00:00:00Z',
+        role: 'admin' as any,
       }
 
       vi.mocked(api.put).mockResolvedValue(mockUser)
@@ -112,8 +109,7 @@ describe('userService', () => {
         id: '456',
         email: 'teacher@test.com',
         full_name: 'Teacher User',
-        role: 'teacher',
-        created_at: '2024-01-01T00:00:00Z',
+        role: 'teacher' as any,
       }
 
       vi.mocked(api.put).mockResolvedValue(mockUser)
@@ -132,8 +128,7 @@ describe('userService', () => {
         id: '789',
         email: 'student@test.com',
         full_name: 'Student User',
-        role: 'student',
-        created_at: '2024-01-01T00:00:00Z',
+        role: 'student' as any,
       }
 
       vi.mocked(api.put).mockResolvedValue(mockUser)

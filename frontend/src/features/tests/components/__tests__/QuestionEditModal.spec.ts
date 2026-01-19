@@ -55,7 +55,7 @@ describe('QuestionEditModal', () => {
       },
     })
 
-    expect(wrapper.find('h2').text()).toBe('Edit Question')
+    expect(wrapper.find('h2').text()).toBe('Редактировать вопрос')
     expect(wrapper.find('textarea').element.value).toBe('What is Vue.js?')
   })
 
@@ -118,7 +118,7 @@ describe('QuestionEditModal', () => {
       },
     })
 
-    const addButton = wrapper.findAll('button').find(btn => btn.text().includes('Add Answer'))
+    const addButton = wrapper.findAll('button').find(btn => btn.text().includes('Добавить ответ'))
     expect(addButton).toBeDefined()
 
     await addButton?.trigger('click')
@@ -199,7 +199,7 @@ describe('QuestionEditModal', () => {
     const textarea = wrapper.find('textarea')
     await textarea.setValue('')
 
-    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Save Changes'))
+    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Сохранить'))
     expect(submitButton?.element.disabled).toBe(true)
   })
 
@@ -218,7 +218,7 @@ describe('QuestionEditModal', () => {
       await checkbox.setValue(false)
     }
 
-    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Save Changes'))
+    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Сохранить'))
     expect(submitButton?.element.disabled).toBe(true)
   })
 
@@ -231,7 +231,7 @@ describe('QuestionEditModal', () => {
       },
     })
 
-    const cancelButton = wrapper.findAll('button').find(btn => btn.text() === 'Cancel')
+    const cancelButton = wrapper.findAll('button').find(btn => btn.text() === 'Отмена')
     await cancelButton?.trigger('click')
 
     expect(wrapper.emitted('close')).toBeTruthy()
@@ -333,7 +333,7 @@ describe('QuestionEditModal', () => {
     await form.trigger('submit.prevent')
 
     // Should show loading text
-    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Saving'))
+    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('Сохранение...'))
     expect(submitButton).toBeDefined()
     expect(submitButton?.element.disabled).toBe(true)
   })

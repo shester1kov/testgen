@@ -5,6 +5,7 @@ import TestsView from '../TestsView.vue'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import { useTestsStore } from '@/features/tests/stores/testsStore'
 import type { User } from '@/features/auth/types/auth.types'
+import { UserRole } from '@/features/auth/types/auth.types'
 
 vi.mock('@/services/authService')
 vi.mock('@/services/testService')
@@ -26,24 +27,21 @@ describe('TestsView', () => {
     id: '1',
     email: 'admin@test.com',
     full_name: 'Admin User',
-    role: 'admin',
-    created_at: '2024-01-01T00:00:00Z',
+    role: UserRole.ADMIN,
   }
 
   const teacherUser: User = {
     id: '2',
     email: 'teacher@test.com',
     full_name: 'Teacher User',
-    role: 'teacher',
-    created_at: '2024-01-02T00:00:00Z',
+    role: UserRole.TEACHER,
   }
 
   const studentUser: User = {
     id: '3',
     email: 'student@test.com',
     full_name: 'Student User',
-    role: 'student',
-    created_at: '2024-01-03T00:00:00Z',
+    role: UserRole.STUDENT,
   }
 
   beforeEach(() => {
@@ -82,7 +80,7 @@ describe('TestsView', () => {
       await wrapper.vm.$nextTick()
 
       const buttons = wrapper.findAll('button')
-      const hasCreateButton = buttons.some(btn => btn.text().includes('Generate Test'))
+      const hasCreateButton = buttons.some(btn => btn.text().includes('Сгенерировать тест'))
       expect(hasCreateButton).toBe(true)
     })
 
@@ -93,7 +91,7 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('Generate Test')
+      expect(wrapper.text()).toContain('Сгенерировать тест')
     })
 
     // POSITIVE TEST: Admin sees correct description
@@ -103,7 +101,7 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('Generate and manage your test questions')
+      expect(wrapper.text()).toContain('Генерируйте и управляйте тестовыми вопросами')
     })
 
     // POSITIVE TEST: Admin sees correct empty state
@@ -114,7 +112,7 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('No tests yet')
+      expect(wrapper.text()).toContain('Тестов пока нет')
     })
   })
 
@@ -128,7 +126,7 @@ describe('TestsView', () => {
       await wrapper.vm.$nextTick()
 
       const buttons = wrapper.findAll('button')
-      const hasGenerateButton = buttons.some(btn => btn.text().includes('Generate Test'))
+      const hasGenerateButton = buttons.some(btn => btn.text().includes('Сгенерировать тест'))
       expect(hasGenerateButton).toBe(true)
     })
 
@@ -139,7 +137,7 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('Generate Test')
+      expect(wrapper.text()).toContain('Сгенерировать тест')
     })
 
     // POSITIVE TEST: Teacher sees correct description
@@ -149,7 +147,7 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('Generate and manage your test questions')
+      expect(wrapper.text()).toContain('Генерируйте и управляйте тестовыми вопросами')
     })
   })
 
@@ -163,7 +161,7 @@ describe('TestsView', () => {
       await wrapper.vm.$nextTick()
 
       const buttons = wrapper.findAll('button')
-      const hasGenerateButton = buttons.some(btn => btn.text().includes('Generate Test'))
+      const hasGenerateButton = buttons.some(btn => btn.text().includes('Сгенерировать тест'))
       expect(hasGenerateButton).toBe(false)
     })
 
@@ -174,7 +172,7 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).not.toContain('Generate Test')
+      expect(wrapper.text()).not.toContain('Сгенерировать тест')
     })
 
     // POSITIVE TEST: Student sees view-only description
@@ -184,8 +182,8 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('View your assigned tests')
-      expect(wrapper.text()).not.toContain('Generate and manage')
+      expect(wrapper.text()).toContain('Просматривайте назначенные тесты')
+      expect(wrapper.text()).not.toContain('Генерируйте и управляйте')
     })
 
     // POSITIVE TEST: Student sees assigned tests empty state
@@ -196,7 +194,7 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('No assigned tests')
+      expect(wrapper.text()).toContain('Нет назначенных тестов')
     })
 
     // NEGATIVE TEST: Student does not see create-focused messages
@@ -207,8 +205,8 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).not.toContain('No tests yet')
-      expect(wrapper.text()).not.toContain('Create your first test')
+      expect(wrapper.text()).not.toContain('Тестов пока нет')
+      expect(wrapper.text()).not.toContain('Создайте свой первый тест')
     })
   })
 
@@ -241,7 +239,7 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('Loading tests...')
+      expect(wrapper.text()).toContain('Загрузка тестов...')
       const loadingIcon = wrapper.find('svg')
       expect(loadingIcon.exists()).toBe(true)
     })
@@ -255,7 +253,7 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('Error loading tests')
+      expect(wrapper.text()).toContain('Ошибка загрузки тестов')
       expect(wrapper.text()).toContain('Network error: Failed to fetch')
     })
 
@@ -269,7 +267,7 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      const tryAgainButton = wrapper.findAll('button').find(btn => btn.text().includes('Try Again'))
+      const tryAgainButton = wrapper.findAll('button').find(btn => btn.text().includes('Попробовать снова'))
       expect(tryAgainButton).toBeTruthy()
 
       await tryAgainButton!.trigger('click')
@@ -288,7 +286,7 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).not.toContain('Error loading tests')
+      expect(wrapper.text()).not.toContain('Ошибка загрузки тестов')
     })
   })
 
@@ -324,11 +322,11 @@ describe('TestsView', () => {
 
       expect(wrapper.text()).toContain('Math Test')
       expect(wrapper.text()).toContain('Basic algebra questions')
-      expect(wrapper.text()).toContain('10 questions')
+      expect(wrapper.text()).toContain('10 вопросов')
 
       expect(wrapper.text()).toContain('Science Quiz')
       expect(wrapper.text()).toContain('Chemistry and physics')
-      expect(wrapper.text()).toContain('5 questions')
+      expect(wrapper.text()).toContain('5 вопросов')
     })
 
     // POSITIVE TEST: Shows test status badges with correct colors
@@ -431,9 +429,9 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('Created')
-      // Should show relative time like "1d ago"
-      expect(wrapper.text()).toMatch(/Created.*ago|Created.*\d{1,2}\/\d{1,2}\/\d{4}/)
+      expect(wrapper.text()).toContain('Создан')
+      // Should show relative time like "1 дней назад"
+      expect(wrapper.text()).toMatch(/Создан.*назад|Создан.*\d{1,2}\/\d{1,2}\/\d{4}/)
     })
   })
 
@@ -561,7 +559,7 @@ describe('TestsView', () => {
       wrapper = mountComponent()
       await wrapper.vm.$nextTick()
 
-      const generateButton = wrapper.findAll('button').find(btn => btn.text().includes('Generate Test'))
+      const generateButton = wrapper.findAll('button').find(btn => btn.text().includes('Сгенерировать тест'))
       expect(generateButton).toBeTruthy()
 
       await generateButton!.trigger('click')

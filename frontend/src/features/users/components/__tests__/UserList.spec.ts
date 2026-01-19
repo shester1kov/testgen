@@ -5,6 +5,7 @@ import UserList from '../UserList.vue'
 import { useUsersStore } from '../../stores/usersStore'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import type { User } from '@/features/auth/types/auth.types'
+import { UserRole } from '@/features/auth/types/auth.types'
 
 vi.mock('@/services/userService')
 vi.mock('@/services/authService')
@@ -27,22 +28,19 @@ describe('UserList', () => {
       id: '1',
       email: 'admin@test.com',
       full_name: 'Admin User',
-      role: 'admin',
-      created_at: '2024-01-01T00:00:00Z',
+      role: UserRole.ADMIN,
     },
     {
       id: '2',
       email: 'teacher@test.com',
       full_name: 'Teacher User',
-      role: 'teacher',
-      created_at: '2024-01-02T00:00:00Z',
+      role: UserRole.TEACHER,
     },
     {
       id: '3',
       email: 'student@test.com',
       full_name: 'Student User',
-      role: 'student',
-      created_at: '2024-01-03T00:00:00Z',
+      role: UserRole.STUDENT,
     },
   ]
 
@@ -88,7 +86,7 @@ describe('UserList', () => {
     wrapper = mount(UserList)
     await wrapper.vm.$nextTick()
 
-    const changeRoleButtons = wrapper.findAll('button').filter(btn => btn.text().includes('Change Role'))
+    const changeRoleButtons = wrapper.findAll('button').filter(btn => btn.text().includes('Изменить роль'))
     expect(changeRoleButtons.length).toBe(3) // One for each user
   })
 
@@ -100,7 +98,7 @@ describe('UserList', () => {
     wrapper = mount(UserList)
     await wrapper.vm.$nextTick()
 
-    const changeRoleButtons = wrapper.findAll('button').filter(btn => btn.text().includes('Change Role'))
+    const changeRoleButtons = wrapper.findAll('button').filter(btn => btn.text().includes('Изменить роль'))
     expect(changeRoleButtons.length).toBe(0)
   })
 
@@ -152,7 +150,7 @@ describe('UserList', () => {
     wrapper = mount(UserList)
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.text()).toContain('Loading users')
+    expect(wrapper.text()).toContain('Загрузка пользователей...')
   })
 
   // NEGATIVE TEST: Display error message
@@ -167,7 +165,7 @@ describe('UserList', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.text()).toContain('Failed to load users')
-    expect(wrapper.text()).toContain('Retry')
+    expect(wrapper.text()).toContain('Повторить')
   })
 
   // POSITIVE TEST: Display empty state
@@ -182,7 +180,7 @@ describe('UserList', () => {
     wrapper = mount(UserList)
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.text()).toContain('No users found')
+    expect(wrapper.text()).toContain('Пользователи не найдены')
   })
 
   // POSITIVE TEST: Pagination controls visible when needed
@@ -195,8 +193,8 @@ describe('UserList', () => {
     wrapper = mount(UserList)
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.text()).toContain('Previous')
-    expect(wrapper.text()).toContain('Next')
+    expect(wrapper.text()).toContain('Назад')
+    expect(wrapper.text()).toContain('Вперёд')
   })
 
   // POSITIVE TEST: Handle page change
@@ -210,7 +208,7 @@ describe('UserList', () => {
     wrapper = mount(UserList)
     await wrapper.vm.$nextTick()
 
-    const nextButton = wrapper.findAll('button').find(btn => btn.text().includes('Next'))
+    const nextButton = wrapper.findAll('button').find(btn => btn.text().includes('Вперёд'))
     await nextButton?.trigger('click')
     await wrapper.vm.$nextTick()
 
@@ -227,7 +225,7 @@ describe('UserList', () => {
     wrapper = mount(UserList)
     await wrapper.vm.$nextTick()
 
-    const prevButton = wrapper.findAll('button').find(btn => btn.text().includes('Previous'))
+    const prevButton = wrapper.findAll('button').find(btn => btn.text().includes('Назад'))
     expect(prevButton?.attributes('disabled')).toBeDefined()
   })
 
@@ -239,11 +237,11 @@ describe('UserList', () => {
     wrapper = mount(UserList)
     await wrapper.vm.$nextTick()
 
-    const changeRoleButtons = wrapper.findAll('button').filter(btn => btn.text().includes('Change Role'))
+    const changeRoleButtons = wrapper.findAll('button').filter(btn => btn.text().includes('Изменить роль'))
     await changeRoleButtons[0].trigger('click')
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.text()).toContain('Change User Role')
+    expect(wrapper.text()).toContain('Изменение роли пользователя')
   })
 
   // POSITIVE TEST: Close role change modal
@@ -321,7 +319,7 @@ describe('UserList', () => {
     wrapper = mount(UserList)
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.text()).toContain('3 users total')
+    expect(wrapper.text()).toContain('Всего пользователей: 3')
   })
 
   // POSITIVE TEST: Retry on error
@@ -335,7 +333,7 @@ describe('UserList', () => {
     wrapper = mount(UserList)
     await wrapper.vm.$nextTick()
 
-    const retryButton = wrapper.findAll('button').find(btn => btn.text() === 'Retry')
+    const retryButton = wrapper.findAll('button').find(btn => btn.text() === 'Повторить')
     await retryButton?.trigger('click')
     await wrapper.vm.$nextTick()
 

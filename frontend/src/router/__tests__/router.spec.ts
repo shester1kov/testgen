@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import router from '../index'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import type { User } from '@/features/auth/types/auth.types'
+import { UserRole } from '@/features/auth/types/auth.types'
 
 vi.mock('@/services/authService')
 
@@ -13,24 +14,21 @@ describe('Router Guards', () => {
     id: '1',
     email: 'admin@test.com',
     full_name: 'Admin User',
-    role: 'admin',
-    created_at: '2024-01-01T00:00:00Z',
+    role: UserRole.ADMIN,
   }
 
   const teacherUser: User = {
     id: '2',
     email: 'teacher@test.com',
     full_name: 'Teacher User',
-    role: 'teacher',
-    created_at: '2024-01-02T00:00:00Z',
+    role: UserRole.TEACHER,
   }
 
   const studentUser: User = {
     id: '3',
     email: 'student@test.com',
     full_name: 'Student User',
-    role: 'student',
-    created_at: '2024-01-03T00:00:00Z',
+    role: UserRole.STUDENT,
   }
 
   beforeEach(async () => {

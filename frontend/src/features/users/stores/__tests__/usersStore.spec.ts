@@ -3,6 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useUsersStore } from '../usersStore'
 import userService from '@/services/userService'
 import type { User } from '@/features/auth/types/auth.types'
+import { UserRole } from '@/features/auth/types/auth.types'
 
 vi.mock('@/services/userService')
 vi.mock('@/utils/logger', () => ({
@@ -27,15 +28,13 @@ describe('usersStore', () => {
           id: '1',
           email: 'user1@test.com',
           full_name: 'User One',
-          role: 'student',
-          created_at: '2024-01-01T00:00:00Z',
+          role: UserRole.STUDENT,
         },
         {
           id: '2',
           email: 'user2@test.com',
           full_name: 'User Two',
-          role: 'teacher',
-          created_at: '2024-01-02T00:00:00Z',
+          role: UserRole.TEACHER,
         },
       ]
 
@@ -159,8 +158,7 @@ describe('usersStore', () => {
         id: '1',
         email: 'user@test.com',
         full_name: 'Test User',
-        role: 'admin',
-        created_at: '2024-01-01T00:00:00Z',
+        role: UserRole.ADMIN,
       }
 
       const initialUser: User = {
@@ -234,8 +232,7 @@ describe('usersStore', () => {
         id: '999',
         email: 'user@test.com',
         full_name: 'Test User',
-        role: 'admin',
-        created_at: '2024-01-01T00:00:00Z',
+        role: UserRole.ADMIN,
       }
 
       vi.mocked(userService.listUsers).mockResolvedValue({
