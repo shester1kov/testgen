@@ -1,10 +1,13 @@
 stages:
   - build
   - test
+  - deploy
 
 variables:
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: "/certs"
+  BACKEND_IMAGE: $CI_REGISTRY_IMAGE/backend
+  FRONTEND_IMAGE: $CI_REGISTRY_IMAGE/frontend
 
 # ============================================
 # BUILD STAGE
@@ -12,38 +15,44 @@ variables:
 
 build:backend:
   stage: build
+  tags:
+    - self-hosted
   image: docker:24-cli
   services:
     - docker:24-dind
   before_script:
     - docker info
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
     - cd backend
-    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA .
-    - docker save $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA > backend-image.tar
-  artifacts:
-    paths:
-      - backend-image.tar
-    expire_in: 1 hour
+    - docker build -t $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA -t $BACKEND_IMAGE:latest .
+    - docker push $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker push $BACKEND_IMAGE:latest
+  after_script:
+    - docker logout $CI_REGISTRY
   only:
     - main
     - merge_requests
 
 build:frontend:
   stage: build
+  tags:
+    - self-hosted
   image: docker:24-cli
   services:
     - docker:24-dind
   before_script:
     - docker info
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
     - cd frontend
-    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA .
-    - docker save $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA > frontend-image.tar
-  artifacts:
-    paths:
-      - frontend-image.tar
-    expire_in: 1 hour
+    - docker build -t $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA -t $FRONTEND_IMAGE:latest .
+    - docker push $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker push $FRONTEND_IMAGE:latest
+  after_script:
+    - docker logout $CI_REGISTRY
+  needs:
+    - build:backend
   only:
     - main
     - merge_requests
@@ -54,6 +63,8 @@ build:frontend:
 
 test:backend:
   stage: test
+  tags:
+    - self-hosted
   image: golang:1.25-bookworm
   services:
     - postgres:15-alpine
@@ -72,42 +83,56 @@ test:backend:
     paths:
       - backend/.go-mod-cache
   before_script:
-    - apk add --no-cache git
+    - apt-get --no-cache git
     - cd backend
     - export GOMODCACHE=$CI_PROJECT_DIR/backend/.go-mod-cache
     - go mod download
+    - sleep 5
   script:
     - go test ./... -v -cover -coverprofile=coverage.out
     - go tool cover -func=coverage.out
   coverage: '/total:.*?(\d+\.\d+)%/'
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: backend/coverage.xml
   only:
     - main
     - merge_requests
 
 test:frontend:
   stage: test
+  tags:
+    - self-hosted
   image: node:24.11.1-alpine
   cache:
     key: npm-$CI_COMMIT_REF_SLUG
     paths:
       - frontend/node_modules/
-      - frontend/.npm
+      - frontend/.npm/
   before_script:
     - cd frontend
     - npm ci --cache .npm --prefer-offline
   script:
-    - npm run test -- --coverage
+    - npm run test -- --run
   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: frontend/coverage/cobertura-coverage.xml
   only:
     - main
     - merge_requests
+
+# ============================================
+# DEPLOY STAGE
+# ============================================
+
+# deploy:production:
+#   stage: deploy
+#   tags:
+#     - self-hosted
+#   image: alpine:latest
+#   before_script:
+#     - apt-get --no-cache docker-compose
+#     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+#   script:
+#     - docker-compose pull
+#     - docker-compose up -d --no-build
+#   after_script:
+#     - docker logout $CI_REGISTRY
+#   only:
+#     - main
+#   when: manual  # Ручной запуск деплоя

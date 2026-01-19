@@ -8,8 +8,6 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
       PGPORT: ${DB_PORT}
-    ports:
-      - "${DB_PORT}:${DB_PORT}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -24,8 +22,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: testgen_redis
-    ports:
-      - $"{REDIS_PORT}:${REDIS_PORT}"
     networks:
       - testgen_network
     healthcheck:
@@ -36,22 +32,23 @@ services:
 
   # Backend (Go Fiber)
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: registry.gitlab.com/${CI_PROJECT_PATH}/backend:${IMAGE_TAG:-latest}
+    # build:
+    #   context: ./backend
+    #   dockerfile: Dockerfile
     container_name: testgen_backend
     env_file:
       - .env
     environment:
       - ENV=${ENV}
       - PORT=${PORT}
-      - DB_HOST=postgres
+      - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
       - DB_SSLMODE=${DB_SSLMODE}
-      - REDIS_HOST=redis
+      - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_DB=${REDIS_DB:-0}
@@ -63,8 +60,6 @@ services:
       - ENABLE_METRICS=${ENABLE_METRICS}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - LOG_FORMAT=${LOG_FORMAT:-json}
-    ports:
-      - "${PORT}:${PORT}"
     volumes:
       - ./backend:/app
       - backend_uploads:/app/uploads
@@ -79,13 +74,14 @@ services:
 
   # Frontend (Vue + Vite)
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api/v1}
-        VITE_MAX_FILE_SIZE: ${VITE_MAX_FILE_SIZE:-52428800}
-        VITE_SUPPORTED_FORMATS: ${VITE_SUPPORTED_FORMATS:-pdf,docx,pptx,txt}
+    image: registry.gitlab.com/${CI_PROJECT_PATH}/frontend:${IMAGE_TAG:-latest}
+    # build:
+    #   context: ./frontend
+    #   dockerfile: Dockerfile
+    #   args:
+    #     VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api/v1}
+    #     VITE_MAX_FILE_SIZE: ${VITE_MAX_FILE_SIZE:-52428800}
+    #     VITE_SUPPORTED_FORMATS: ${VITE_SUPPORTED_FORMATS:-pdf,docx,pptx,txt}
     container_name: testgen_frontend
     env_file:
       - .env
@@ -93,8 +89,6 @@ services:
       - VITE_API_BASE_URL=${VITE_API_BASE_URL}
       - VITE_MAX_FILE_SIZE=${VITE_MAX_FILE_SIZE}
       - VITE_SUPPORTED_FORMATS=${VITE_SUPPORTED_FORMATS}
-    ports:
-      - "5173:5173"
     # volumes:
     #   - ./frontend:/app
     #   - /app/node_modules
@@ -125,8 +119,6 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: testgen_prometheus
-    ports:
-      - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -141,8 +133,6 @@ services:
   loki:
     image: grafana/loki:latest
     container_name: testgen_loki
-    ports:
-      - "3100:3100"
     volumes:
       - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
@@ -170,8 +160,6 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: testgen_grafana
-    ports:
-      - "3000:3000"
     env_file:
       - .env
     environment:
@@ -189,53 +177,6 @@ services:
       - testgen_network
     restart: unless-stopped
 
-  # Moodle PostgreSQL Database (отдельная БД для Moodle)
-  moodle_db:
-    image: postgres:15-alpine
-    container_name: testgen_moodle_db
-    environment:
-      POSTGRES_USER: ${MOODLE_DB_USER}
-      POSTGRES_PASSWORD: ${MOODLE_DB_PASSWORD}
-      POSTGRES_DB: ${MOODLE_DB_NAME}
-      PGPORT: ${MOODLE_DB_PORT}
-    ports:
-      - "${MOODLE_DB_PORT}:${MOODLE_DB_PORT}"
-    volumes:
-      - moodle_db_data:/var/lib/postgresql/data
-    networks:
-      - testgen_network
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${MOODLE_DB_USER} -d ${MOODLE_DB_NAME} -p ${MOODLE_DB_PORT}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  # Moodle LMS
-  moodle:
-    image: moodlehq/moodle-php-apache:8.3
-    container_name: testgen_moodle
-    depends_on:
-      moodle_db:
-        condition: service_healthy
-    environment:
-      MOODLE_DB_TYPE: ${MOODLE_DB_TYPE}
-      MOODLE_DB_HOST: ${MOODLE_DB_HOST}
-      MOODLE_DB_PORT: ${MOODLE_DB_PORT}
-      MOODLE_DB_NAME: ${MOODLE_DB_NAME}
-      MOODLE_DB_USER: ${MOODLE_DB_USER}
-      MOODLE_DB_PASSWORD: ${MOODLE_DB_PASSWORD}
-      MOODLE_WWWROOT: ${MOODLE_WWWROOT}
-      MOODLE_DATAROOT: ${MOODLE_DATAROOT}
-    ports:
-      - "${MOODLE_WEB_PORT}:80"
-    volumes:
-      - ./moodle:/var/www/html
-      - ./moodledata:${MOODLE_DATAROOT}
-    networks:
-      - testgen_network
-    restart: unless-stopped
-
 networks:
   testgen_network:
     driver: bridge
@@ -246,4 +187,3 @@ volumes:
   prometheus_data:
   grafana_data:
   loki_data:
-  moodle_db_data:
