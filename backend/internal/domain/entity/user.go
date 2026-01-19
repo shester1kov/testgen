@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -36,8 +37,21 @@ func (u *User) SetPassword(password string) error {
 
 // CheckPassword verifies if the provided password matches the user's password
 func (u *User) CheckPassword(password string) bool {
+	// DEBUG: Log password verification attempt
+	log.Printf("[PASSWORD CHECK DEBUG] User ID: %s, Email: %s", u.ID, u.Email)
+	log.Printf("[PASSWORD CHECK DEBUG] Provided password length: %d", len(password))
+	log.Printf("[PASSWORD CHECK DEBUG] Stored hash length: %d", len(u.PasswordHash))
+	log.Printf("[PASSWORD CHECK DEBUG] Stored hash (first 30 chars): %s...", u.PasswordHash[:30])
+
 	err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
-	return err == nil
+
+	if err != nil {
+		log.Printf("[PASSWORD CHECK DEBUG] bcrypt.CompareHashAndPassword FAILED: %v", err)
+		return false
+	}
+
+	log.Printf("[PASSWORD CHECK DEBUG] bcrypt.CompareHashAndPassword SUCCESS")
+	return true
 }
 
 // IsAdmin checks if the user has admin role
