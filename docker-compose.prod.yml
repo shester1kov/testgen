@@ -120,7 +120,7 @@ services:
     image: prom/prometheus:latest
     container_name: testgen_prometheus
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus:/etc/prometheus:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -134,7 +134,7 @@ services:
     image: grafana/loki:latest
     container_name: testgen_loki
     volumes:
-      - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - ./loki:/etc/loki/:ro
       - loki_data:/loki
     command: -config.file=/etc/loki/local-config.yaml
     networks:
@@ -146,10 +146,10 @@ services:
     image: grafana/promtail:latest
     container_name: testgen_promtail
     volumes:
-      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./promtail:/etc/promtail:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    command: -config.file=/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/promtail-config.yml
     depends_on:
       - loki
     networks:

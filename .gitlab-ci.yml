@@ -26,8 +26,7 @@ build:backend:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
     - cd backend
-    - docker build -t $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA -t $BACKEND_IMAGE:latest .
-    - docker push $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker build -t $BACKEND_IMAGE:latest .
     - docker push $BACKEND_IMAGE:latest
   after_script:
     - docker logout $CI_REGISTRY
@@ -48,8 +47,7 @@ build:frontend:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
     - cd frontend
-    - docker build -t $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA -t $FRONTEND_IMAGE:latest .
-    - docker push $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker build -t $FRONTEND_IMAGE:latest .
     - docker push $FRONTEND_IMAGE:latest
   after_script:
     - docker logout $CI_REGISTRY
