@@ -181,7 +181,7 @@ func main() {
 	app.Use(logger.RequestIDMiddleware())
 	app.Use(logger.HTTPMiddleware(appLogger))
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000,http://localhost:5173,http://localhost,http://109.73.195.85",
+		AllowOrigins:     "http://localhost:3000,http://localhost:5173,http://localhost,http://109.73.195.85,http://petproj.ru.net,https://petproj.ru.net",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
 		AllowCredentials: true,
