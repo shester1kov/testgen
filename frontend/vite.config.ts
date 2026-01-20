@@ -22,5 +22,8 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  preview: {
+    allowedHosts: ['petproj.ru.net']
   }
 })
