@@ -34,6 +34,7 @@ import (
 
 	_ "github.com/shester1kov/testgen-backend/docs"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/cache"
+	"github.com/shester1kov/testgen-backend/internal/infrastructure/exporter"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/parser"
@@ -127,7 +128,7 @@ func main() {
 	)
 
 	// Initialize Moodle components
-	xmlExporter := moodle.NewMoodleXMLExporter()
+	exporterFactory := exporter.NewExporterFactory()
 	var moodleClient *moodle.Client
 	if cfg.Moodle.URL != "" && cfg.Moodle.Token != "" {
 		moodleClient = moodle.NewClient(cfg.Moodle.URL, cfg.Moodle.Token, cfg.Moodle.ImportToken)
@@ -154,12 +155,12 @@ func main() {
 		cfg.File.UploadDir,
 		cfg.File.MaxFileSize,
 	)
-	testHandler := handler.NewTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, llmFactory, xmlExporter)
+	testHandler := handler.NewTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, llmFactory, exporterFactory)
 	moodleHandler := handler.NewMoodleHandler(
 		testRepo,
 		questionRepo,
 		answerRepo,
-		xmlExporter,
+		exporterFactory,
 		moodleClient,
 	)
 	statsHandler := handler.NewStatsHandler(testRepo, documentRepo, questionRepo, userRepo)

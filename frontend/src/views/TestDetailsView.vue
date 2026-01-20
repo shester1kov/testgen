@@ -50,29 +50,11 @@
             <p v-if="test.description" class="text-text-muted">{{ test.description }}</p>
           </div>
           <div class="flex items-center gap-3">
-            <!-- Export Buttons -->
-            <div class="flex items-center gap-2">
-              <button
-                @click="exportToJSON"
-                class="px-4 py-2 bg-cyber-blue/20 hover:bg-cyber-blue/30 border border-cyber-blue/50 rounded-lg text-cyber-blue font-medium transition-colors flex items-center gap-2"
-                title="Экспорт в JSON"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                JSON
-              </button>
-              <button
-                @click="exportToXML"
-                class="px-4 py-2 bg-neon-orange/20 hover:bg-neon-orange/30 border border-neon-orange/50 rounded-lg text-neon-orange font-medium transition-colors flex items-center gap-2"
-                title="Экспорт в Moodle XML"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                XML
-              </button>
-            </div>
+            <!-- Export Dropdown -->
+            <ExportDropdown
+              :test-id="test.id"
+              @error="handleExportError"
+            />
             <span
               :class="getStatusClass(test.status)"
               class="px-4 py-2 rounded-full text-sm font-medium"
@@ -227,6 +209,7 @@ import { useTestsStore } from '@/features/tests/stores/testsStore'
 import { TestStatus, QuestionType, Difficulty, type Question, type Answer } from '@/features/tests/types/test.types'
 import QuestionEditModal from '@/features/tests/components/QuestionEditModal.vue'
 import TestEditModal from '@/features/tests/components/TestEditModal.vue'
+import ExportDropdown from '@/features/tests/components/ExportDropdown.vue'
 import logger from '@/utils/logger'
 
 const route = useRoute()
@@ -309,76 +292,9 @@ function formatDate(dateString: string): string {
   return date.toLocaleString()
 }
 
-async function exportToJSON() {
-  if (!test.value) return
-
-  try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-    const url = `${API_BASE_URL}/tests/${test.value.id}/export/json`
-
-    const response = await fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Accept': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`Export failed: ${response.statusText}`)
-    }
-
-    const blob = await response.blob()
-    const downloadUrl = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = downloadUrl
-    link.download = `test_${test.value.id}.json`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(downloadUrl)
-
-    logger.info('Test exported to JSON successfully', 'TestDetailsView')
-  } catch (err: any) {
-    error.value = err.message || 'Не удалось экспортировать тест в JSON'
-    logger.error('Failed to export test to JSON', 'TestDetailsView', err)
-  }
-}
-
-async function exportToXML() {
-  if (!test.value) return
-
-  try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-    const url = `${API_BASE_URL}/tests/${test.value.id}/export/xml`
-
-    const response = await fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Accept': 'application/xml',
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`Export failed: ${response.statusText}`)
-    }
-
-    const blob = await response.blob()
-    const downloadUrl = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = downloadUrl
-    link.download = `${test.value.title}.xml`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(downloadUrl)
-
-    logger.info('Test exported to XML successfully', 'TestDetailsView')
-  } catch (err: any) {
-    error.value = err.message || 'Не удалось экспортировать тест в XML'
-    logger.error('Failed to export test to XML', 'TestDetailsView', err)
-  }
+function handleExportError(message: string) {
+  error.value = message
+  logger.error('Export error', 'TestDetailsView', new Error(message))
 }
 
 function openEditModal(question: Question) {

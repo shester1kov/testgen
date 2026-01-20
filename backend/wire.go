@@ -7,6 +7,7 @@ import (
 	"github.com/google/wire"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/cache"
+	"github.com/shester1kov/testgen-backend/internal/infrastructure/exporter"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/parser"
@@ -52,8 +53,10 @@ func InitializeApplication(cfg *config.Config, db *gorm.DB, log *logger.Logger) 
 		// LLM Factory
 		provideLLMFactory,
 
+		// Exporter Factory (for multiple LMS formats)
+		exporter.NewExporterFactory,
+
 		// Moodle components
-		moodle.NewMoodleXMLExporter,
 		provideMoodleClient,
 
 		// Handlers

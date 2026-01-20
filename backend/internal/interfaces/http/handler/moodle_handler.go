@@ -8,17 +8,18 @@ import (
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
+	"github.com/shester1kov/testgen-backend/internal/infrastructure/exporter"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
 	"github.com/shester1kov/testgen-backend/pkg/security"
 )
 
 // MoodleHandler handles Moodle integration operations
 type MoodleHandler struct {
-	testRepo     repository.TestRepository
-	questionRepo repository.QuestionRepository
-	answerRepo   repository.AnswerRepository
-	xmlExporter  *moodle.MoodleXMLExporter
-	moodleClient *moodle.Client
+	testRepo        repository.TestRepository
+	questionRepo    repository.QuestionRepository
+	answerRepo      repository.AnswerRepository
+	exporterFactory *exporter.ExporterFactory
+	moodleClient    *moodle.Client
 }
 
 // NewMoodleHandler creates a new Moodle handler
@@ -26,15 +27,15 @@ func NewMoodleHandler(
 	testRepo repository.TestRepository,
 	questionRepo repository.QuestionRepository,
 	answerRepo repository.AnswerRepository,
-	xmlExporter *moodle.MoodleXMLExporter,
+	exporterFactory *exporter.ExporterFactory,
 	moodleClient *moodle.Client,
 ) *MoodleHandler {
 	return &MoodleHandler{
-		testRepo:     testRepo,
-		questionRepo: questionRepo,
-		answerRepo:   answerRepo,
-		xmlExporter:  xmlExporter,
-		moodleClient: moodleClient,
+		testRepo:        testRepo,
+		questionRepo:    questionRepo,
+		answerRepo:      answerRepo,
+		exporterFactory: exporterFactory,
+		moodleClient:    moodleClient,
 	}
 }
 
@@ -99,8 +100,15 @@ func (h *MoodleHandler) ExportToXML(c *fiber.Ctx) error {
 		answersMap[q.ID.String()] = answers
 	}
 
-	// Export to XML
-	xmlContent, err := h.xmlExporter.Export(test, questions, answersMap)
+	// Export to Moodle XML
+	exp, err := h.exporterFactory.GetExporter(exporter.FormatMoodleXML)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to get exporter"),
+		)
+	}
+
+	result, err := exp.Export(test, questions, answersMap)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to export XML"),
@@ -108,10 +116,10 @@ func (h *MoodleHandler) ExportToXML(c *fiber.Ctx) error {
 	}
 
 	// Set headers for file download
-	c.Set("Content-Type", "application/xml")
-	c.Set("Content-Disposition", "attachment; filename="+test.Title+".xml")
+	c.Set("Content-Type", result.ContentType)
+	c.Set("Content-Disposition", "attachment; filename="+test.Title+"."+result.FileExt)
 
-	return c.SendString(xmlContent)
+	return c.SendString(result.Content)
 }
 
 // SyncToMoodle godoc
@@ -187,8 +195,15 @@ func (h *MoodleHandler) SyncToMoodle(c *fiber.Ctx) error {
 		answersMap[q.ID.String()] = answers
 	}
 
-	// Export to XML
-	xmlContent, err := h.xmlExporter.Export(test, questions, answersMap)
+	// Export to Moodle XML
+	exp, err := h.exporterFactory.GetExporter(exporter.FormatMoodleXML)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to get exporter"),
+		)
+	}
+
+	result, err := exp.Export(test, questions, answersMap)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to export XML"),
@@ -199,7 +214,7 @@ func (h *MoodleHandler) SyncToMoodle(c *fiber.Ctx) error {
 	uploadResp, err := h.moodleClient.UploadQuiz(c.Context(), moodle.UploadQuizRequest{
 		CourseName: sanitizedCourseName,
 		QuizName:   test.Title,
-		XMLContent: xmlContent,
+		XMLContent: result.Content,
 	})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(

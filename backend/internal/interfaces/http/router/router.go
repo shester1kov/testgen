@@ -54,7 +54,9 @@ func SetupRoutes(
 	tests.Post("/generate", middleware.RequireTeacherOrAdmin(), testHandler.Generate)                           // Only teachers/admin can generate
 	tests.Put("/:testId/questions/:questionId", middleware.RequireTeacherOrAdmin(), testHandler.UpdateQuestion) // Only teachers/admin can update questions
 	tests.Get("/:id/export/json", testHandler.ExportToJSON)                                                     // Export test to JSON
-	tests.Get("/:id/export/xml", testHandler.ExportToXML)                                                       // Export test to Moodle XML
+	tests.Get("/:id/export/xml", testHandler.ExportToXML)                                                       // Export test to Moodle XML (legacy)
+	tests.Get("/:id/export", testHandler.Export)                                                                // Export test to various formats
+	tests.Get("/export/formats", testHandler.GetExportFormats)                                                  // Get available export formats
 
 	// Moodle integration routes (protected - teacher and admin only)
 	moodle := api.Group("/moodle", middleware.AuthMiddleware(jwtManager, cookieName), middleware.RequireTeacherOrAdmin())

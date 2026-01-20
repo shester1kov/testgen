@@ -8,19 +8,19 @@ import (
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
+	"github.com/shester1kov/testgen-backend/internal/infrastructure/exporter"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
-	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
 	"github.com/shester1kov/testgen-backend/pkg/security"
 )
 
 type TestHandler struct {
-	testRepo     repository.TestRepository
-	documentRepo repository.DocumentRepository
-	questionRepo repository.QuestionRepository
-	answerRepo   repository.AnswerRepository
-	userRepo     repository.UserRepository
-	llmFactory   *llm.LLMFactory
-	xmlExporter  *moodle.MoodleXMLExporter
+	testRepo        repository.TestRepository
+	documentRepo    repository.DocumentRepository
+	questionRepo    repository.QuestionRepository
+	answerRepo      repository.AnswerRepository
+	userRepo        repository.UserRepository
+	llmFactory      *llm.LLMFactory
+	exporterFactory *exporter.ExporterFactory
 }
 
 func NewTestHandler(
@@ -30,16 +30,16 @@ func NewTestHandler(
 	answerRepo repository.AnswerRepository,
 	userRepo repository.UserRepository,
 	llmFactory *llm.LLMFactory,
-	xmlExporter *moodle.MoodleXMLExporter,
+	exporterFactory *exporter.ExporterFactory,
 ) *TestHandler {
 	return &TestHandler{
-		testRepo:     testRepo,
-		documentRepo: documentRepo,
-		questionRepo: questionRepo,
-		answerRepo:   answerRepo,
-		userRepo:     userRepo,
-		llmFactory:   llmFactory,
-		xmlExporter:  xmlExporter,
+		testRepo:        testRepo,
+		documentRepo:    documentRepo,
+		questionRepo:    questionRepo,
+		answerRepo:      answerRepo,
+		userRepo:        userRepo,
+		llmFactory:      llmFactory,
+		exporterFactory: exporterFactory,
 	}
 }
 
@@ -756,11 +756,11 @@ func (h *TestHandler) ExportToJSON(c *fiber.Ctx) error {
 		)
 	}
 
-	// Load questions with answers
+	// Get questions for the test
 	questions, err := h.questionRepo.FindByTestID(c.Context(), testID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to load questions"),
+			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve questions"),
 		)
 	}
 
@@ -770,57 +770,39 @@ func (h *TestHandler) ExportToJSON(c *fiber.Ctx) error {
 		)
 	}
 
-	// Build questions DTO with answers
-	questionsDTO := make([]dto.QuestionDTO, len(questions))
-	for i, q := range questions {
-		// Load answers for each question
+	// Get answers for each question
+	answersMap := make(map[string][]*entity.Answer)
+	for _, q := range questions {
 		answers, err := h.answerRepo.FindByQuestionID(c.Context(), q.ID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to load answers"),
+				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve answers"),
 			)
 		}
-
-		// Build answers DTO
-		answersDTO := make([]dto.AnswerDTO, len(answers))
-		for j, a := range answers {
-			answersDTO[j] = dto.AnswerDTO{
-				ID:         a.ID.String(),
-				AnswerText: a.AnswerText,
-				IsCorrect:  a.IsCorrect,
-				OrderNum:   a.OrderNum,
-			}
-		}
-
-		questionsDTO[i] = dto.QuestionDTO{
-			ID:           q.ID.String(),
-			QuestionText: q.QuestionText,
-			QuestionType: string(q.QuestionType),
-			Difficulty:   string(q.Difficulty),
-			Points:       q.Points,
-			OrderNum:     q.OrderNum,
-			Answers:      answersDTO,
-		}
+		answersMap[q.ID.String()] = answers
 	}
 
-	testResponse := dto.TestResponse{
-		ID:             test.ID.String(),
-		UserID:         test.UserID.String(),
-		Title:          test.Title,
-		Description:    test.Description,
-		TotalQuestions: test.TotalQuestions,
-		Status:         string(test.Status),
-		MoodleSynced:   test.MoodleSynced,
-		CreatedAt:      test.CreatedAt.Format(time.RFC3339),
-		Questions:      questionsDTO,
+	// Export to JSON using exporter factory
+	exp, err := h.exporterFactory.GetExporter(exporter.FormatJSON)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to get exporter"),
+		)
 	}
 
-	// Set content disposition header for file download
-	filename := "test_" + test.ID.String() + ".json"
+	result, err := exp.Export(test, questions, answersMap)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to export JSON"),
+		)
+	}
+
+	// Set headers for file download
+	filename := test.Title + "." + result.FileExt
+	c.Set("Content-Type", result.ContentType)
 	c.Set("Content-Disposition", "attachment; filename="+filename)
-	c.Set("Content-Type", "application/json")
 
-	return c.JSON(testResponse)
+	return c.SendString(result.Content)
 }
 
 // ExportToXML godoc
@@ -892,8 +874,15 @@ func (h *TestHandler) ExportToXML(c *fiber.Ctx) error {
 		answersMap[q.ID.String()] = answers
 	}
 
-	// Export to XML
-	xmlContent, err := h.xmlExporter.Export(test, questions, answersMap)
+	// Export to Moodle XML using exporter factory
+	exp, err := h.exporterFactory.GetExporter(exporter.FormatMoodleXML)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to get exporter"),
+		)
+	}
+
+	result, err := exp.Export(test, questions, answersMap)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to export XML"),
@@ -901,9 +890,126 @@ func (h *TestHandler) ExportToXML(c *fiber.Ctx) error {
 	}
 
 	// Set headers for file download
-	filename := test.Title + ".xml"
-	c.Set("Content-Type", "application/xml")
+	filename := test.Title + "." + result.FileExt
+	c.Set("Content-Type", result.ContentType)
 	c.Set("Content-Disposition", "attachment; filename="+filename)
 
-	return c.SendString(xmlContent)
+	return c.SendString(result.Content)
+}
+
+// Export godoc
+// @Summary Export test to various LMS formats
+// @Description Export a test to different LMS formats (moodle_xml, stepik_csv, gift, aiken, blackboard, qti)
+// @Tags tests
+// @Produce application/octet-stream
+// @Security BearerAuth
+// @Param id path string true "Test ID"
+// @Param format query string true "Export format" Enums(moodle_xml, stepik_csv, gift, aiken, blackboard, qti)
+// @Success 200 {string} string "Exported file"
+// @Failure 400 {object} dto.ErrorResponse "Invalid test ID, format, or test has no questions"
+// @Failure 401 {object} dto.ErrorResponse "Unauthorized"
+// @Failure 403 {object} dto.ErrorResponse "Access denied"
+// @Failure 404 {object} dto.ErrorResponse "Test not found"
+// @Failure 500 {object} dto.ErrorResponse "Export failed"
+// @Router /tests/{id}/export [get]
+func (h *TestHandler) Export(c *fiber.Ctx) error {
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
+
+	testID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			dto.NewErrorResponse(dto.ErrCodeInvalidTestID, "invalid test ID"),
+		)
+	}
+
+	format := c.Query("format", "moodle_xml")
+
+	// Check if test exists and belongs to user
+	test, err := h.testRepo.FindByID(c.Context(), testID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(
+			dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
+		)
+	}
+
+	if test.UserID != userID {
+		return c.Status(fiber.StatusForbidden).JSON(
+			dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
+		)
+	}
+
+	// Get questions for the test
+	questions, err := h.questionRepo.FindByTestID(c.Context(), testID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve questions"),
+		)
+	}
+
+	if len(questions) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			dto.NewErrorResponse(dto.ErrCodeTestHasNoQuestions, "test has no questions"),
+		)
+	}
+
+	// Get answers for each question
+	answersMap := make(map[string][]*entity.Answer)
+	for _, q := range questions {
+		answers, err := h.answerRepo.FindByQuestionID(c.Context(), q.ID)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve answers"),
+			)
+		}
+		answersMap[q.ID.String()] = answers
+	}
+
+	// Get exporter for the requested format
+	exp, err := h.exporterFactory.GetExporter(exporter.ExportFormat(format))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			dto.NewErrorResponse(dto.ErrCodeInvalidInput, "unsupported export format: "+format),
+		)
+	}
+
+	// Export
+	result, err := exp.Export(test, questions, answersMap)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeExportFailed, err.Error()),
+		)
+	}
+
+	// Set headers for file download
+	filename := test.Title + "." + result.FileExt
+	c.Set("Content-Type", result.ContentType)
+	c.Set("Content-Disposition", "attachment; filename="+filename)
+
+	return c.SendString(result.Content)
+}
+
+// GetExportFormats godoc
+// @Summary Get available export formats
+// @Description Get list of all available export formats with descriptions
+// @Tags tests
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} exporter.FormatInfo
+// @Failure 401 {object} dto.ErrorResponse "Unauthorized"
+// @Router /tests/export/formats [get]
+func (h *TestHandler) GetExportFormats(c *fiber.Ctx) error {
+	_, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
+
+	formats := h.exporterFactory.GetAvailableFormats()
+	return c.JSON(formats)
 }
