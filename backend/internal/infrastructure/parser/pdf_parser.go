@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
 	ledongthucpdf "github.com/ledongthuc/pdf"
@@ -29,13 +30,13 @@ func (p *PDFParser) Parse(reader io.Reader) (string, error) {
 	// Try rsc.io/pdf first (simple but effective for many PDFs)
 	text, err := p.parseWithRscPDF(data)
 	if err == nil && len(strings.TrimSpace(text)) > 0 {
-		return text, nil
+		return p.cleanText(text), nil
 	}
 
 	// Fallback to ledongthuc/pdf (better support for complex structures)
 	text, err = p.parseWithLedongthuc(data)
 	if err == nil && len(strings.TrimSpace(text)) > 0 {
-		return text, nil
+		return p.cleanText(text), nil
 	}
 
 	// If both methods failed, return informative metadata
@@ -155,6 +156,26 @@ func (p *PDFParser) getPageCount(data []byte) int {
 
 	return 0
 
+}
+
+// cleanText normalizes extracted text by removing extra whitespace and empty lines
+func (p *PDFParser) cleanText(text string) string {
+	// Replace multiple spaces/tabs with single space (but preserve newlines)
+	re := regexp.MustCompile(`[^\S\n]+`)
+	text = re.ReplaceAllString(text, " ")
+
+	// Remove spaces at the beginning and end of each line
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		lines[i] = strings.TrimSpace(line)
+	}
+	text = strings.Join(lines, "\n")
+
+	// Replace 3+ consecutive newlines with double newline
+	re = regexp.MustCompile(`\n{3,}`)
+	text = re.ReplaceAllString(text, "\n\n")
+
+	return strings.TrimSpace(text)
 }
 
 // SupportedType returns the file type this parser supports

@@ -46,7 +46,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Icons**: Heroicons (Official Tailwind icons)
 - **HTTP Client**: Axios (with request/response logging interceptors)
 - **Form validation**: VeeValidate + Yup
-- **Testing**: Vitest, Vue Test Utils (112 tests with comprehensive coverage)
+- **Testing**: Vitest, Vue Test Utils
 - **Logging**: Custom logger utility with DEBUG/INFO/WARN/ERROR levels
 - **Code style**: ESLint + Prettier
 

@@ -120,10 +120,10 @@ func (p *DOCXParser) extractTextFromXML(xmlContent string) string {
 
 	// Clean up extra whitespace
 	text := builder.String()
-	// Replace multiple spaces with single space
-	re := regexp.MustCompile(`\s+`)
+	// Replace multiple spaces/tabs with single space (but preserve newlines)
+	re := regexp.MustCompile(`[^\S\n]+`)
 	text = re.ReplaceAllString(text, " ")
-	// Replace multiple newlines with double newline
+	// Replace multiple newlines with double newline (for paragraph separation)
 	re = regexp.MustCompile(`\n{3,}`)
 	text = re.ReplaceAllString(text, "\n\n")
 

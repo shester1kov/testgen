@@ -214,20 +214,19 @@ func TestDOCXParser_Parse_InvalidData(t *testing.T) {
 }
 
 // NEGATIVE TEST: PPTX Parser with non-pptx data
-// Note: Current PPTX parser is also a placeholder
 func TestPPTXParser_Parse_InvalidData(t *testing.T) {
 	parser := NewPPTXParser()
 
 	invalidData := []byte("This is not a PPTX file")
 	reader := bytes.NewReader(invalidData)
 
-	text, err := parser.Parse(reader)
-	// Placeholder returns success with TODO message
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+	_, err := parser.Parse(reader)
+	// Should return error for invalid data
+	if err == nil {
+		t.Error("Expected error for invalid PPTX data")
 	}
-	if !strings.Contains(text, "TODO") {
-		t.Error("Expected placeholder message containing 'TODO'")
+	if !strings.Contains(err.Error(), "failed to open PPTX as ZIP archive") {
+		t.Errorf("Expected error message about 'failed to open PPTX as ZIP archive', got: %s", err.Error())
 	}
 }
 
