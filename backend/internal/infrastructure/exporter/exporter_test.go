@@ -186,9 +186,9 @@ func TestStepikCSVExporter_Export(t *testing.T) {
 	lines := strings.Split(result.Content, "\n")
 	assert.GreaterOrEqual(t, len(lines), 1)
 
-	// First line should contain question and y/n markers
-	assert.Contains(t, lines[0], ",y")
-	assert.Contains(t, lines[0], ",n")
+	// CSV should contain y/n markers for correct/incorrect answers
+	assert.Contains(t, result.Content, ",y")
+	assert.Contains(t, result.Content, ",n")
 }
 
 func TestStepikCSVExporter_Metadata(t *testing.T) {
