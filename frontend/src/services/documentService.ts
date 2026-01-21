@@ -1,6 +1,13 @@
 import api from './api'
 import type { Document, DocumentUploadRequest } from '@/features/documents/types/document.types'
-import type { ApiResponse, PaginatedResponse } from '@/types/api.types'
+
+// Backend response for document list
+interface DocumentListResponse {
+  documents: Document[]
+  total: number
+  page: number
+  page_size: number
+}
 
 export const documentService = {
   async uploadDocument(data: DocumentUploadRequest): Promise<Document> {
@@ -8,24 +15,24 @@ export const documentService = {
     formData.append('title', data.title)
     formData.append('file', data.file)
 
-    const response = await api.post<ApiResponse<Document>>('/documents', formData, {
+    const response = await api.post('/documents', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     })
-    return response as Document
+    return response as unknown as Document
   },
 
-  async getDocuments(page = 1, limit = 10): Promise<PaginatedResponse<Document>> {
-    const response = await api.get<ApiResponse<PaginatedResponse<Document>>>('/documents', {
+  async getDocuments(page = 1, limit = 10): Promise<{ documents: Document[]; total: number; page: number; page_size: number }> {
+    const response = await api.get('/documents', {
       params: { page, limit },
     })
-    return response as PaginatedResponse<Document>
+    return response as unknown as DocumentListResponse
   },
 
   async getDocument(id: string): Promise<Document> {
-    const response = await api.get<ApiResponse<Document>>(`/documents/${id}`)
-    return response as Document
+    const response = await api.get(`/documents/${id}`)
+    return response as unknown as Document
   },
 
   async deleteDocument(id: string): Promise<void> {
@@ -33,7 +40,7 @@ export const documentService = {
   },
 
   async parseDocument(id: string): Promise<Document> {
-    const response = await api.post<ApiResponse<Document>>(`/documents/${id}/parse`)
-    return response as Document
+    const response = await api.post(`/documents/${id}/parse`)
+    return response as unknown as Document
   },
 }

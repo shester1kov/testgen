@@ -8,8 +8,8 @@ export interface DashboardStats {
 
 export const statsService = {
   async getDashboardStats(): Promise<DashboardStats> {
-    const response = await api.get<DashboardStats>('/stats/dashboard')
-    return response as DashboardStats
+    const response = await api.get('/stats/dashboard')
+    return response as unknown as DashboardStats
   },
 }
 

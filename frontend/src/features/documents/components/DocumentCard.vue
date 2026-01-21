@@ -94,7 +94,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { Document } from '../types/document.types'
-import { DocumentStatus, FileType } from '../types/document.types'
+import { DocumentStatus } from '../types/document.types'
 import { useDocumentsStore } from '../stores/documentsStore'
 
 interface Props {

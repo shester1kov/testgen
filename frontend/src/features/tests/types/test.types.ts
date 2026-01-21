@@ -63,6 +63,7 @@ export interface TestGenerationRequest {
   num_questions: number
   question_types: QuestionType[]
   difficulty: Difficulty
+  llm_provider?: string
 }
 
 export interface TestExportRequest {

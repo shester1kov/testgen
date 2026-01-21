@@ -38,8 +38,8 @@ export const useTestsStore = defineStore('tests', () => {
       const response = await testService.getTests(page, limit)
       tests.value = response.data
       total.value = response.total
-      currentPage.value = response.page
-      totalPages.value = response.totalPages
+      currentPage.value = response.page ?? 1
+      totalPages.value = Math.ceil((response.total ?? 0) / (response.page_size ?? 10))
       return response
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch tests'

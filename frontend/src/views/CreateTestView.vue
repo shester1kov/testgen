@@ -194,6 +194,7 @@ import { useRouter } from 'vue-router'
 import { useDocumentsStore } from '@/features/documents/stores/documentsStore'
 import testService from '@/services/testService'
 import logger from '@/utils/logger'
+import { QuestionType, Difficulty } from '@/features/tests/types/test.types'
 
 const router = useRouter()
 const documentsStore = useDocumentsStore()
@@ -257,9 +258,9 @@ async function handleSubmit() {
       document_id: form.value.documentId,
       title: form.value.title,
       num_questions: form.value.numQuestions,
-      difficulty: form.value.difficulty,
+      difficulty: form.value.difficulty as Difficulty,
       llm_provider: form.value.llmProvider,
-      question_types: ['single_choice'] // Default for now
+      question_types: [QuestionType.SINGLE_CHOICE] // Default for now
     })
 
     logger.info('Test generated successfully', 'CreateTestView', { testId: response.id })

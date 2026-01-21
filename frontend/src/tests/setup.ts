@@ -23,7 +23,7 @@ const localStorageMock = {
   removeItem: vi.fn(),
   clear: vi.fn(),
 }
-global.localStorage = localStorageMock as any
+;(globalThis as any).localStorage = localStorageMock
 
 // Configure Vue Test Utils
 config.global.stubs = {

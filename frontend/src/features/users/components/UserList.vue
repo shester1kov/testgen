@@ -206,12 +206,6 @@ const canChangeRoles = computed(() => {
   return currentUser.value?.role === 'admin'
 })
 
-const canViewUsers = computed(() => {
-  // Both teacher and admin can view users
-  const role = currentUser.value?.role
-  return role === 'teacher' || role === 'admin'
-})
-
 onMounted(() => {
   loadUsers()
 })

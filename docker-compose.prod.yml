@@ -70,9 +70,15 @@ services:
         condition: service_healthy
     networks:
       - testgen_network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:${PORT}/health" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     restart: unless-stopped
 
-  # Frontend (Vue + Vite)
+  # Frontend (Vue + Vite + Nginx)
   frontend:
     image: registry.gitlab.com/${CI_PROJECT_PATH}/frontend:${IMAGE_TAG:-latest}
     # build:
@@ -81,21 +87,19 @@ services:
     #   args:
     #     VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api/v1}
     #     VITE_MAX_FILE_SIZE: ${VITE_MAX_FILE_SIZE:-52428800}
-    #     VITE_SUPPORTED_FORMATS: ${VITE_SUPPORTED_FORMATS:-pdf,docx,pptx,txt}
+    #     VITE_SUPPORTED_FORMATS: ${VITE_SUPPORTED_FORMATS:-pdf,docx,pptx,txt,md}
     container_name: testgen_frontend
-    env_file:
-      - .env
-    environment:
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
-      - VITE_MAX_FILE_SIZE=${VITE_MAX_FILE_SIZE}
-      - VITE_SUPPORTED_FORMATS=${VITE_SUPPORTED_FORMATS}
-    # volumes:
-    #   - ./frontend:/app
-    #   - /app/node_modules
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - testgen_network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/health" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   # Nginx Load Balancer & Reverse Proxy
@@ -110,10 +114,18 @@ services:
       - ./certbot/www:/var/www/certbot:ro
       - ./certbot/conf:/etc/letsencrypt:ro
     depends_on:
-      - backend
-      - frontend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
     networks:
       - testgen_network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
 
   # Certbot for SSL certificates
@@ -124,8 +136,17 @@ services:
       - ./certbot/www:/var/www/certbot
       - ./certbot/conf:/etc/letsencrypt
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    depends_on:
+      nginx:
+        condition: service_healthy
     networks:
       - testgen_network
+    healthcheck:
+      test: [ "CMD", "certbot", "certificates" ]
+      interval: 1h
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
 
   # Prometheus (Monitoring)
@@ -144,11 +165,22 @@ services:
       # PROMETHEUS_EXTERNAL_URL should be set in .env (e.g., https://yourdomain.com/prometheus/)
       - '--web.external-url=${PROMETHEUS_EXTERNAL_URL:-http://localhost/prometheus/}'
       - '--web.route-prefix=/'
+    depends_on:
+      backend:
+        condition: service_healthy
     networks:
       - testgen_network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy" ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
 
   # Loki (Log Aggregation)
+  # Note: Loki uses a distroless image without shell/wget/curl, so healthcheck is disabled
+  # The service is monitored by Grafana and Promtail connectivity instead
   loki:
     image: grafana/loki:latest
     container_name: testgen_loki
@@ -156,6 +188,9 @@ services:
       - ./loki:/etc/loki:ro
       - loki_data:/loki
     command: -config.file=/etc/loki/loki-config.yaml
+    depends_on:
+      backend:
+        condition: service_healthy
     networks:
       - testgen_network
     restart: unless-stopped
@@ -196,10 +231,18 @@ services:
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
-      - prometheus
-      - loki
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_started
     networks:
       - testgen_network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
 networks:

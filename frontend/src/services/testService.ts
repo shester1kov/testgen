@@ -5,13 +5,13 @@ import type {
   TestExportRequest,
   MoodleSyncRequest,
 } from '@/features/tests/types/test.types'
-import type { ApiResponse, PaginatedResponse } from '@/types/api.types'
+import type { PaginatedResponse } from '@/types/api.types'
 import type { FormatInfo, ExportFormat } from '@/features/tests/types/export.types'
 
 export const testService = {
   async createTest(data: Partial<Test>): Promise<Test> {
-    const response = await api.post<ApiResponse<Test>>('/tests', data)
-    return response as Test
+    const response = await api.post('/tests', data)
+    return response as unknown as Test
   },
 
   async getTests(page = 1, limit = 10): Promise<PaginatedResponse<Test>> {
@@ -29,8 +29,8 @@ export const testService = {
   },
 
   async getTest(id: string): Promise<Test> {
-    const response = await api.get<ApiResponse<Test>>(`/tests/${id}`)
-    return response as Test
+    const response = await api.get(`/tests/${id}`)
+    return response as unknown as Test
   },
 
   async deleteTest(id: string): Promise<void> {
@@ -38,20 +38,20 @@ export const testService = {
   },
 
   async generateTest(data: TestGenerationRequest): Promise<Test> {
-    const response = await api.post<ApiResponse<Test>>('/tests/generate', data)
-    return response as Test
+    const response = await api.post('/tests/generate', data)
+    return response as unknown as Test
   },
 
   async exportTest(data: TestExportRequest): Promise<Blob> {
     const response = await api.get(`/moodle/tests/${data.test_id}/export`, {
       responseType: 'blob',
     })
-    return response as Blob
+    return response as unknown as Blob
   },
 
   async syncToMoodle(data: MoodleSyncRequest): Promise<Test> {
-    const response = await api.post<ApiResponse<Test>>(`/moodle/tests/${data.test_id}/sync`, data)
-    return response as Test
+    const response = await api.post(`/moodle/tests/${data.test_id}/sync`, data)
+    return response as unknown as Test
   },
 
   async getExportFormats(): Promise<FormatInfo[]> {

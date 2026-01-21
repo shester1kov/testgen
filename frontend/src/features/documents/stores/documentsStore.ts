@@ -117,8 +117,8 @@ export const useDocumentsStore = defineStore('documents', () => {
       // Update document in list
       const index = documents.value.findIndex((doc) => doc.id === id)
       if (index !== -1) {
-        documents.value[index].status = result.status as any
-        documents.value[index].parsed_text = result.parsed_text
+        documents.value[index]!.status = result.status as any
+        documents.value[index]!.parsed_text = result.parsed_text
       }
 
       // Update current document if it's the one being parsed

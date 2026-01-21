@@ -17,20 +17,20 @@ const userService = {
    * Get list of all users (admin/teacher only)
    */
   async listUsers(limit: number = 20, offset: number = 0): Promise<UserListResponse> {
-    const response = await api.get<UserListResponse>('/users', {
+    const response = await api.get('/users', {
       params: { limit, offset }
     })
-    return response
+    return response as unknown as UserListResponse
   },
 
   /**
    * Update user role (admin only)
    */
   async updateUserRole(userId: string, roleName: 'admin' | 'teacher' | 'student'): Promise<User> {
-    const response = await api.put<User>(`/users/${userId}/role`, {
+    const response = await api.put(`/users/${userId}/role`, {
       role_name: roleName
     })
-    return response
+    return response as unknown as User
   }
 }
 

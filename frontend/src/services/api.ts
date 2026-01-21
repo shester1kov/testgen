@@ -44,7 +44,8 @@ api.interceptors.response.use(
       response.status,
       response.data
     )
-    return response.data
+    // Return data directly - axios interceptor unwraps AxiosResponse
+    return response.data as any
   },
   (error: AxiosError<any>) => {
     // Log error response

@@ -207,6 +207,74 @@ npm run test
 
 **Все эндпоинты (кроме `/auth/register` и `/auth/login`) требуют аутентификации через JWT токен.**
 
+## Production Deployment
+
+### SSL/TLS Setup (Let's Encrypt)
+
+**Requirement:** Domain должен быть доступен на сервере через порт 80 для верификации Let's Encrypt.
+
+**Шаг 1:** Подключитесь к серверу и перейдите в директорию проекта
+```bash
+ssh user@petproj.ru.net
+cd /path/to/project
+```
+
+**Шаг 2:** Создайте директории для certbot
+```bash
+mkdir -p certbot/www certbot/conf
+```
+
+**Шаг 3:** Временно запустите nginx для HTTP (для верификации домена)
+```bash
+docker run -d --name nginx_init \
+  --network testgen_testgen_network \
+  -p 80:80 \
+  -v $(pwd)/nginx/nginx.init.conf:/etc/nginx/nginx.conf:ro \
+  -v $(pwd)/certbot/www:/var/www/certbot:ro \
+  nginx:alpine
+```
+
+**Шаг 4:** Получите SSL сертификат
+```bash
+docker run --rm \
+  -v $(pwd)/certbot/conf:/etc/letsencrypt \
+  -v $(pwd)/certbot/www:/var/www/certbot \
+  certbot/certbot certonly \
+  --webroot \
+  --webroot-path=/var/www/certbot \
+  --email your@email.com \
+  --agree-tos \
+  --no-eff-email \
+  -d petproj.ru.net
+```
+
+**Шаг 5:** Запустите полный production стек с SSL
+```bash
+docker stop nginx_init && docker rm nginx_init
+docker compose -f docker-compose.prod.yml up -d
+```
+
+**Важно:**
+- Сертификат автоматически обновляется контейнером `certbot` каждые 12 часов
+- Используйте `--staging` флаг для тестирования (чтобы избежать rate limits)
+- После получения сертификата все последующие деплои через CI/CD будут работать с SSL
+
+**Проверка:**
+```bash
+curl -I https://petproj.ru.net
+```
+
+### Environment Variables для Production
+
+Обновите `.env` на сервере или GitLab CI/CD Variables:
+```bash
+VITE_API_BASE_URL=https://petproj.ru.net/api/v1
+GRAFANA_EXTERNAL_URL=https://petproj.ru.net/grafana/
+PROMETHEUS_EXTERNAL_URL=https://petproj.ru.net/prometheus/
+```
+
+**ВАЖНО:** VITE переменные вшиваются в билд на этапе сборки, поэтому после изменения нужно пересобрать frontend.
+
 ## Тестирование
 
 ```bash

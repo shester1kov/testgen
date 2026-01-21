@@ -3,7 +3,7 @@ import { useAuthStore } from '@/features/auth/stores/authStore'
 
 export function requireAuth(
   to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
+  _from: RouteLocationNormalized,
   next: NavigationGuardNext
 ) {
   const authStore = useAuthStore()
@@ -16,7 +16,7 @@ export function requireAuth(
 }
 
 export function requireRole(roles: string[]) {
-  return (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+  return (to: RouteLocationNormalized, _from: RouteLocationNormalized, next: NavigationGuardNext) => {
     const authStore = useAuthStore()
 
     if (!authStore.isAuthenticated) {
@@ -30,8 +30,8 @@ export function requireRole(roles: string[]) {
 }
 
 export function guestOnly(
-  to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
+  _to: RouteLocationNormalized,
+  _from: RouteLocationNormalized,
   next: NavigationGuardNext
 ) {
   const authStore = useAuthStore()

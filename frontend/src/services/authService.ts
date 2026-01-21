@@ -5,13 +5,13 @@ export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     // api.post returns data directly due to response interceptor
     const response = await api.post('/auth/login', credentials)
-    return response as AuthResponse
+    return response as unknown as AuthResponse
   },
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
     // api.post returns data directly due to response interceptor
     const response = await api.post('/auth/register', data)
-    return response as AuthResponse
+    return response as unknown as AuthResponse
   },
 
   async logout(): Promise<void> {
@@ -21,6 +21,6 @@ export const authService = {
   async getMe(): Promise<User> {
     // api.get returns data directly due to response interceptor
     const response = await api.get('/auth/me')
-    return response as User
+    return response as unknown as User
   },
 }

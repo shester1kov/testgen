@@ -2,7 +2,6 @@ import api from '@/services/api'
 import type {
   Document,
   DocumentUploadRequest,
-  DocumentParseRequest,
 } from '../types/document.types'
 
 const DOCUMENTS_BASE_URL = '/documents'
@@ -18,12 +17,12 @@ export const documentService = {
       formData.append('title', request.title)
     }
 
-    const response = await api.post<Document>(DOCUMENTS_BASE_URL, formData, {
+    const response = await api.post(DOCUMENTS_BASE_URL, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     })
-    return response
+    return response as unknown as Document
   },
 
   /**
@@ -35,23 +34,23 @@ export const documentService = {
     page: number
     page_size: number
   }> {
-    const response = await api.get<{
+    const response = await api.get(DOCUMENTS_BASE_URL, {
+      params: { page, page_size: pageSize },
+    })
+    return response as unknown as {
       documents: Document[]
       total: number
       page: number
       page_size: number
-    }>(DOCUMENTS_BASE_URL, {
-      params: { page, page_size: pageSize },
-    })
-    return response
+    }
   },
 
   /**
    * Get document by ID
    */
   async getById(id: string): Promise<Document> {
-    const response = await api.get<Document>(`${DOCUMENTS_BASE_URL}/${id}`)
-    return response
+    const response = await api.get(`${DOCUMENTS_BASE_URL}/${id}`)
+    return response as unknown as Document
   },
 
   /**
@@ -70,12 +69,12 @@ export const documentService = {
     status: string
     text_preview: string
   }> {
-    const response = await api.post<{
+    const response = await api.post(`${DOCUMENTS_BASE_URL}/${id}/parse`)
+    return response as unknown as {
       id: string
       parsed_text: string
       status: string
       text_preview: string
-    }>(`${DOCUMENTS_BASE_URL}/${id}/parse`)
-    return response
+    }
   },
 }

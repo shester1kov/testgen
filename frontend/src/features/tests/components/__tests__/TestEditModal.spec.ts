@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import TestEditModal from '../TestEditModal.vue'
@@ -197,7 +198,7 @@ describe('TestEditModal', () => {
   })
 
   it('should submit form with valid data', async () => {
-    global.fetch = vi.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         json: () =>
@@ -228,7 +229,7 @@ describe('TestEditModal', () => {
     // Wait for async operations
     await new Promise(resolve => setTimeout(resolve, 100))
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/tests/test-1'),
       expect.objectContaining({
         method: 'PUT',
@@ -248,7 +249,7 @@ describe('TestEditModal', () => {
   })
 
   it('should display error message on failed submission', async () => {
-    global.fetch = vi.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: false,
         json: () => Promise.resolve({ error: 'Failed to update test' }),
@@ -273,7 +274,7 @@ describe('TestEditModal', () => {
   })
 
   it('should show loading state during submission', async () => {
-    global.fetch = vi.fn(() => new Promise(resolve => setTimeout(resolve, 1000)))
+    globalThis.fetch = vi.fn(() => new Promise(resolve => setTimeout(resolve, 1000)))
 
     const wrapper = mount(TestEditModal, {
       props: {
@@ -292,7 +293,7 @@ describe('TestEditModal', () => {
   })
 
   it('should not allow closing modal during submission', async () => {
-    global.fetch = vi.fn(() => new Promise(resolve => setTimeout(resolve, 1000)))
+    globalThis.fetch = vi.fn(() => new Promise(resolve => setTimeout(resolve, 1000)))
 
     const wrapper = mount(TestEditModal, {
       props: {
@@ -310,7 +311,7 @@ describe('TestEditModal', () => {
   })
 
   it('should handle network errors gracefully', async () => {
-    global.fetch = vi.fn(() => Promise.reject(new Error('Network error')))
+    globalThis.fetch = vi.fn(() => Promise.reject(new Error('Network error')))
 
     const wrapper = mount(TestEditModal, {
       props: {
@@ -329,7 +330,7 @@ describe('TestEditModal', () => {
   })
 
   it('should trim whitespace from title', async () => {
-    global.fetch = vi.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ ...mockTest }),

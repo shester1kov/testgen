@@ -176,7 +176,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { Question, Answer } from '@/features/tests/types/test.types'
+import type { Question } from '@/features/tests/types/test.types'
 import logger from '@/utils/logger'
 
 interface Props {
@@ -273,7 +273,7 @@ function removeAnswer(index: number) {
 
 function handleCorrectChange(index: number) {
   // For single_choice, only one answer can be correct
-  if (formData.value.question_type === 'single_choice' && formData.value.answers[index].is_correct) {
+  if (formData.value.question_type === 'single_choice' && formData.value.answers[index]?.is_correct) {
     formData.value.answers.forEach((answer, idx) => {
       if (idx !== index) {
         answer.is_correct = false

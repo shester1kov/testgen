@@ -1,51 +1,84 @@
-# Frontend Dockerfile for TestGen Vue.js application
+# =============================================================================
+# Stage 1: Builder - собираем production build
+# =============================================================================
+FROM node:24.11.1-alpine AS builder
 
-# Build stage
-FROM node:24.11.1-alpine as build
+# Метаданные
+LABEL maintainer="testgen-team"
+LABEL description="TestGen Frontend Vue.js Application"
 
 WORKDIR /app
 
-# Copy package files
+# Копируем package files для кэширования зависимостей
+# Docker кэширует этот слой, если package.json не изменился
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Устанавливаем зависимости
+# npm ci - быстрее и надёжнее чем npm install для CI/CD
+RUN npm ci --silent
 
-# Copy source code
+# Копируем исходный код
 COPY . .
 
-# Build arguments for Vite environment variables
+# Build arguments для Vite environment variables
 ARG VITE_API_BASE_URL=http://localhost:8080/api/v1
 ARG VITE_MAX_FILE_SIZE=52428800
-ARG VITE_SUPPORTED_FORMATS=pdf,docx,pptx,txt
+ARG VITE_SUPPORTED_FORMATS=pdf,docx,pptx,txt,md
 
-# Set environment variables for build
+# Устанавливаем переменные окружения для build
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 ENV VITE_MAX_FILE_SIZE=${VITE_MAX_FILE_SIZE}
 ENV VITE_SUPPORTED_FORMATS=${VITE_SUPPORTED_FORMATS}
+ENV NODE_ENV=production
 
-# Build application (skip type checking for Docker build)
-RUN npx vite build
+# Собираем production build с type checking
+# Результат: статические файлы в dist/
+# Type checking включен для гарантии качества кода при деплое
+RUN npm run build
 
-# Production stage
-FROM node:24.11.1-alpine
+# =============================================================================
+# Stage 2: Production - минимальный образ с Nginx
+# =============================================================================
+FROM nginx:1.27-alpine
 
-WORKDIR /app
+# Метаданные
+LABEL maintainer="testgen-team"
+LABEL description="TestGen Frontend (Production)"
 
-# Copy package files
-COPY package*.json ./
+WORKDIR /usr/share/nginx/html
 
-# Install ALL dependencies (vite preview needs devDependencies)
-RUN npm ci
+# Удаляем дефолтный nginx контент
+RUN rm -rf ./*
 
-# Copy built files from build stage
-COPY --from=build /app/dist ./dist
+# Копируем собранные статические файлы из builder stage
+COPY --from=builder /app/dist .
 
-# Copy vite config for preview
-COPY vite.config.ts ./
+# Копируем кастомную nginx конфигурацию для SPA
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port
-EXPOSE 5173
+# Создаём непривилегированного пользователя для безопасности
+# В production НИКОГДА не запускаем процессы от root
+RUN addgroup -g 101 -S nginx || true && \
+    adduser -u 101 -D -S -G nginx nginx || true
 
-# Start application in preview mode
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]
+# Создаём необходимые директории и устанавливаем права
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx && \
+    chown -R nginx:nginx /etc/nginx/conf.d && \
+    touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid
+
+# Переключаемся на непривилегированного пользователя
+USER nginx
+
+# Порт для Nginx
+EXPOSE 80
+
+# Health check (встроенный в образ, будет работать вместе с docker-compose)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:80/health || exit 1
+
+# Запускаем Nginx в foreground режиме
+# daemon off - nginx остаётся в foreground для Docker
+CMD ["nginx", "-g", "daemon off;"]

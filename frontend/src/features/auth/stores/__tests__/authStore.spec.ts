@@ -117,7 +117,7 @@ describe('AuthStore', () => {
         id: '789',
         email: 'me@example.com',
         full_name: 'Current User',
-        role: 'admin',
+        role: UserRole.ADMIN,
       }
 
       vi.mocked(authService.getMe).mockResolvedValueOnce(mockUser)

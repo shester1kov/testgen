@@ -255,7 +255,7 @@ function getStatusClass(status: string): string {
   }
 }
 
-function getQuestionTypeClass(type: string): string {
+function getQuestionTypeClass(_type: string): string {
   return 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
 }
 
