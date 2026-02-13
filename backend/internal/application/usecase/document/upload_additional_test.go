@@ -3,31 +3,22 @@ package document
 import (
 	"context"
 	"errors"
-	"io"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 )
 
-type failingReader struct{}
-
-func (f failingReader) Read(p []byte) (int, error) {
-	return 0, errors.New("read failed")
-}
-
-func TestUploadUseCase_MkdirAllFailure(t *testing.T) {
+func TestUploadUseCase_StorageUploadFailure(t *testing.T) {
 	mockRepo := new(MockDocumentRepository)
+	mockStorage := new(MockStorage)
+	logger := zap.NewNop()
 
-	tempFile, err := os.CreateTemp("", "upload-destination")
-	assert.NoError(t, err)
-	t.Cleanup(func() { os.Remove(tempFile.Name()) })
+	uc := NewUploadUseCase(mockRepo, mockStorage, 10_000, logger)
 
-	uc := NewUploadUseCase(mockRepo, tempFile.Name(), 10_000)
 	params := UploadParams{
 		UserID:      uuid.New(),
 		Title:       "title",
@@ -37,16 +28,24 @@ func TestUploadUseCase_MkdirAllFailure(t *testing.T) {
 		FileContent: strings.NewReader("data"),
 	}
 
-	_, err = uc.Execute(context.Background(), params)
+	// Storage upload fails
+	mockStorage.On("Upload", mock.Anything, mock.Anything, mock.Anything, int64(4), "application/pdf").
+		Return(errors.New("storage error"))
+
+	_, err := uc.Execute(context.Background(), params)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create upload directory")
+	assert.Contains(t, err.Error(), "failed to upload file to storage")
+
+	// Repository should not be called if storage fails
 	mockRepo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
 }
 
-func TestUploadUseCase_CopyFailureCleansUp(t *testing.T) {
+func TestUploadUseCase_DBErrorWithRollback(t *testing.T) {
 	mockRepo := new(MockDocumentRepository)
-	tempDir := t.TempDir()
-	uc := NewUploadUseCase(mockRepo, tempDir, 10_000)
+	mockStorage := new(MockStorage)
+	logger := zap.NewNop()
+
+	uc := NewUploadUseCase(mockRepo, mockStorage, 10_000, logger)
 
 	params := UploadParams{
 		UserID:      uuid.New(),
@@ -54,24 +53,32 @@ func TestUploadUseCase_CopyFailureCleansUp(t *testing.T) {
 		FileName:    "file.txt",
 		FileSize:    10,
 		FileType:    "txt",
-		FileContent: io.NopCloser(strings.NewReader("")),
+		FileContent: strings.NewReader("test data"),
 	}
-	// override reader with one that fails after create
-	params.FileContent = failingReader{}
+
+	// Storage upload succeeds
+	mockStorage.On("Upload", mock.Anything, mock.Anything, mock.Anything, int64(10), "text/plain").Return(nil)
+
+	// DB create fails
+	mockRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.Document")).Return(errors.New("db error"))
+
+	// Rollback should be called
+	mockStorage.On("Delete", mock.Anything, mock.Anything).Return(nil)
 
 	_, err := uc.Execute(context.Background(), params)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to save file")
+	assert.Contains(t, err.Error(), "failed to save document metadata")
 
-	entries, _ := os.ReadDir(tempDir)
-	assert.Len(t, entries, 0, "temporary file should be removed on failure")
-	mockRepo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+	// Verify rollback was attempted
+	mockStorage.AssertCalled(t, "Delete", mock.Anything, mock.Anything)
 }
 
-func TestUploadUseCase_PropagatesRepositoryError(t *testing.T) {
+func TestUploadUseCase_DBErrorWithRollbackFailure(t *testing.T) {
 	mockRepo := new(MockDocumentRepository)
-	tempDir := t.TempDir()
-	uc := NewUploadUseCase(mockRepo, tempDir, 10_000)
+	mockStorage := new(MockStorage)
+	logger := zap.NewNop()
+
+	uc := NewUploadUseCase(mockRepo, mockStorage, 10_000, logger)
 
 	params := UploadParams{
 		UserID:      uuid.New(),
@@ -82,14 +89,21 @@ func TestUploadUseCase_PropagatesRepositoryError(t *testing.T) {
 		FileContent: strings.NewReader("ok"),
 	}
 
-	mockRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.Document")).Return(assert.AnError)
+	// Storage upload succeeds
+	mockStorage.On("Upload", mock.Anything, mock.Anything, mock.Anything, int64(2), "text/markdown").Return(nil)
+
+	// DB create fails
+	dbErr := errors.New("database connection lost")
+	mockRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.Document")).Return(dbErr)
+
+	// Rollback also fails
+	mockStorage.On("Delete", mock.Anything, mock.Anything).Return(errors.New("rollback failed"))
 
 	_, err := uc.Execute(context.Background(), params)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to save document metadata")
 
-	files, _ := os.ReadDir(tempDir)
-	if len(files) > 0 {
-		os.Remove(filepath.Join(tempDir, files[0].Name()))
-	}
+	// Even if rollback fails, the original error should be returned
+	// Verify rollback was attempted
+	mockStorage.AssertCalled(t, "Delete", mock.Anything, mock.Anything)
 }

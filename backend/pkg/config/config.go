@@ -1,8 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 // Config holds all application configuration
@@ -17,13 +20,14 @@ type Config struct {
 	Moodle   MoodleConfig
 	Logger   LoggerConfig
 	Admin    AdminConfig
+	MinIO    MinIOConfig
 }
 
 // ServerConfig holds server configuration
 type ServerConfig struct {
-	Port           string
-	Environment    string
-	EnableMetrics  bool
+	Port          string
+	Environment   string
+	EnableMetrics bool
 }
 
 // DatabaseConfig holds database configuration
@@ -97,9 +101,51 @@ type AdminConfig struct {
 	FullName string
 }
 
+// MinIO настройки для подключения к MinIO
+type MinIOConfig struct {
+	// Endpoint - адрес MinIO сервера
+	// Формат: "host:port" (например: "localhost:9000" или "minio.example.com:9000")
+	// Не включает протокол (http:// или https://)
+	Endpoint string
+
+	// AccessKey - ключ доступа (аналог логина)
+	// В MinIO по умолчанию: "minioadmin"
+	// В production должен быть уникальным и сложным
+	AccessKey string
+
+	// SecretKey - секретный ключ (аналог пароля)
+	// В MinIO по умолчанию: "minioadmin"
+	// В production должен быть длинным случайным значением
+	SecretKey string
+
+	// BucketName - имя bucket для хранения файлов
+	// Должен быть создан заранее или создастся автоматически в NewMinIOStorage
+	BucketName string
+
+	// UseSSL - использовать ли HTTPS/TLS для подключения
+	// false - для локальной разработки (http://)
+	// true - для production (https://)
+	UseSSL bool
+
+	// Region - регион S3 (опционально)
+	// Нужен для AWS S3, для MinIO обычно не используется
+	// Можно оставить пустым для MinIO
+	Region string
+}
+
 // Load loads configuration from environment variables
-func Load() *Config {
-	return &Config{
+func Load() (*Config, error) {
+
+	// Загружаем переменные из .env файла
+	// godotenv.Load() читает файл .env и добавляет переменные в os.Getenv()
+	// Если файл не найден - не критично, можно использовать системные env переменные
+
+	if err := godotenv.Load(); err != nil {
+		// Not a fatal error - .env file is optional in production
+		// where system environment variables are typically used
+	}
+
+	cfg := &Config{
 		Server: ServerConfig{
 			Port:          getEnv("PORT", "8080"),
 			Environment:   getEnv("ENV", "development"),
@@ -158,7 +204,21 @@ func Load() *Config {
 			Password: getEnv("ADMIN_PASSWORD", "admin123"),
 			FullName: getEnv("ADMIN_FULL_NAME", "System Administrator"),
 		},
+		MinIO: MinIOConfig{
+			Endpoint:   getEnv("MINIO_ENDPOINT", "localhost:9000"),
+			AccessKey:  getEnv("MINIO_ACCESS_KEY", "minioadmin"),
+			SecretKey:  getEnv("MINIO_SECRET_KEY", "minioadmin"),
+			BucketName: getEnv("MINIO_BUCKET_NAME", "testgen-documents"),
+			UseSSL:     getEnvBool("MINIO_USE_SSL", false),
+			Region:     getEnv("MINIO_REGION", ""),
+		},
 	}
+
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
+	return cfg, nil
 }
 
 // Helper functions
@@ -204,4 +264,50 @@ func getEnvInt64(key string, defaultValue int64) int64 {
 		return defaultValue
 	}
 	return intValue
+}
+
+// Validate validates the configuration with environment-aware checks
+func (c *Config) Validate() error {
+	isDev := c.Server.Environment == "development"
+
+	// JWT secret validation - always required to be secure
+	if c.JWT.Secret == "" || c.JWT.Secret == "your-secret-key" {
+		return fmt.Errorf("JWT_SECRET must be set and not default 'your-secret-key'")
+	}
+
+	// In production, also reject the "change-in-production" default
+	if !isDev && c.JWT.Secret == "your-secret-key-change-in-production" {
+		return fmt.Errorf("JWT_SECRET must be changed from default in production")
+	}
+
+	// Database validation
+	if c.Database.Host == "" || c.Database.DBName == "" {
+		return fmt.Errorf("database configuration is incomplete (missing host or dbname)")
+	}
+
+	// MinIO validation
+	if c.MinIO.Endpoint == "" {
+		return fmt.Errorf("MINIO_ENDPOINT must be set")
+	}
+
+	if c.MinIO.AccessKey == "" || c.MinIO.SecretKey == "" {
+		return fmt.Errorf("MINIO_ACCESS_KEY and MINIO_SECRET_KEY must be set")
+	}
+
+	if c.MinIO.BucketName == "" {
+		return fmt.Errorf("MINIO_BUCKET_NAME must be set")
+	}
+
+	// Production-specific strict checks
+	if !isDev {
+		if c.MinIO.AccessKey == "minioadmin" || c.MinIO.SecretKey == "minioadmin" {
+			return fmt.Errorf("MINIO credentials must not be 'minioadmin' in production")
+		}
+
+		if !c.MinIO.UseSSL {
+			fmt.Println("WARNING: MinIO SSL is disabled in production!")
+		}
+	}
+
+	return nil
 }

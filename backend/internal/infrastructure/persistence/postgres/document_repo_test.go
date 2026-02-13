@@ -36,9 +36,10 @@ func setupDocumentTestDB(t *testing.T) *gorm.DB {
                         user_id TEXT NOT NULL,
                         title TEXT NOT NULL,
                         file_name TEXT,
-                        file_path TEXT,
+                        object_key TEXT,
                         file_type TEXT,
                         file_size INTEGER,
+                        content_type TEXT,
                         parsed_text TEXT,
                         status TEXT,
                         error_msg TEXT,
@@ -61,16 +62,17 @@ func createDocument(t *testing.T, db *gorm.DB, userID uuid.UUID) *entity.Documen
 	).Error)
 
 	doc := &entity.Document{
-		ID:        uuid.New(),
-		UserID:    userID,
-		Title:     "Sample",
-		FileName:  "file.txt",
-		FilePath:  "/tmp/file.txt",
-		FileType:  entity.FileTypeTXT,
-		FileSize:  10,
-		Status:    entity.StatusUploaded,
-		CreatedAt: time.Time{},
-		UpdatedAt: time.Time{},
+		ID:          uuid.New(),
+		UserID:      userID,
+		Title:       "Sample",
+		FileName:    "file.txt",
+		ObjectKey:   "documents/" + userID.String() + "/file.txt",
+		FileType:    entity.FileTypeTXT,
+		FileSize:    10,
+		ContentType: "text/plain",
+		Status:      entity.StatusUploaded,
+		CreatedAt:   time.Time{},
+		UpdatedAt:   time.Time{},
 	}
 	require.NoError(t, db.Create(doc).Error)
 	return doc
@@ -89,13 +91,14 @@ func TestDocumentRepository_CRUD(t *testing.T) {
 	).Error)
 
 	doc := &entity.Document{
-		ID:       uuid.New(),
-		UserID:   userID,
-		Title:    "My Doc",
-		FileName: "doc.txt",
-		FilePath: "/tmp/doc.txt",
-		FileType: entity.FileTypeTXT,
-		FileSize: 20,
+		ID:          uuid.New(),
+		UserID:      userID,
+		Title:       "My Doc",
+		FileName:    "doc.txt",
+		ObjectKey:   "documents/" + userID.String() + "/doc.txt",
+		FileType:    entity.FileTypeTXT,
+		FileSize:    20,
+		ContentType: "text/plain",
 	}
 
 	require.NoError(t, repo.Create(context.Background(), doc))

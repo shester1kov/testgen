@@ -23,7 +23,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags="-w -s" \
     -trimpath \
     -o /app/bin/api \
-    cmd/api/main.go
+    ./cmd/api
 
 # =============================================================================
 # Stage 2: Production - минимальный образ для запуска

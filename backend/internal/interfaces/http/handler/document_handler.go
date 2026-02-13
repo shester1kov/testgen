@@ -1,46 +1,40 @@
 package handler
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
-	"github.com/shester1kov/testgen-backend/internal/domain/entity"
-	"github.com/shester1kov/testgen-backend/internal/domain/repository"
-	"github.com/shester1kov/testgen-backend/internal/infrastructure/parser"
+	"github.com/shester1kov/testgen-backend/internal/application/usecase/document"
 	"github.com/shester1kov/testgen-backend/pkg/security"
 )
 
 // DocumentHandler handles document operations
 type DocumentHandler struct {
-	documentRepo  repository.DocumentRepository
-	userRepo      repository.UserRepository
-	parserFactory *parser.DocumentParserFactory
-	uploadDir     string
-	maxFileSize   int64
+	uploadUseCase *document.UploadUseCase
+	deleteUseCase *document.DeleteUseCase
+	parseUseCase  *document.ParseUseCase
+	listUseCase   *document.ListUseCase
+	getUseCase    *document.GetUseCase
 }
 
 // NewDocumentHandler creates a new document handler
 func NewDocumentHandler(
-	documentRepo repository.DocumentRepository,
-	userRepo repository.UserRepository,
-	parserFactory *parser.DocumentParserFactory,
-	uploadDir string,
-	maxFileSize int64,
+	uploadUseCase *document.UploadUseCase,
+	deleteUseCase *document.DeleteUseCase,
+	parseUseCase *document.ParseUseCase,
+	listUseCase *document.ListUseCase,
+	getUseCase *document.GetUseCase,
 ) *DocumentHandler {
-	// Ensure upload directory exists
-	os.MkdirAll(uploadDir, 0755)
 
 	return &DocumentHandler{
-		documentRepo:  documentRepo,
-		userRepo:      userRepo,
-		parserFactory: parserFactory,
-		uploadDir:     uploadDir,
-		maxFileSize:   maxFileSize,
+		uploadUseCase: uploadUseCase,
+		deleteUseCase: deleteUseCase,
+		parseUseCase:  parseUseCase,
+		listUseCase:   listUseCase,
+		getUseCase:    getUseCase,
 	}
 }
 
@@ -59,6 +53,7 @@ func NewDocumentHandler(
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /documents [post]
 func (h *DocumentHandler) Upload(c *fiber.Ctx) error {
+	// 1. Извлечь userID из контекста (JWT middleware)
 	userID, ok := getUserIDFromContext(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(
@@ -66,95 +61,80 @@ func (h *DocumentHandler) Upload(c *fiber.Ctx) error {
 		)
 	}
 
+	// 2. Получить файл из multipart form
 	// Parse multipart form
-	file, err := c.FormFile("file")
+	fileHeader, err := c.FormFile("file")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
 			dto.NewErrorResponse(dto.ErrCodeInvalidInput, "no file provided"),
 		)
 	}
 
-	// Validate file size
-	if file.Size > h.maxFileSize {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeFileTooLarge, fmt.Sprintf("file size exceeds maximum allowed size of %d bytes", h.maxFileSize)),
+	// 3. Открыть файл для чтения (io.Reader для MinIO)
+	// Fiber возвращает multipart.FileHeader, нужно открыть его
+	file, err := fileHeader.Open()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to open uploaded file"),
 		)
 	}
+	defer file.Close()
 
+	// 4. Извлечь расширение файла (например, ".pdf" -> "pdf")
 	// Get file extension
-	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(file.Filename), "."))
+	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(fileHeader.Filename), "."))
 	if ext == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(
 			dto.NewErrorResponse(dto.ErrCodeInvalidFileType, "file has no extension"),
 		)
 	}
 
-	// Validate file type
-	supportedTypes := h.parserFactory.GetSupportedTypes()
-	isSupported := false
-	for _, supportedType := range supportedTypes {
-		if ext == supportedType {
-			isSupported = true
-			break
-		}
-	}
-
-	if !isSupported {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInvalidFileType, fmt.Sprintf("unsupported file type. Supported types: %v", supportedTypes)),
-		)
-	}
-
-	// Generate unique filename
-	uniqueID := uuid.New()
-	savedFilename := fmt.Sprintf("%s%s", uniqueID.String(), filepath.Ext(file.Filename))
-	savedPath := filepath.Join(h.uploadDir, savedFilename)
-
-	// Save file
-	if err := c.SaveFile(file, savedPath); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to save file"),
-		)
-	}
-
-	// Get title from form or use filename
+	// 5. Получить title из формы (или использовать имя файла)
 	title := c.FormValue("title")
 	if title == "" {
-		title = file.Filename
+		title = fileHeader.Filename
 	}
 
 	// Sanitize title to prevent XSS
 	sanitizedTitle := security.SanitizeInput(title)
 
-	// Create document record
-	document := &entity.Document{
-		UserID:   userID,
-		Title:    sanitizedTitle,
-		FileName: file.Filename,
-		FilePath: savedPath,
-		FileType: entity.FileType(ext),
-		FileSize: file.Size,
-		Status:   entity.StatusUploaded,
+	// 6. Подготовить параметры для use case
+	params := document.UploadParams{
+		UserID:      userID,
+		Title:       sanitizedTitle,
+		FileName:    fileHeader.Filename,
+		FileType:    ext,
+		FileSize:    fileHeader.Size,
+		FileContent: file,
 	}
 
-	if err := h.documentRepo.Create(c.Context(), document); err != nil {
-		// Clean up file if database insert fails
-		os.Remove(savedPath)
+	// 7. Вызвать use case (вся бизнес-логика внутри)
+	response, err := h.uploadUseCase.Execute(c.Context(), params)
+	if err != nil {
+		// Use case вернет ошибку с описанием (размер, тип, БД, MinIO)
+		// Определяем тип ошибки для правильного HTTP статуса
+		if strings.Contains(err.Error(), "file size exceeds") {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				dto.NewErrorResponse(dto.ErrCodeFileTooLarge, err.Error()),
+			)
+		}
+
+		if strings.Contains(err.Error(), "unsupported file type") {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				dto.NewErrorResponse(dto.ErrCodeInvalidFileType, err.Error()),
+			)
+
+		}
+
+		// Все остальные ошибки (MinIO, БД) - 500
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to create document record"),
+			dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to upload document"),
 		)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(dto.DocumentUploadResponse{
-		ID:        document.ID.String(),
-		UserID:    document.UserID.String(),
-		Title:     document.Title,
-		FileName:  document.FileName,
-		FileType:  string(document.FileType),
-		FileSize:  document.FileSize,
-		Status:    string(document.Status),
-		CreatedAt: document.CreatedAt.Format("2006-01-02T15:04:05Z"),
-	})
+	// 8. Преобразовать entity.Document в DTO и вернуть
+	// Create document record
+	return c.Status(fiber.StatusCreated).JSON(response)
 }
 
 // List godoc
@@ -177,101 +157,37 @@ func (h *DocumentHandler) List(c *fiber.Ctx) error {
 		)
 	}
 
-	// Get user to check role
-	user, err := h.userRepo.FindByID(c.Context(), userID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch user"),
-		)
-	}
-
 	page := c.QueryInt("page", 1)
 	pageSize := c.QueryInt("page_size", 20)
 
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
-	}
+	response, err := h.listUseCase.Execute(c.Context(), userID, page, pageSize)
 
-	offset := (page - 1) * pageSize
+	if err != nil {
+		if strings.Contains(err.Error(), "failed to fetch user") {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch user"),
+			)
+		}
 
-	var documents []*entity.Document
-	var total int64
-
-	// Admin sees all documents, others see only their own
-	if user.IsAdmin() {
-		documents, err = h.documentRepo.FindAll(c.Context(), pageSize, offset)
-		if err != nil {
+		if strings.Contains(err.Error(), "failed to fetch documents") {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch documents"),
 			)
 		}
 
-		total, err = h.documentRepo.CountAll(c.Context())
-		if err != nil {
+		if strings.Contains(err.Error(), "failed to count documents") {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to count documents"),
 			)
 		}
-	} else {
-		documents, err = h.documentRepo.FindByUserID(c.Context(), userID, pageSize, offset)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch documents"),
-			)
-		}
 
-		total, err = h.documentRepo.CountByUserID(c.Context(), userID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to count documents"),
-			)
-		}
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "internal server error"),
+		)
+
 	}
 
-	result := make([]dto.DocumentUploadResponse, len(documents))
-	for i, doc := range documents {
-		var parsedText *string
-		if doc.ParsedText != "" {
-			parsedText = &doc.ParsedText
-		}
-		var errorMsg *string
-		if doc.ErrorMsg != "" {
-			errorMsg = &doc.ErrorMsg
-		}
-
-		// Include user info for admin
-		var userName *string
-		var userEmail *string
-		if user.IsAdmin() && doc.User.ID != uuid.Nil {
-			userName = &doc.User.FullName
-			userEmail = &doc.User.Email
-		}
-
-		result[i] = dto.DocumentUploadResponse{
-			ID:         doc.ID.String(),
-			UserID:     doc.UserID.String(),
-			UserName:   userName,
-			UserEmail:  userEmail,
-			Title:      doc.Title,
-			FileName:   doc.FileName,
-			FileType:   string(doc.FileType),
-			FileSize:   doc.FileSize,
-			ParsedText: parsedText,
-			Status:     string(doc.Status),
-			ErrorMsg:   errorMsg,
-			CreatedAt:  doc.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		}
-	}
-
-	return c.JSON(dto.DocumentListResponse{
-		Documents: result,
-		Total:     total,
-		Page:      page,
-		PageSize:  pageSize,
-	})
+	return c.JSON(response)
 }
 
 // GetByID godoc
@@ -301,41 +217,27 @@ func (h *DocumentHandler) GetByID(c *fiber.Ctx) error {
 		)
 	}
 
-	document, err := h.documentRepo.FindByID(c.Context(), documentID)
+	// Get document WITHOUT parsed text (avoid large response)
+	response, err := h.getUseCase.Execute(c.Context(), documentID, userID, false)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "document not found"),
+		if strings.Contains(err.Error(), "access denied") {
+			return c.Status(fiber.StatusForbidden).JSON(
+				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
+			)
+		}
+
+		if strings.Contains(err.Error(), "not found") {
+			return c.Status(fiber.StatusNotFound).JSON(
+				dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "not found"),
+			)
+		}
+
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeInternalError, "internal server error"),
 		)
 	}
 
-	// Check ownership
-	if document.UserID != userID {
-		return c.Status(fiber.StatusForbidden).JSON(
-			dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
-		)
-	}
-
-	var parsedText *string
-	if document.ParsedText != "" {
-		parsedText = &document.ParsedText
-	}
-	var errorMsg *string
-	if document.ErrorMsg != "" {
-		errorMsg = &document.ErrorMsg
-	}
-
-	return c.JSON(dto.DocumentUploadResponse{
-		ID:         document.ID.String(),
-		UserID:     document.UserID.String(),
-		Title:      document.Title,
-		FileName:   document.FileName,
-		FileType:   string(document.FileType),
-		FileSize:   document.FileSize,
-		ParsedText: parsedText,
-		Status:     string(document.Status),
-		ErrorMsg:   errorMsg,
-		CreatedAt:  document.CreatedAt.Format("2006-01-02T15:04:05Z"),
-	})
+	return c.JSON(response)
 }
 
 // Delete godoc
@@ -353,12 +255,15 @@ func (h *DocumentHandler) GetByID(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /documents/{id} [delete]
 func (h *DocumentHandler) Delete(c *fiber.Ctx) error {
+	// 1. Извлечь userI
 	userID, ok := getUserIDFromContext(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(
 			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
 		)
 	}
+
+	// 2. Извлечь documentID из URL параметра
 	documentID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
@@ -366,30 +271,29 @@ func (h *DocumentHandler) Delete(c *fiber.Ctx) error {
 		)
 	}
 
-	document, err := h.documentRepo.FindByID(c.Context(), documentID)
-	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "document not found"),
-		)
-	}
+	// 3. Вызвать use case (вся логика внутри)
+	if err := h.deleteUseCase.Execute(c.Context(), documentID, userID); err != nil {
+		// Определяем тип ошибки
+		if strings.Contains(err.Error(), "not found") {
+			return c.Status(fiber.StatusNotFound).JSON(
+				dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "document not found"),
+			)
+		}
 
-	// Check ownership
-	if document.UserID != userID {
-		return c.Status(fiber.StatusForbidden).JSON(
-			dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
-		)
-	}
+		if strings.Contains(err.Error(), "access denied") {
+			return c.Status(fiber.StatusForbidden).JSON(
+				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
+			)
+		}
 
-	// Delete file
-	os.Remove(document.FilePath)
-
-	// Delete from database
-	if err := h.documentRepo.Delete(c.Context(), documentID); err != nil {
+		// Ошибки MinIO или БД
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to delete document"),
+			dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to delete document"),
 		)
+
 	}
 
+	// 4. Успешный ответ
 	return c.JSON(dto.NewMessageResponse("document deleted successfully"))
 }
 
@@ -408,12 +312,15 @@ func (h *DocumentHandler) Delete(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Parsing failed"
 // @Router /documents/{id}/parse [post]
 func (h *DocumentHandler) Parse(c *fiber.Ctx) error {
+	// 1. Извлечь userID
 	userID, ok := getUserIDFromContext(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(
 			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
 		)
 	}
+
+	// 2. Извлечь documentID
 	documentID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
@@ -421,68 +328,63 @@ func (h *DocumentHandler) Parse(c *fiber.Ctx) error {
 		)
 	}
 
-	document, err := h.documentRepo.FindByID(c.Context(), documentID)
-	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "document not found"),
-		)
-	}
+	// 3. Вызвать use case (вся логика внутри)
+	if err := h.parseUseCase.Execute(c.Context(), documentID, userID); err != nil {
+		// Определяем тип ошибки
 
-	// Check ownership
-	if document.UserID != userID {
-		return c.Status(fiber.StatusForbidden).JSON(
-			dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
-		)
-	}
+		if strings.Contains(err.Error(), "not found") {
+			return c.Status(fiber.StatusNotFound).JSON(
+				dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "document not found"),
+			)
+		}
 
-	// Get parser
-	docParser, err := h.parserFactory.CreateParser(string(document.FileType))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInvalidFileType, err.Error()),
-		)
-	}
+		if strings.Contains(err.Error(), "unauthorized") {
+			return c.Status(fiber.StatusForbidden).JSON(
+				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
+			)
+		}
 
-	// Open file
-	file, err := os.Open(document.FilePath)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to open file"),
-		)
-	}
-	defer file.Close()
+		if strings.Contains(err.Error(), "already parsed") {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				dto.NewErrorResponse(dto.ErrCodeInvalidInput, "document already parsed"),
+			)
+		}
 
-	// Parse document
-	document.MarkAsParsing()
-	h.documentRepo.Update(c.Context(), document)
-
-	parsedText, err := docParser.Parse(file)
-	if err != nil {
-		document.MarkAsError(err.Error())
-		h.documentRepo.Update(c.Context(), document)
+		// Ошибки парсинга
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeParsingFailed, "failed to parse document"),
 		)
 	}
 
-	// Update document with parsed text
-	document.MarkAsParsed(parsedText)
-	if err := h.documentRepo.Update(c.Context(), document); err != nil {
+	// 4. После успешного парсинга получить обновленный документ для ответа
+	// Include parsed text for Parse endpoint (true)
+	document, err := h.getUseCase.Execute(c.Context(), documentID, userID, true)
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to save parsed text"),
+			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch parsed document"),
 		)
 	}
 
-	// Return preview (first 500 chars)
-	preview := parsedText
-	if len(preview) > 500 {
-		preview = preview[:500] + "..."
+	// 5. Подготовить preview и полный текст (работаем с указателем!)
+	preview := ""
+	fullText := ""
+
+	// Проверяем, что ParsedText не nil и распаковываем указатель
+	if document.ParsedText != nil {
+		fullText = *document.ParsedText // Распаковать *string → string
+		preview = fullText
+
+		// Обрезать preview до 500 символов
+		if len(preview) > 500 {
+			preview = preview[:500] + "..."
+		}
 	}
 
+	// 6. Вернуть ответ с правильными типами
 	return c.JSON(dto.ParseDocumentResponse{
-		ID:          document.ID.String(),
-		ParsedText:  parsedText,
-		Status:      string(document.Status),
-		TextPreview: preview,
+		ID:          document.ID,     // Уже string
+		ParsedText:  fullText,        // string (распакован из *string)
+		Status:      document.Status, // Уже string
+		TextPreview: preview,         // string
 	})
 }

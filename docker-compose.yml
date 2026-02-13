@@ -1,4 +1,26 @@
 services:
+  # MinIO Object Storage - хранилище для файлов
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+    container_name: testgen_minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - testgen_network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
@@ -20,7 +42,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis Cache (optional for future scaling)
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: testgen_redis
@@ -63,6 +85,12 @@ services:
       - ENABLE_METRICS=${ENABLE_METRICS}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - LOG_FORMAT=${LOG_FORMAT:-json}
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-testgen-documents}
+      - MINIO_USE_SSL=${MINIO_USE_SSL:-false}
+      - MINIO_REGION=${MINIO_REGION:-}
     ports:
       - "${PORT}:${PORT}"
     volumes:
@@ -73,6 +101,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     networks:
       - testgen_network
@@ -288,3 +318,4 @@ volumes:
   grafana_data:
   loki_data:
   moodle_db_data:
+  minio_data:

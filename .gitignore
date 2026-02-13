@@ -14,8 +14,8 @@ backend/*.so
 backend/*.dylib
 backend/*.test
 backend/*.out
-backend/coverage.out
-backend/wire_gen.go
+*coverage.out
+backend/cmd/api/wire_gen.go
 
 # Frontend (Node.js / Vue)
 frontend/node_modules/

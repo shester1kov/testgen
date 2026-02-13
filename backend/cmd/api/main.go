@@ -29,33 +29,24 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/swagger"
-	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
 	_ "github.com/shester1kov/testgen-backend/docs"
-	"github.com/shester1kov/testgen-backend/internal/infrastructure/cache"
-	"github.com/shester1kov/testgen-backend/internal/infrastructure/exporter"
-	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
-	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
-	"github.com/shester1kov/testgen-backend/internal/infrastructure/parser"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/persistence"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/persistence/postgres"
-	"github.com/shester1kov/testgen-backend/internal/interfaces/http/handler"
 	"github.com/shester1kov/testgen-backend/internal/interfaces/http/router"
 	"github.com/shester1kov/testgen-backend/pkg/config"
 	"github.com/shester1kov/testgen-backend/pkg/logger"
 	"github.com/shester1kov/testgen-backend/pkg/monitoring"
-	"github.com/shester1kov/testgen-backend/pkg/utils"
 )
 
 func main() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
-		// Silently continue if .env file not found
-	}
 
 	// Load configuration
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		panic("Failed to load configuration: " + err.Error())
+	}
 
 	// Initialize logger
 	appLogger, err := logger.New(logger.Config{
@@ -88,82 +79,28 @@ func main() {
 	}
 	appLogger.Info("Database connection established")
 
-	// Initialize Redis cache
-	redisClient, err := cache.NewRedisClient(cfg.Redis, appLogger.Logger)
+	container, err := InitializeApplication(cfg, db, appLogger)
 	if err != nil {
-		appLogger.Fatal("Failed to connect to Redis", zap.Error(err))
-	}
-	appLogger.Info("Redis cache connection established")
-
-	// Initialize repositories (with cache)
-	userRepo := postgres.NewUserRepository(db, redisClient)
-	roleRepo := postgres.NewRoleRepository(db)
-	documentRepo := postgres.NewDocumentRepository(db, redisClient)
-	testRepo := postgres.NewTestRepository(db, redisClient)
-	questionRepo := postgres.NewQuestionRepository(db)
-	answerRepo := postgres.NewAnswerRepository(db)
-
-	// Run database seeders
-	seeder := persistence.NewSeeder(userRepo, roleRepo, cfg, appLogger)
-	if err := seeder.Seed(context.Background()); err != nil {
-		appLogger.Error("Failed to run database seeders", zap.Error(err))
+		appLogger.Fatal("Failed to initialize application", zap.Error(err))
 	}
 
 	// Initialize JWT manager
-	jwtManager, err := utils.NewJWTManager(cfg.JWT.Secret, cfg.JWT.Expiration)
-	if err != nil {
-		appLogger.Fatal("Failed to initialize JWT manager", zap.Error(err))
-	}
-
-	// Initialize document parser factory (Factory Pattern)
-	parserFactory := parser.NewDocumentParserFactory()
-
-	// Initialize LLM factory (Factory Pattern + Strategy Pattern)
-	llmFactory := llm.NewLLMFactory(
-		cfg.LLM.PerplexityAPIKey,
-		cfg.LLM.OpenAIAPIKey,
-		cfg.LLM.YandexAPIKey,
-		cfg.LLM.YandexFolderID,
-		cfg.LLM.YandexModel,
-	)
-
-	// Initialize Moodle components
-	exporterFactory := exporter.NewExporterFactory()
-	var moodleClient *moodle.Client
-	if cfg.Moodle.URL != "" && cfg.Moodle.Token != "" {
-		moodleClient = moodle.NewClient(cfg.Moodle.URL, cfg.Moodle.Token, cfg.Moodle.ImportToken)
-	}
+	jwtManager := container.JWTManager
 
 	// Initialize handlers
-	authHandler := handler.NewAuthHandler(
-		userRepo,
-		roleRepo,
-		jwtManager,
-		cfg.Cookie.Name,
-		cfg.Cookie.Domain,
-		cfg.Cookie.Path,
-		cfg.Cookie.SameSite,
-		cfg.JWT.Expiration,
-		cfg.Cookie.Secure,
-		cfg.Cookie.HTTPOnly,
-	)
-	userHandler := handler.NewUserHandler(userRepo, roleRepo)
-	documentHandler := handler.NewDocumentHandler(
-		documentRepo,
-		userRepo,
-		parserFactory,
-		cfg.File.UploadDir,
-		cfg.File.MaxFileSize,
-	)
-	testHandler := handler.NewTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, llmFactory, exporterFactory)
-	moodleHandler := handler.NewMoodleHandler(
-		testRepo,
-		questionRepo,
-		answerRepo,
-		exporterFactory,
-		moodleClient,
-	)
-	statsHandler := handler.NewStatsHandler(testRepo, documentRepo, questionRepo, userRepo)
+	authHandler := container.AuthHandler
+	userHandler := container.UserHandler
+	testHandler := container.TestHandler
+	statsHandler := container.StatsHandler
+	documentHandler := container.DocumentHandler
+	moodleHandler := container.MoodleHandler
+	redisClient := container.RedisClient
+
+	// Run database seeders
+	seeder := persistence.NewSeeder(container.UserRepo, container.RoleRepo, cfg, appLogger)
+	if err := seeder.Seed(context.Background()); err != nil {
+		appLogger.Error("Failed to run database seeders", zap.Error(err))
+	}
 
 	// Initialize Fiber app
 	app := fiber.New(fiber.Config{
