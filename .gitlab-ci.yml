@@ -205,6 +205,13 @@ deploy:production:
       YANDEX_GPT_FOLDER_ID=${YANDEX_GPT_FOLDER_ID}
       LOG_LEVEL=${LOG_LEVEL:-info}
       LOG_FORMAT=${LOG_FORMAT:-json}
+      MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-testgen-documents-prod}
+      MINIO_USE_SSL=${MINIO_USE_SSL:-false}
+      MINIO_REGION=${MINIO_REGION:-}
+      GRAFANA_EXTERNAL_URL=${GRAFANA_EXTERNAL_URL:-https://petproj.ru.net/grafana/}
+      PROMETHEUS_EXTERNAL_URL=${PROMETHEUS_EXTERNAL_URL:-https://petproj.ru.net/prometheus/}
       EOF
 
     # === ПРОВЕРКИ (для дебага) ===

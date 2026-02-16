@@ -12,8 +12,14 @@ COPY go.mod go.sum ./
 # Скачиваем зависимости (кэшируется отдельно от кода)
 RUN go mod download && go mod verify
 
+RUN go install github.com/google/wire/cmd/wire@latest
+
 # Копируем весь исходный код
 COPY . .
+
+RUN cd cmd/api && wire
+
+RUN ls -la cmd/api/wire_gen.go
 
 # Компилируем бинарник
 # CGO_ENABLED=0 - статическая компиляция без зависимостей от libc
@@ -54,9 +60,6 @@ COPY --from=builder /app/bin/api /app/api
 
 # Копируем миграции БД (нужны для автоматического запуска миграций)
 COPY --from=builder /app/internal/infrastructure/persistence/migrations /app/internal/infrastructure/persistence/migrations
-
-# Создаём директорию для загрузок и устанавливаем права
-RUN mkdir -p /app/uploads && chown -R appuser:appuser /app
 
 # Переключаемся на непривилегированного пользователя
 USER appuser
