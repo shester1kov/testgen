@@ -93,6 +93,9 @@ test:backend:
     - cd backend
     - export GOMODCACHE=$CI_PROJECT_DIR/backend/.go-mod-cache
     - go mod download
+    # Генерируем wire_gen.go для тестов (нужен для cmd/api)
+    - go install github.com/google/wire/cmd/wire@latest
+    - cd cmd/api && wire && cd ../..
     - sleep 5
   script:
     - go test ./... -v -cover -coverprofile=coverage.out
