@@ -121,7 +121,6 @@ test:frontend:
   script:
     - npm run test -- --run
   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
-  allow_failure: true  # Временно: не блокировать pipeline из-за падающих тестов
   only:
     - main
     - merge_requests
