@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
+	"github.com/shester1kov/testgen-backend/internal/application/usecase/auth"
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
 	"github.com/shester1kov/testgen-backend/pkg/utils"
 	"github.com/stretchr/testify/assert"
@@ -104,10 +105,14 @@ func setupAuthHandler(t *testing.T) (*AuthHandler, *MockUserRepository, *MockRol
 	jwtManager, err := utils.NewJWTManager("test-secret-key-must-be-at-least-32-chars-long", "1h")
 	assert.NoError(t, err)
 
+	registerUseCase := auth.NewRegisterUseCase(mockUserRepo, mockRoleRepo, jwtManager)
+	loginUseCase := auth.NewLoginUseCase(mockUserRepo, jwtManager)
+	getMeUseCase := auth.NewGetMeUseCase(mockUserRepo)
+
 	handler := NewAuthHandler(
-		mockUserRepo,
-		mockRoleRepo,
-		jwtManager,
+		registerUseCase,
+		loginUseCase,
+		getMeUseCase,
 		"testgen_token",
 		"",
 		"/",
@@ -347,11 +352,15 @@ func TestSetCookie_FallbackOnInvalidExpiration(t *testing.T) {
 	mockRoleRepo := new(MockRoleRepository)
 	jwtManager, _ := utils.NewJWTManager("test-secret-key-must-be-at-least-32-chars-long", "1h")
 
+	registerUseCase := auth.NewRegisterUseCase(mockUserRepo, mockRoleRepo, jwtManager)
+	loginUseCase := auth.NewLoginUseCase(mockUserRepo, jwtManager)
+	getMeUseCase := auth.NewGetMeUseCase(mockUserRepo)
+
 	// Create handler with invalid expiration format
 	handler := NewAuthHandler(
-		mockUserRepo,
-		mockRoleRepo,
-		jwtManager,
+		registerUseCase,
+		loginUseCase,
+		getMeUseCase,
 		"testgen_token",
 		"",
 		"/",

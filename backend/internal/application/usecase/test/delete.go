@@ -11,12 +11,14 @@ import (
 // DeleteUseCase handles deleting a test
 type DeleteUseCase struct {
 	testRepo repository.TestRepository
+	userRepo repository.UserRepository
 }
 
 // NewDeleteUseCase creates a new delete use case
-func NewDeleteUseCase(testRepo repository.TestRepository) *DeleteUseCase {
+func NewDeleteUseCase(testRepo repository.TestRepository, userRepo repository.UserRepository) *DeleteUseCase {
 	return &DeleteUseCase{
 		testRepo: testRepo,
+		userRepo: userRepo,
 	}
 }
 
@@ -27,7 +29,12 @@ func (uc *DeleteUseCase) Execute(ctx context.Context, testID uuid.UUID, userID u
 		return fmt.Errorf("test not found: %w", err)
 	}
 
-	if test.UserID != userID {
+	user, err := uc.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch user: %w", err)
+	}
+
+	if test.UserID != userID && !user.IsAdmin() {
 		return fmt.Errorf("test not found")
 	}
 

@@ -17,6 +17,7 @@ type UpdateQuestionUseCase struct {
 	testRepo     repository.TestRepository
 	questionRepo repository.QuestionRepository
 	answerRepo   repository.AnswerRepository
+	userRepo     repository.UserRepository
 }
 
 // NewUpdateQuestionUseCase creates a new update question use case
@@ -24,11 +25,13 @@ func NewUpdateQuestionUseCase(
 	testRepo repository.TestRepository,
 	questionRepo repository.QuestionRepository,
 	answerRepo repository.AnswerRepository,
+	userRepo repository.UserRepository,
 ) *UpdateQuestionUseCase {
 	return &UpdateQuestionUseCase{
 		testRepo:     testRepo,
 		questionRepo: questionRepo,
 		answerRepo:   answerRepo,
+		userRepo:     userRepo,
 	}
 }
 
@@ -52,7 +55,12 @@ func (uc *UpdateQuestionUseCase) Execute(ctx context.Context, params UpdateQuest
 		return nil, fmt.Errorf("test not found: %w", err)
 	}
 
-	if test.UserID != params.UserID {
+	user, err := uc.userRepo.FindByID(ctx, params.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user: %w", err)
+	}
+
+	if test.UserID != params.UserID && !user.IsAdmin() {
 		return nil, fmt.Errorf("access denied")
 	}
 

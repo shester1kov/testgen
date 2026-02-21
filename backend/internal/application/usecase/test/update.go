@@ -14,12 +14,14 @@ import (
 // UpdateUseCase handles updating a test
 type UpdateUseCase struct {
 	testRepo repository.TestRepository
+	userRepo repository.UserRepository
 }
 
 // NewUpdateUseCase creates a new update use case
-func NewUpdateUseCase(testRepo repository.TestRepository) *UpdateUseCase {
+func NewUpdateUseCase(testRepo repository.TestRepository, userRepo repository.UserRepository) *UpdateUseCase {
 	return &UpdateUseCase{
 		testRepo: testRepo,
+		userRepo: userRepo,
 	}
 }
 
@@ -38,7 +40,12 @@ func (uc *UpdateUseCase) Execute(ctx context.Context, params UpdateParams) (*dto
 		return nil, fmt.Errorf("test not found: %w", err)
 	}
 
-	if test.UserID != params.UserID {
+	user, err := uc.userRepo.FindByID(ctx, params.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user: %w", err)
+	}
+
+	if test.UserID != params.UserID && !user.IsAdmin() {
 		return nil, fmt.Errorf("access denied")
 	}
 

@@ -16,6 +16,7 @@ type ParseUseCase struct {
 	documentRepo  repository.DocumentRepository
 	storage       storage.Storage
 	parserFactory *parser.DocumentParserFactory
+	userRepo      repository.UserRepository
 	logger        *zap.Logger
 }
 
@@ -24,12 +25,14 @@ func NewParseUseCase(
 	documentRepo repository.DocumentRepository,
 	storage storage.Storage,
 	parserFactory *parser.DocumentParserFactory,
+	userRepo repository.UserRepository,
 	logger *zap.Logger,
 ) *ParseUseCase {
 	return &ParseUseCase{
 		documentRepo:  documentRepo,
 		storage:       storage,
 		parserFactory: parserFactory,
+		userRepo:      userRepo,
 		logger:        logger,
 	}
 }
@@ -56,8 +59,13 @@ func (uc *ParseUseCase) Execute(
 		return fmt.Errorf("document not found: %w", err)
 	}
 
+	user, err := uc.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch user: %w", err)
+	}
+
 	// Verify ownership
-	if document.UserID != userID {
+	if document.UserID != userID && !user.IsAdmin() {
 		uc.logger.Warn("Unauthorized access attempt",
 			zap.String("document_id", documentID.String()),
 			zap.String("requesting_user_id", userID.String()),

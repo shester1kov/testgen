@@ -201,10 +201,10 @@ func TestDocumentHandler_Upload_Success(t *testing.T) {
 
 	// Create use cases
 	uploadUC := document.NewUploadUseCase(mockDocRepo, mockStor, 50*1024*1024, logger)
-	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, logger)
-	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), logger)
+	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, mockUserRepo, logger)
+	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), mockUserRepo, logger)
 	listUC := document.NewListUseCase(mockDocRepo, mockUserRepo, logger)
-	getUC := document.NewGetUseCase(mockDocRepo, logger)
+	getUC := document.NewGetUseCase(mockDocRepo, mockUserRepo, logger)
 
 	handler := NewDocumentHandler(uploadUC, deleteUC, parseUC, listUC, getUC)
 
@@ -236,10 +236,10 @@ func TestDocumentHandler_Upload_FileTooLarge(t *testing.T) {
 
 	// Create use cases with small maxFileSize
 	uploadUC := document.NewUploadUseCase(mockDocRepo, mockStor, 10, logger) // 10 bytes max
-	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, logger)
-	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), logger)
+	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, mockUserRepo, logger)
+	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), mockUserRepo, logger)
 	listUC := document.NewListUseCase(mockDocRepo, mockUserRepo, logger)
-	getUC := document.NewGetUseCase(mockDocRepo, logger)
+	getUC := document.NewGetUseCase(mockDocRepo, mockUserRepo, logger)
 
 	handler := NewDocumentHandler(uploadUC, deleteUC, parseUC, listUC, getUC)
 
@@ -299,10 +299,10 @@ func TestDocumentHandler_List_Success(t *testing.T) {
 
 	// Create use cases
 	uploadUC := document.NewUploadUseCase(mockDocRepo, mockStor, 50*1024*1024, logger)
-	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, logger)
-	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), logger)
+	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, mockUserRepo, logger)
+	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), mockUserRepo, logger)
 	listUC := document.NewListUseCase(mockDocRepo, mockUserRepo, logger)
-	getUC := document.NewGetUseCase(mockDocRepo, logger)
+	getUC := document.NewGetUseCase(mockDocRepo, mockUserRepo, logger)
 
 	handler := NewDocumentHandler(uploadUC, deleteUC, parseUC, listUC, getUC)
 
@@ -346,14 +346,15 @@ func TestDocumentHandler_GetByID_Success(t *testing.T) {
 		Status:   entity.StatusUploaded,
 	}
 
+	mockUserRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
 	mockDocRepo.On("FindByID", mock.Anything, docID).Return(doc, nil)
 
 	// Create use cases
 	uploadUC := document.NewUploadUseCase(mockDocRepo, mockStor, 50*1024*1024, logger)
-	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, logger)
-	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), logger)
+	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, mockUserRepo, logger)
+	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), mockUserRepo, logger)
 	listUC := document.NewListUseCase(mockDocRepo, mockUserRepo, logger)
-	getUC := document.NewGetUseCase(mockDocRepo, logger)
+	getUC := document.NewGetUseCase(mockDocRepo, mockUserRepo, logger)
 
 	handler := NewDocumentHandler(uploadUC, deleteUC, parseUC, listUC, getUC)
 
@@ -396,14 +397,15 @@ func TestDocumentHandler_GetByID_Forbidden(t *testing.T) {
 		Status:   entity.StatusUploaded,
 	}
 
+	mockUserRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
 	mockDocRepo.On("FindByID", mock.Anything, docID).Return(doc, nil)
 
 	// Create use cases
 	uploadUC := document.NewUploadUseCase(mockDocRepo, mockStor, 50*1024*1024, logger)
-	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, logger)
-	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), logger)
+	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, mockUserRepo, logger)
+	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), mockUserRepo, logger)
 	listUC := document.NewListUseCase(mockDocRepo, mockUserRepo, logger)
-	getUC := document.NewGetUseCase(mockDocRepo, logger)
+	getUC := document.NewGetUseCase(mockDocRepo, mockUserRepo, logger)
 
 	handler := NewDocumentHandler(uploadUC, deleteUC, parseUC, listUC, getUC)
 
@@ -439,16 +441,17 @@ func TestDocumentHandler_Delete_Success(t *testing.T) {
 		FileType:  entity.FileTypePDF,
 	}
 
+	mockUserRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
 	mockDocRepo.On("FindByID", mock.Anything, docID).Return(doc, nil)
 	mockStor.On("Delete", mock.Anything, objectKey).Return(nil)
 	mockDocRepo.On("Delete", mock.Anything, docID).Return(nil)
 
 	// Create use cases
 	uploadUC := document.NewUploadUseCase(mockDocRepo, mockStor, 50*1024*1024, logger)
-	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, logger)
-	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), logger)
+	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, mockUserRepo, logger)
+	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), mockUserRepo, logger)
 	listUC := document.NewListUseCase(mockDocRepo, mockUserRepo, logger)
-	getUC := document.NewGetUseCase(mockDocRepo, logger)
+	getUC := document.NewGetUseCase(mockDocRepo, mockUserRepo, logger)
 
 	handler := NewDocumentHandler(uploadUC, deleteUC, parseUC, listUC, getUC)
 
@@ -482,14 +485,15 @@ func TestDocumentHandler_Delete_NotFound(t *testing.T) {
 	userID := uuid.New()
 	docID := uuid.New()
 
+	mockUserRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
 	mockDocRepo.On("FindByID", mock.Anything, docID).Return(nil, errors.New("not found"))
 
 	// Create use cases
 	uploadUC := document.NewUploadUseCase(mockDocRepo, mockStor, 50*1024*1024, logger)
-	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, logger)
-	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), logger)
+	deleteUC := document.NewDeleteUseCase(mockDocRepo, mockStor, mockUserRepo, logger)
+	parseUC := document.NewParseUseCase(mockDocRepo, mockStor, parser.NewDocumentParserFactory(), mockUserRepo, logger)
 	listUC := document.NewListUseCase(mockDocRepo, mockUserRepo, logger)
-	getUC := document.NewGetUseCase(mockDocRepo, logger)
+	getUC := document.NewGetUseCase(mockDocRepo, mockUserRepo, logger)
 
 	handler := NewDocumentHandler(uploadUC, deleteUC, parseUC, listUC, getUC)
 

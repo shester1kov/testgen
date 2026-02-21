@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
+	"github.com/shester1kov/testgen-backend/internal/application/usecase/stats"
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -155,7 +156,7 @@ func TestGetDashboardStats_AdminUser(t *testing.T) {
 	documentRepo.On("CountAll", mock.Anything).Return(int64(15), nil)
 	questionRepo.On("CountAll", mock.Anything).Return(int64(120), nil)
 
-	handler := NewStatsHandler(testRepo, documentRepo, questionRepo, userRepo)
+	handler := NewStatsHandler(stats.NewDashboardUseCase(testRepo, documentRepo, questionRepo, userRepo))
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID.String()) // Pass as string
@@ -211,7 +212,7 @@ func TestGetDashboardStats_TeacherUser(t *testing.T) {
 	documentRepo.On("CountByUserID", mock.Anything, userID).Return(int64(5), nil)
 	questionRepo.On("CountByUserID", mock.Anything, userID).Return(int64(40), nil)
 
-	handler := NewStatsHandler(testRepo, documentRepo, questionRepo, userRepo)
+	handler := NewStatsHandler(stats.NewDashboardUseCase(testRepo, documentRepo, questionRepo, userRepo))
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID.String()) // Pass as string
@@ -267,7 +268,7 @@ func TestGetDashboardStats_StudentUser(t *testing.T) {
 	documentRepo.On("CountByUserID", mock.Anything, userID).Return(int64(0), nil)
 	questionRepo.On("CountByUserID", mock.Anything, userID).Return(int64(0), nil)
 
-	handler := NewStatsHandler(testRepo, documentRepo, questionRepo, userRepo)
+	handler := NewStatsHandler(stats.NewDashboardUseCase(testRepo, documentRepo, questionRepo, userRepo))
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID.String()) // Pass as string
@@ -302,7 +303,7 @@ func TestGetDashboardStats_Unauthorized(t *testing.T) {
 	questionRepo := new(mockStatsQuestionRepository)
 	userRepo := new(mockStatsUserRepository)
 
-	handler := NewStatsHandler(testRepo, documentRepo, questionRepo, userRepo)
+	handler := NewStatsHandler(stats.NewDashboardUseCase(testRepo, documentRepo, questionRepo, userRepo))
 	app := fiber.New()
 	// No userID in context - simulates unauthorized request
 	app.Get("/stats/dashboard", handler.GetDashboardStats)
@@ -329,7 +330,7 @@ func TestGetDashboardStats_UserNotFound(t *testing.T) {
 	// User not found
 	userRepo.On("FindByID", mock.Anything, userID).Return(nil, assert.AnError)
 
-	handler := NewStatsHandler(testRepo, documentRepo, questionRepo, userRepo)
+	handler := NewStatsHandler(stats.NewDashboardUseCase(testRepo, documentRepo, questionRepo, userRepo))
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID.String()) // Pass as string
@@ -345,7 +346,7 @@ func TestGetDashboardStats_UserNotFound(t *testing.T) {
 	var response dto.ErrorResponse
 	json.NewDecoder(resp.Body).Decode(&response)
 	assert.Equal(t, dto.ErrCodeDatabaseError, response.Error.Code)
-	assert.Contains(t, response.Error.Message, "failed to fetch user")
+	assert.Contains(t, response.Error.Message, "failed to fetch statistics")
 
 	userRepo.AssertExpectations(t)
 }

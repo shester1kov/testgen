@@ -66,8 +66,9 @@ func (m *MockUserRepository) Count(ctx context.Context) (int64, error) {
 
 func TestGetUseCase(t *testing.T) {
 	mockRepo := new(MockDocumentRepository)
+	mockUserRepo := new(MockUserRepository)
 	logger := zap.NewNop()
-	uc := NewGetUseCase(mockRepo, logger)
+	uc := NewGetUseCase(mockRepo, mockUserRepo, logger)
 
 	docID := uuid.New()
 	userID := uuid.New()
@@ -83,6 +84,7 @@ func TestGetUseCase(t *testing.T) {
 	}
 
 	// Success case - without parsed text
+	mockUserRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil).Twice()
 	mockRepo.On("FindByID", mock.Anything, docID).Return(doc, nil).Once()
 	result, err := uc.Execute(context.Background(), docID, userID, false)
 	assert.NoError(t, err)
@@ -101,6 +103,7 @@ func TestGetUseCase(t *testing.T) {
 	assert.Equal(t, "Sample parsed text", *result.ParsedText)
 
 	// Document not found
+	mockUserRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil).Once()
 	mockRepo.On("FindByID", mock.Anything, docID).Return(nil, errors.New("missing")).Once()
 	_, err = uc.Execute(context.Background(), docID, userID, false)
 	assert.Error(t, err)
@@ -108,6 +111,7 @@ func TestGetUseCase(t *testing.T) {
 
 	// Access denied - different user
 	otherUser := uuid.New()
+	mockUserRepo.On("FindByID", mock.Anything, otherUser).Return(&entity.User{ID: otherUser}, nil).Once()
 	mockRepo.On("FindByID", mock.Anything, docID).Return(doc, nil).Once()
 	_, err = uc.Execute(context.Background(), docID, otherUser, false)
 	assert.Error(t, err)
@@ -235,9 +239,10 @@ func TestListUseCase_Admin(t *testing.T) {
 func TestDeleteUseCase(t *testing.T) {
 	mockRepo := new(MockDocumentRepository)
 	mockStorage := new(MockStorage)
+	mockUserRepo := new(MockUserRepository)
 	logger := zap.NewNop()
 
-	uc := NewDeleteUseCase(mockRepo, mockStorage, logger)
+	uc := NewDeleteUseCase(mockRepo, mockStorage, mockUserRepo, logger)
 
 	docID := uuid.New()
 	userID := uuid.New()
@@ -251,6 +256,7 @@ func TestDeleteUseCase(t *testing.T) {
 	}
 
 	// Success case
+	mockUserRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil).Twice()
 	mockRepo.On("FindByID", mock.Anything, docID).Return(doc, nil).Once()
 	mockStorage.On("Delete", mock.Anything, objectKey).Return(nil).Once()
 	mockRepo.On("Delete", mock.Anything, docID).Return(nil).Once()
@@ -260,11 +266,13 @@ func TestDeleteUseCase(t *testing.T) {
 	mockStorage.AssertCalled(t, "Delete", mock.Anything, objectKey)
 
 	// Document not found
+	mockUserRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil).Once()
 	mockRepo.On("FindByID", mock.Anything, docID).Return(nil, errors.New("missing")).Once()
 	assert.Error(t, uc.Execute(context.Background(), docID, userID))
 
 	// Access denied - different user
 	otherUser := uuid.New()
+	mockUserRepo.On("FindByID", mock.Anything, otherUser).Return(&entity.User{ID: otherUser}, nil).Once()
 	mockRepo.On("FindByID", mock.Anything, docID).Return(doc, nil).Once()
 	err = uc.Execute(context.Background(), docID, otherUser)
 	assert.Error(t, err)
@@ -274,10 +282,11 @@ func TestDeleteUseCase(t *testing.T) {
 func TestParseUseCase(t *testing.T) {
 	mockRepo := new(MockDocumentRepository)
 	mockStorage := new(MockStorage)
+	mockUserRepo := new(MockUserRepository)
 	parserFactory := parser.NewDocumentParserFactory()
 	logger := zap.NewNop()
 
-	uc := NewParseUseCase(mockRepo, mockStorage, parserFactory, logger)
+	uc := NewParseUseCase(mockRepo, mockStorage, parserFactory, mockUserRepo, logger)
 
 	docID := uuid.New()
 	userID := uuid.New()
@@ -297,6 +306,7 @@ func TestParseUseCase(t *testing.T) {
 	}
 
 	// Success case
+	mockUserRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil).Once()
 	mockRepo.On("FindByID", mock.Anything, docID).Return(doc, nil).Once()
 	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.Document")).Return(nil).Twice()
 
@@ -314,7 +324,9 @@ func TestParseUseCase(t *testing.T) {
 	mockStorage.Calls = nil
 
 	mockRepo.On("FindByID", mock.Anything, docID).Return(doc, nil).Once()
-	err = uc.Execute(context.Background(), docID, uuid.New())
+	otherUser := uuid.New()
+	mockUserRepo.On("FindByID", mock.Anything, otherUser).Return(&entity.User{ID: otherUser}, nil).Once()
+	err = uc.Execute(context.Background(), docID, otherUser)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unauthorized")
 
@@ -332,6 +344,7 @@ func TestParseUseCase(t *testing.T) {
 		FileType:  entity.FileTypeTXT,
 		Status:    entity.StatusParsed,
 	}
+	mockUserRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil).Once()
 	mockRepo.On("FindByID", mock.Anything, docID).Return(parsedDoc, nil).Once()
 	err = uc.Execute(context.Background(), docID, userID)
 	assert.Error(t, err)
@@ -353,6 +366,7 @@ func TestParseUseCase(t *testing.T) {
 		Status:    entity.StatusUploaded,
 	}
 
+	mockUserRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil).Once()
 	mockRepo.On("FindByID", mock.Anything, docID).Return(missing, nil).Once()
 	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.Document")).Return(nil).Twice()
 	mockStorage.On("Download", mock.Anything, missingKey).Return(nil, errors.New("file not found")).Once()

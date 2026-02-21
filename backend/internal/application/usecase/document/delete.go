@@ -14,6 +14,7 @@ import (
 type DeleteUseCase struct {
 	documentRepo repository.DocumentRepository
 	storage      storage.Storage
+	userRepo     repository.UserRepository
 	logger       *zap.Logger
 }
 
@@ -21,11 +22,13 @@ type DeleteUseCase struct {
 func NewDeleteUseCase(
 	documentRepo repository.DocumentRepository,
 	storage storage.Storage,
+	userRepo repository.UserRepository,
 	logger *zap.Logger,
 ) *DeleteUseCase {
 	return &DeleteUseCase{
 		documentRepo: documentRepo,
 		storage:      storage,
+		userRepo:     userRepo,
 		logger:       logger,
 	}
 }
@@ -56,10 +59,15 @@ func (uc *DeleteUseCase) Execute(ctx context.Context, documentID uuid.UUID, user
 		return fmt.Errorf("document not found: %w", err)
 	}
 
+	user, err := uc.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch user: %w", err)
+	}
+
 	// Verify ownership
 	// Важно: проверяем, что пользователь имеет право удалить документ
 	// Это защита от несанкционированного удаления чужих документов
-	if document.UserID != userID {
+	if document.UserID != userID && !user.IsAdmin() {
 		uc.logger.Warn("Access denied: document belongs to another user",
 			zap.String("document_id", documentID.String()),
 			zap.String("requesting_user_id", userID.String()),

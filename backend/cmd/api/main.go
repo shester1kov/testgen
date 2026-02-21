@@ -93,7 +93,6 @@ func main() {
 	testHandler := container.TestHandler
 	statsHandler := container.StatsHandler
 	documentHandler := container.DocumentHandler
-	moodleHandler := container.MoodleHandler
 	redisClient := container.RedisClient
 
 	// Run database seeders
@@ -143,7 +142,7 @@ func main() {
 	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	// Setup routes
-	router.SetupRoutes(app, authHandler, userHandler, documentHandler, testHandler, moodleHandler, statsHandler, jwtManager, cfg.Cookie.Name)
+	router.SetupRoutes(app, authHandler, userHandler, documentHandler, testHandler, statsHandler, jwtManager, cfg.Cookie.Name)
 
 	// Root endpoint
 	// @Summary API version information
@@ -159,7 +158,6 @@ func main() {
 				"auth":      "/api/v1/auth",
 				"documents": "/api/v1/documents",
 				"tests":     "/api/v1/tests",
-				"moodle":    "/api/v1/moodle",
 				"stats":     "/api/v1/stats",
 			},
 		})

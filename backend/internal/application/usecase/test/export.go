@@ -16,6 +16,7 @@ type ExportUseCase struct {
 	questionRepo    repository.QuestionRepository
 	answerRepo      repository.AnswerRepository
 	exporterFactory *exporter.ExporterFactory
+	userRepo        repository.UserRepository
 }
 
 // NewExportUseCase creates a new export use case
@@ -24,12 +25,14 @@ func NewExportUseCase(
 	questionRepo repository.QuestionRepository,
 	answerRepo repository.AnswerRepository,
 	exporterFactory *exporter.ExporterFactory,
+	userRepo repository.UserRepository,
 ) *ExportUseCase {
 	return &ExportUseCase{
 		testRepo:        testRepo,
 		questionRepo:    questionRepo,
 		answerRepo:      answerRepo,
 		exporterFactory: exporterFactory,
+		userRepo:        userRepo,
 	}
 }
 
@@ -48,7 +51,12 @@ func (uc *ExportUseCase) Execute(ctx context.Context, testID uuid.UUID, userID u
 		return nil, fmt.Errorf("test not found: %w", err)
 	}
 
-	if test.UserID != userID {
+	user, err := uc.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user: %w", err)
+	}
+
+	if test.UserID != userID && !user.IsAdmin() {
 		return nil, fmt.Errorf("access denied")
 	}
 

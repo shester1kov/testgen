@@ -200,8 +200,9 @@ func TestUpdate_Success(t *testing.T) {
 	testRepo.On("Update", mock.Anything, mock.MatchedBy(func(t *entity.Test) bool {
 		return t.Title == "New Title" && t.Description == "New Description"
 	})).Return(nil)
+	userRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
 
-	handler := NewTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, nil, nil)
+	handler := setupTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID)
@@ -243,8 +244,9 @@ func TestUpdate_NotFound(t *testing.T) {
 	userRepo := new(mockUserUpdateRepository)
 
 	testRepo.On("FindByID", mock.Anything, testID).Return(nil, assert.AnError)
+	userRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
 
-	handler := NewTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, nil, nil)
+	handler := setupTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID)
@@ -287,8 +289,9 @@ func TestUpdate_Unauthorized(t *testing.T) {
 	}
 
 	testRepo.On("FindByID", mock.Anything, testID).Return(existingTest, nil)
+	userRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
 
-	handler := NewTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, nil, nil)
+	handler := setupTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID)
@@ -367,8 +370,9 @@ func TestUpdateQuestion_Success(t *testing.T) {
 	answerRepo.On("Delete", mock.Anything, answerID2).Return(nil)
 	// Mock Create for new answers
 	answerRepo.On("Create", mock.Anything, mock.Anything).Return(nil)
+	userRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
 
-	handler := NewTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, nil, nil)
+	handler := setupTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID)
@@ -441,8 +445,9 @@ func TestUpdateQuestion_NotFound(t *testing.T) {
 
 	testRepo.On("FindByID", mock.Anything, testID).Return(existingTest, nil)
 	questionRepo.On("FindByID", mock.Anything, questionID).Return(nil, assert.AnError)
+	userRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
 
-	handler := NewTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, nil, nil)
+	handler := setupTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID)
@@ -504,8 +509,9 @@ func TestUpdateQuestion_AddNewAnswer(t *testing.T) {
 	answerRepo.On("FindByQuestionID", mock.Anything, questionID).Return(existingAnswers, nil)
 	questionRepo.On("Update", mock.Anything, mock.Anything).Return(nil)
 	answerRepo.On("Create", mock.Anything, mock.Anything).Return(nil)
+	userRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
 
-	handler := NewTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, nil, nil)
+	handler := setupTestHandler(testRepo, documentRepo, questionRepo, answerRepo, userRepo, nil, nil)
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("userID", userID)

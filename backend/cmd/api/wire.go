@@ -8,7 +8,6 @@ import (
 	"github.com/google/wire"
 	"github.com/shester1kov/testgen-backend/internal/application/usecase/auth"
 	"github.com/shester1kov/testgen-backend/internal/application/usecase/document"
-	moodleuc "github.com/shester1kov/testgen-backend/internal/application/usecase/moodle"
 	"github.com/shester1kov/testgen-backend/internal/application/usecase/stats"
 	testuc "github.com/shester1kov/testgen-backend/internal/application/usecase/test"
 	"github.com/shester1kov/testgen-backend/internal/application/usecase/user"
@@ -16,7 +15,6 @@ import (
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/cache"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/exporter"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
-	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/parser"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/persistence/postgres"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/storage"
@@ -34,7 +32,6 @@ type ApplicationContainer struct {
 	UserHandler     *handler.UserHandler
 	DocumentHandler *handler.DocumentHandler
 	TestHandler     *handler.TestHandler
-	MoodleHandler   *handler.MoodleHandler
 	StatsHandler    *handler.StatsHandler
 
 	// infra
@@ -75,9 +72,6 @@ func InitializeApplication(cfg *config.Config, db *gorm.DB, log *logger.Logger) 
 		// Exporter Factory (for multiple LMS formats)
 		exporter.NewExporterFactory,
 
-		// Moodle components
-		provideMoodleClient,
-
 		// Auth Use Cases
 		provideRegisterUseCase,
 		provideLoginUseCase,
@@ -104,12 +98,6 @@ func InitializeApplication(cfg *config.Config, db *gorm.DB, log *logger.Logger) 
 		provideUpdateQuestionUseCase,
 		provideExportTestUseCase,
 
-		// Moodle Use Cases
-		provideExportXMLUseCase,
-		provideSyncUseCase,
-		provideGetCoursesUseCase,
-		provideValidateConnectionUseCase,
-
 		// Stats Use Cases
 		provideDashboardUseCase,
 
@@ -118,7 +106,6 @@ func InitializeApplication(cfg *config.Config, db *gorm.DB, log *logger.Logger) 
 		handler.NewUserHandler,
 		handler.NewDocumentHandler,
 		handler.NewTestHandler,
-		handler.NewMoodleHandler,
 		handler.NewStatsHandler,
 
 		// Wire the ApplicationContainer
@@ -146,13 +133,6 @@ func provideLLMFactory(cfg *config.Config) *llm.LLMFactory {
 		cfg.LLM.YandexFolderID,
 		cfg.LLM.YandexModel,
 	)
-}
-
-func provideMoodleClient(cfg *config.Config) *moodle.Client {
-	if cfg.Moodle.URL != "" && cfg.Moodle.Token != "" {
-		return moodle.NewClient(cfg.Moodle.URL, cfg.Moodle.Token, cfg.Moodle.ImportToken)
-	}
-	return nil
 }
 
 func provideAuthHandler(
@@ -228,11 +208,13 @@ func provideUploadUseCase(
 func provideDeleteUseCase(
 	documentRepo repository.DocumentRepository,
 	storage storage.Storage,
+	userRepo repository.UserRepository,
 	log *logger.Logger,
 ) *document.DeleteUseCase {
 	return document.NewDeleteUseCase(
 		documentRepo,
 		storage,
+		userRepo,
 		log.Logger,
 	)
 }
@@ -241,12 +223,14 @@ func provideParseUseCase(
 	documentRepo repository.DocumentRepository,
 	storage storage.Storage,
 	parserFactory *parser.DocumentParserFactory,
+	userRepo repository.UserRepository,
 	log *logger.Logger,
 ) *document.ParseUseCase {
 	return document.NewParseUseCase(
 		documentRepo,
 		storage,
 		parserFactory,
+		userRepo,
 		log.Logger,
 	)
 }
@@ -265,10 +249,12 @@ func provideListDocumentUseCase(
 
 func provideGetDocumentUseCase(
 	documentRepo repository.DocumentRepository,
+	userRepo repository.UserRepository,
 	log *logger.Logger,
 ) *document.GetUseCase {
 	return document.NewGetUseCase(
 		documentRepo,
+		userRepo,
 		log.Logger,
 	)
 }
@@ -318,28 +304,32 @@ func provideGetTestUseCase(
 	testRepo repository.TestRepository,
 	questionRepo repository.QuestionRepository,
 	answerRepo repository.AnswerRepository,
+	userRepo repository.UserRepository,
 ) *testuc.GetUseCase {
-	return testuc.NewGetUseCase(testRepo, questionRepo, answerRepo)
+	return testuc.NewGetUseCase(testRepo, questionRepo, answerRepo, userRepo)
 }
 
 func provideUpdateTestUseCase(
 	testRepo repository.TestRepository,
+	userRepo repository.UserRepository,
 ) *testuc.UpdateUseCase {
-	return testuc.NewUpdateUseCase(testRepo)
+	return testuc.NewUpdateUseCase(testRepo, userRepo)
 }
 
 func provideDeleteTestUseCase(
 	testRepo repository.TestRepository,
+	userRepo repository.UserRepository,
 ) *testuc.DeleteUseCase {
-	return testuc.NewDeleteUseCase(testRepo)
+	return testuc.NewDeleteUseCase(testRepo, userRepo)
 }
 
 func provideUpdateQuestionUseCase(
 	testRepo repository.TestRepository,
 	questionRepo repository.QuestionRepository,
 	answerRepo repository.AnswerRepository,
+	userRepo repository.UserRepository,
 ) *testuc.UpdateQuestionUseCase {
-	return testuc.NewUpdateQuestionUseCase(testRepo, questionRepo, answerRepo)
+	return testuc.NewUpdateQuestionUseCase(testRepo, questionRepo, answerRepo, userRepo)
 }
 
 func provideExportTestUseCase(
@@ -347,41 +337,9 @@ func provideExportTestUseCase(
 	questionRepo repository.QuestionRepository,
 	answerRepo repository.AnswerRepository,
 	exporterFactory *exporter.ExporterFactory,
+	userRepo repository.UserRepository,
 ) *testuc.ExportUseCase {
-	return testuc.NewExportUseCase(testRepo, questionRepo, answerRepo, exporterFactory)
-}
-
-// Moodle Use Case providers
-
-func provideExportXMLUseCase(
-	testRepo repository.TestRepository,
-	questionRepo repository.QuestionRepository,
-	answerRepo repository.AnswerRepository,
-	exporterFactory *exporter.ExporterFactory,
-) *moodleuc.ExportXMLUseCase {
-	return moodleuc.NewExportXMLUseCase(testRepo, questionRepo, answerRepo, exporterFactory)
-}
-
-func provideSyncUseCase(
-	testRepo repository.TestRepository,
-	questionRepo repository.QuestionRepository,
-	answerRepo repository.AnswerRepository,
-	exporterFactory *exporter.ExporterFactory,
-	moodleClient *moodle.Client,
-) *moodleuc.SyncUseCase {
-	return moodleuc.NewSyncUseCase(testRepo, questionRepo, answerRepo, exporterFactory, moodleClient)
-}
-
-func provideGetCoursesUseCase(
-	moodleClient *moodle.Client,
-) *moodleuc.GetCoursesUseCase {
-	return moodleuc.NewGetCoursesUseCase(moodleClient)
-}
-
-func provideValidateConnectionUseCase(
-	moodleClient *moodle.Client,
-) *moodleuc.ValidateConnectionUseCase {
-	return moodleuc.NewValidateConnectionUseCase(moodleClient)
+	return testuc.NewExportUseCase(testRepo, questionRepo, answerRepo, exporterFactory, userRepo)
 }
 
 // Stats Use Case providers

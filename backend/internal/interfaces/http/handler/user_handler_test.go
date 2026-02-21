@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
+	"github.com/shester1kov/testgen-backend/internal/application/usecase/user"
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -18,7 +19,9 @@ import (
 func setupUserHandler(t *testing.T) (*UserHandler, *MockUserRepository, *MockRoleRepository) {
 	mockUserRepo := new(MockUserRepository)
 	mockRoleRepo := new(MockRoleRepository)
-	handler := NewUserHandler(mockUserRepo, mockRoleRepo)
+	listUseCase := user.NewListUseCase(mockUserRepo)
+	updateRoleUseCase := user.NewUpdateRoleUseCase(mockUserRepo, mockRoleRepo)
+	handler := NewUserHandler(listUseCase, updateRoleUseCase)
 	return handler, mockUserRepo, mockRoleRepo
 }
 
@@ -107,7 +110,7 @@ func TestListUsers_DefaultPagination(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&listResp)
 	assert.NoError(t, err)
 	assert.Equal(t, 10, listResp.Limit) // Default limit
-	assert.Equal(t, 0, listResp.Offset)  // Default offset
+	assert.Equal(t, 0, listResp.Offset) // Default offset
 
 	mockUserRepo.AssertExpectations(t)
 }

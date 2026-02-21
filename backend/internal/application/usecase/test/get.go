@@ -15,6 +15,7 @@ type GetUseCase struct {
 	testRepo     repository.TestRepository
 	questionRepo repository.QuestionRepository
 	answerRepo   repository.AnswerRepository
+	userRepo     repository.UserRepository
 }
 
 // NewGetUseCase creates a new get use case
@@ -22,11 +23,13 @@ func NewGetUseCase(
 	testRepo repository.TestRepository,
 	questionRepo repository.QuestionRepository,
 	answerRepo repository.AnswerRepository,
+	userRepo repository.UserRepository,
 ) *GetUseCase {
 	return &GetUseCase{
 		testRepo:     testRepo,
 		questionRepo: questionRepo,
 		answerRepo:   answerRepo,
+		userRepo:     userRepo,
 	}
 }
 
@@ -37,7 +40,12 @@ func (uc *GetUseCase) Execute(ctx context.Context, testID uuid.UUID, userID uuid
 		return nil, fmt.Errorf("test not found: %w", err)
 	}
 
-	if test.UserID != userID {
+	user, err := uc.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user: %w", err)
+	}
+
+	if test.UserID != userID && !user.IsAdmin() {
 		return nil, fmt.Errorf("test not found")
 	}
 

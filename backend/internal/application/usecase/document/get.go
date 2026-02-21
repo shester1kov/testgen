@@ -13,13 +13,15 @@ import (
 // GetUseCase handles retrieving a single document
 type GetUseCase struct {
 	documentRepo repository.DocumentRepository
+	userRepo     repository.UserRepository
 	logger       *zap.Logger
 }
 
 // NewGetUseCase creates a new get use case
-func NewGetUseCase(documentRepo repository.DocumentRepository, logger *zap.Logger) *GetUseCase {
+func NewGetUseCase(documentRepo repository.DocumentRepository, userRepo repository.UserRepository, logger *zap.Logger) *GetUseCase {
 	return &GetUseCase{
 		documentRepo: documentRepo,
+		userRepo:     userRepo,
 		logger:       logger,
 	}
 }
@@ -44,12 +46,19 @@ func (uc *GetUseCase) Execute(ctx context.Context, documentID uuid.UUID, userID 
 		return nil, fmt.Errorf("document not found: %w", err)
 	}
 
+	// Check if user is admin
+	user, err := uc.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user: %w", err)
+	}
+
 	// Verify ownership
-	if document.UserID != userID {
+	if document.UserID != userID && !user.IsAdmin() {
 		uc.logger.Warn("Access denied: document ownership verification failed",
 			zap.String("document_id", documentID.String()),
 			zap.String("requesting_user_id", userID.String()),
 			zap.String("owner_user_id", document.UserID.String()),
+			zap.Bool("is_admin", user.IsAdmin()),
 		)
 		return nil, fmt.Errorf("access denied: document belongs to another user")
 	}
