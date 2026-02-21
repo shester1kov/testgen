@@ -4,7 +4,9 @@ import { useAuthStore } from '@/features/auth/stores/authStore'
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/dashboard',
+    name: 'Welcome',
+    component: () => import('@/views/WelcomeView.vue'),
+    meta: { requiresAuth: false },
   },
   {
     path: '/login',
