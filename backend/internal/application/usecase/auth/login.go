@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
@@ -30,14 +31,14 @@ func (uc *LoginUseCase) Execute(ctx context.Context, req dto.LoginRequest) (*dto
 	user, err := uc.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("invalid email or password")
+			return nil, domain.ErrInvalidCredentials
 		}
 		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
 
 	// Check password
 	if !user.CheckPassword(req.Password) {
-		return nil, fmt.Errorf("invalid email or password")
+		return nil, domain.ErrInvalidCredentials
 	}
 
 	// Generate JWT token

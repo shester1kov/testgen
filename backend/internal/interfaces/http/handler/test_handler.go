@@ -1,7 +1,9 @@
 package handler
 
 import (
-	"strings"
+	"github.com/shester1kov/testgen-backend/internal/domain"
+
+	"errors"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -115,35 +117,35 @@ func (h *TestHandler) Generate(c *fiber.Ctx) error {
 	docID, _ := uuid.Parse(req.DocumentID)
 
 	result, err := h.generateUseCase.Execute(c.Context(), testuc.GenerateParams{
-		UserID:      userID,
-		DocumentID:  docID,
-		Title:       req.Title,
+		UserID:       userID,
+		DocumentID:   docID,
+		Title:        req.Title,
 		NumQuestions: req.NumQuestions,
-		Difficulty:  req.Difficulty,
-		LLMProvider: req.LLMProvider,
+		Difficulty:   req.Difficulty,
+		LLMProvider:  req.LLMProvider,
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "document not found") {
+		if errors.Is(err, domain.ErrDocumentNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(
 				dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "document not found"),
 			)
 		}
-		if strings.Contains(err.Error(), "access denied") {
+		if errors.Is(err, domain.ErrAccessDenied) {
 			return c.Status(fiber.StatusForbidden).JSON(
 				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied to this document"),
 			)
 		}
-		if strings.Contains(err.Error(), "not parsed yet") {
+		if errors.Is(err, domain.ErrNotParsedYet) {
 			return c.Status(fiber.StatusBadRequest).JSON(
 				dto.NewErrorResponse(dto.ErrCodeDocumentNotParsed, "document not parsed yet"),
 			)
 		}
-		if strings.Contains(err.Error(), "invalid LLM provider") {
+		if errors.Is(err, domain.ErrInvalidLLMProvider) {
 			return c.Status(fiber.StatusBadRequest).JSON(
 				dto.NewErrorResponse(dto.ErrCodeInvalidProvider, err.Error()),
 			)
 		}
-		if strings.Contains(err.Error(), "failed to generate") {
+		if errors.Is(err, domain.ErrFailedToGenerate) {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				dto.NewErrorResponse(dto.ErrCodeGenerationFailed, "failed to generate questions"),
 			)
@@ -297,17 +299,17 @@ func (h *TestHandler) Update(c *fiber.Ctx) error {
 		Description: req.Description,
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "test not found") {
+		if errors.Is(err, domain.ErrTestNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(
 				dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
 			)
 		}
-		if strings.Contains(err.Error(), "access denied") {
+		if errors.Is(err, domain.ErrAccessDenied) {
 			return c.Status(fiber.StatusForbidden).JSON(
 				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
 			)
 		}
-		if strings.Contains(err.Error(), "title must be at least") {
+		if errors.Is(err, domain.ErrTitleTooShort) {
 			return c.Status(fiber.StatusBadRequest).JSON(
 				dto.NewErrorResponse(dto.ErrCodeInvalidInput, "title must be at least 3 characters"),
 			)
@@ -377,22 +379,22 @@ func (h *TestHandler) UpdateQuestion(c *fiber.Ctx) error {
 		Answers:      req.Answers,
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "test not found") {
+		if errors.Is(err, domain.ErrTestNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(
 				dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
 			)
 		}
-		if strings.Contains(err.Error(), "access denied") {
+		if errors.Is(err, domain.ErrAccessDenied) {
 			return c.Status(fiber.StatusForbidden).JSON(
 				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
 			)
 		}
-		if strings.Contains(err.Error(), "question not found") {
+		if errors.Is(err, domain.ErrQuestionNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(
 				dto.NewErrorResponse(dto.ErrCodeNotFound, "question not found"),
 			)
 		}
-		if strings.Contains(err.Error(), "question text must be at least") {
+		if errors.Is(err, domain.ErrQuestionTextTooShort) {
 			return c.Status(fiber.StatusBadRequest).JSON(
 				dto.NewErrorResponse(dto.ErrCodeInvalidInput, "question text must be at least 3 characters"),
 			)
@@ -500,22 +502,22 @@ func (h *TestHandler) handleExport(c *fiber.Ctx, format string) error {
 
 	result, err := h.exportUseCase.Execute(c.Context(), testID, userID, format)
 	if err != nil {
-		if strings.Contains(err.Error(), "test not found") {
+		if errors.Is(err, domain.ErrTestNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(
 				dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
 			)
 		}
-		if strings.Contains(err.Error(), "access denied") {
+		if errors.Is(err, domain.ErrAccessDenied) {
 			return c.Status(fiber.StatusForbidden).JSON(
 				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
 			)
 		}
-		if strings.Contains(err.Error(), "no questions") {
+		if errors.Is(err, domain.ErrNoQuestions) {
 			return c.Status(fiber.StatusBadRequest).JSON(
 				dto.NewErrorResponse(dto.ErrCodeTestHasNoQuestions, "test has no questions"),
 			)
 		}
-		if strings.Contains(err.Error(), "unsupported export format") {
+		if errors.Is(err, domain.ErrUnsupportedExport) {
 			return c.Status(fiber.StatusBadRequest).JSON(
 				dto.NewErrorResponse(dto.ErrCodeInvalidInput, err.Error()),
 			)

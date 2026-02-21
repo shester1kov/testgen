@@ -1,6 +1,10 @@
 package handler
 
 import (
+	"github.com/shester1kov/testgen-backend/internal/domain"
+
+	"errors"
+
 	"strings"
 	"time"
 
@@ -93,7 +97,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 
 	result, err := h.registerUseCase.Execute(c.Context(), req)
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
+		if errors.Is(err, domain.ErrAlreadyExists) {
 			return c.Status(fiber.StatusConflict).JSON(
 				dto.NewErrorResponse(dto.ErrCodeUserExists, "User with this email already exists"),
 			)
@@ -134,7 +138,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	result, err := h.loginUseCase.Execute(c.Context(), req)
 	if err != nil {
-		if strings.Contains(err.Error(), "invalid email or password") {
+		if errors.Is(err, domain.ErrInvalidCredentials) {
 			return c.Status(fiber.StatusUnauthorized).JSON(
 				dto.NewErrorResponse(dto.ErrCodeInvalidCredentials, "Invalid email or password"),
 			)

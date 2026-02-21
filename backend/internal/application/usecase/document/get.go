@@ -3,6 +3,7 @@ package document
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
@@ -43,7 +44,7 @@ func (uc *GetUseCase) Execute(ctx context.Context, documentID uuid.UUID, userID 
 			zap.Error(err),
 			zap.String("document_id", documentID.String()),
 		)
-		return nil, fmt.Errorf("document not found: %w", err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrDocumentNotFound, err)
 	}
 
 	// Check if user is admin
@@ -60,7 +61,7 @@ func (uc *GetUseCase) Execute(ctx context.Context, documentID uuid.UUID, userID 
 			zap.String("owner_user_id", document.UserID.String()),
 			zap.Bool("is_admin", user.IsAdmin()),
 		)
-		return nil, fmt.Errorf("access denied: document belongs to another user")
+		return nil, domain.ErrAccessDenied
 	}
 
 	uc.logger.Info("Document retrieved successfully",

@@ -68,15 +68,15 @@ const (
 	ErrCodeDocumentNotParsed = "DOCUMENT_NOT_PARSED"
 
 	// Test errors
-	ErrCodeTestNotFound        = "TEST_NOT_FOUND"
-	ErrCodeInvalidTestID       = "INVALID_TEST_ID"
-	ErrCodeGenerationFailed    = "GENERATION_FAILED"
-	ErrCodeExportFailed        = "EXPORT_FAILED"
-	ErrCodeInvalidProvider     = "INVALID_PROVIDER"
-	ErrCodeTestHasNoQuestions  = "TEST_HAS_NO_QUESTIONS"
-	ErrCodeMoodleSyncFailed    = "MOODLE_SYNC_FAILED"
-	ErrCodeMoodleUploadFailed  = "MOODLE_UPLOAD_FAILED"
-	ErrCodeMoodleNotConnected  = "MOODLE_NOT_CONNECTED"
+	ErrCodeTestNotFound       = "TEST_NOT_FOUND"
+	ErrCodeInvalidTestID      = "INVALID_TEST_ID"
+	ErrCodeGenerationFailed   = "GENERATION_FAILED"
+	ErrCodeExportFailed       = "EXPORT_FAILED"
+	ErrCodeInvalidProvider    = "INVALID_PROVIDER"
+	ErrCodeTestHasNoQuestions = "TEST_HAS_NO_QUESTIONS"
+	ErrCodeMoodleSyncFailed   = "MOODLE_SYNC_FAILED"
+	ErrCodeMoodleUploadFailed = "MOODLE_UPLOAD_FAILED"
+	ErrCodeMoodleNotConnected = "MOODLE_NOT_CONNECTED"
 
 	// Pagination errors
 	ErrCodeInvalidLimit  = "INVALID_LIMIT"

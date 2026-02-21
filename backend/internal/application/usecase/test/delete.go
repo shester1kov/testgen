@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
@@ -26,7 +27,7 @@ func NewDeleteUseCase(testRepo repository.TestRepository, userRepo repository.Us
 func (uc *DeleteUseCase) Execute(ctx context.Context, testID uuid.UUID, userID uuid.UUID) error {
 	test, err := uc.testRepo.FindByID(ctx, testID)
 	if err != nil {
-		return fmt.Errorf("test not found: %w", err)
+		return fmt.Errorf("%w: %v", domain.ErrTestNotFound, err)
 	}
 
 	user, err := uc.userRepo.FindByID(ctx, userID)
@@ -35,7 +36,7 @@ func (uc *DeleteUseCase) Execute(ctx context.Context, testID uuid.UUID, userID u
 	}
 
 	if test.UserID != userID && !user.IsAdmin() {
-		return fmt.Errorf("test not found")
+		return domain.ErrTestNotFound
 	}
 
 	if err := uc.testRepo.Delete(ctx, testID); err != nil {

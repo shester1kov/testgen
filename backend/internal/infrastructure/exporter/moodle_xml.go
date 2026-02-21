@@ -10,24 +10,24 @@ import (
 
 // MoodleQuiz represents the root element of Moodle XML
 type MoodleQuiz struct {
-	XMLName   xml.Name        `xml:"quiz"`
+	XMLName   xml.Name         `xml:"quiz"`
 	Questions []MoodleQuestion `xml:"question"`
 }
 
 // MoodleQuestion represents a Moodle question
 type MoodleQuestion struct {
-	Type              string        `xml:"type,attr"`
-	Name              MoodleName    `xml:"name"`
-	QuestionText      MoodleText    `xml:"questiontext"`
-	GeneralFeedback   MoodleText    `xml:"generalfeedback"`
-	DefaultGrade      float64       `xml:"defaultgrade"`
-	Penalty           float64       `xml:"penalty"`
-	Hidden            int           `xml:"hidden"`
-	Single            *bool         `xml:"single,omitempty"`
-	ShuffleAnswers    *bool         `xml:"shuffleanswers,omitempty"`
-	AnswerNumbering   *string       `xml:"answernumbering,omitempty"`
-	CorrectFeedback   *MoodleText   `xml:"correctfeedback,omitempty"`
-	IncorrectFeedback *MoodleText   `xml:"incorrectfeedback,omitempty"`
+	Type              string         `xml:"type,attr"`
+	Name              MoodleName     `xml:"name"`
+	QuestionText      MoodleText     `xml:"questiontext"`
+	GeneralFeedback   MoodleText     `xml:"generalfeedback"`
+	DefaultGrade      float64        `xml:"defaultgrade"`
+	Penalty           float64        `xml:"penalty"`
+	Hidden            int            `xml:"hidden"`
+	Single            *bool          `xml:"single,omitempty"`
+	ShuffleAnswers    *bool          `xml:"shuffleanswers,omitempty"`
+	AnswerNumbering   *string        `xml:"answernumbering,omitempty"`
+	CorrectFeedback   *MoodleText    `xml:"correctfeedback,omitempty"`
+	IncorrectFeedback *MoodleText    `xml:"incorrectfeedback,omitempty"`
 	Answers           []MoodleAnswer `xml:"answer,omitempty"`
 }
 

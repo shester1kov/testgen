@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,7 +38,7 @@ func NewGetUseCase(
 func (uc *GetUseCase) Execute(ctx context.Context, testID uuid.UUID, userID uuid.UUID) (*dto.TestResponse, error) {
 	test, err := uc.testRepo.FindByID(ctx, testID)
 	if err != nil {
-		return nil, fmt.Errorf("test not found: %w", err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrTestNotFound, err)
 	}
 
 	user, err := uc.userRepo.FindByID(ctx, userID)
@@ -46,7 +47,7 @@ func (uc *GetUseCase) Execute(ctx context.Context, testID uuid.UUID, userID uuid
 	}
 
 	if test.UserID != userID && !user.IsAdmin() {
-		return nil, fmt.Errorf("test not found")
+		return nil, domain.ErrTestNotFound
 	}
 
 	questions, err := uc.questionRepo.FindByTestID(ctx, testID)

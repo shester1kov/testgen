@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"github.com/shester1kov/testgen-backend/internal/domain"
+
+	"errors"
+
 	"strconv"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -100,17 +103,17 @@ func (h *UserHandler) UpdateUserRole(c *fiber.Ctx) error {
 
 	result, err := h.updateRoleUseCase.Execute(c.Context(), userID, req.RoleName)
 	if err != nil {
-		if strings.Contains(err.Error(), "invalid role name") {
+		if errors.Is(err, domain.ErrInvalidRoleName) {
 			return c.Status(fiber.StatusBadRequest).JSON(
 				dto.NewErrorResponse(dto.ErrCodeInvalidRole, "invalid role name"),
 			)
 		}
-		if strings.Contains(err.Error(), "user not found") {
+		if errors.Is(err, domain.ErrUserNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(
 				dto.NewErrorResponse(dto.ErrCodeUserNotFound, "user not found"),
 			)
 		}
-		if strings.Contains(err.Error(), "role not found") {
+		if errors.Is(err, domain.ErrRoleNotFound) {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				dto.NewErrorResponse(dto.ErrCodeRoleNotFound, "role not found in database"),
 			)

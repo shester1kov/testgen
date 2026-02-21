@@ -17,11 +17,11 @@ const (
 
 // GenerationParams holds parameters for question generation
 type GenerationParams struct {
-	Text           string
-	NumQuestions   int
-	QuestionTypes  []QuestionType
-	Difficulty     string
-	Language       string
+	Text          string
+	NumQuestions  int
+	QuestionTypes []QuestionType
+	Difficulty    string
+	Language      string
 }
 
 // GeneratedQuestion represents a generated question with answers

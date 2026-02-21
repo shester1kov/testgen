@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 	"time"
 
 	"github.com/google/uuid"
@@ -52,7 +53,7 @@ func (uc *UpdateQuestionUseCase) Execute(ctx context.Context, params UpdateQuest
 	// Verify test ownership
 	test, err := uc.testRepo.FindByID(ctx, params.TestID)
 	if err != nil {
-		return nil, fmt.Errorf("test not found: %w", err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrTestNotFound, err)
 	}
 
 	user, err := uc.userRepo.FindByID(ctx, params.UserID)
@@ -61,13 +62,13 @@ func (uc *UpdateQuestionUseCase) Execute(ctx context.Context, params UpdateQuest
 	}
 
 	if test.UserID != params.UserID && !user.IsAdmin() {
-		return nil, fmt.Errorf("access denied")
+		return nil, domain.ErrAccessDenied
 	}
 
 	// Check if question belongs to test
 	question, err := uc.questionRepo.FindByID(ctx, params.QuestionID)
 	if err != nil || question.TestID != params.TestID {
-		return nil, fmt.Errorf("question not found")
+		return nil, domain.ErrQuestionNotFound
 	}
 
 	// Sanitize and validate

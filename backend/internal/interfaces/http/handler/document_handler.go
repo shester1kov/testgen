@@ -1,6 +1,10 @@
 package handler
 
 import (
+	"github.com/shester1kov/testgen-backend/internal/domain"
+
+	"errors"
+
 	"path/filepath"
 	"strings"
 
@@ -113,13 +117,13 @@ func (h *DocumentHandler) Upload(c *fiber.Ctx) error {
 	if err != nil {
 		// Use case вернет ошибку с описанием (размер, тип, БД, MinIO)
 		// Определяем тип ошибки для правильного HTTP статуса
-		if strings.Contains(err.Error(), "file size exceeds") {
+		if errors.Is(err, domain.ErrFileSizeExceeds) {
 			return c.Status(fiber.StatusBadRequest).JSON(
 				dto.NewErrorResponse(dto.ErrCodeFileTooLarge, err.Error()),
 			)
 		}
 
-		if strings.Contains(err.Error(), "unsupported file type") {
+		if errors.Is(err, domain.ErrUnsupportedFileType) {
 			return c.Status(fiber.StatusBadRequest).JSON(
 				dto.NewErrorResponse(dto.ErrCodeInvalidFileType, err.Error()),
 			)
@@ -163,19 +167,19 @@ func (h *DocumentHandler) List(c *fiber.Ctx) error {
 	response, err := h.listUseCase.Execute(c.Context(), userID, page, pageSize)
 
 	if err != nil {
-		if strings.Contains(err.Error(), "failed to fetch user") {
+		if errors.Is(err, domain.ErrUserNotFound) {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch user"),
 			)
 		}
 
-		if strings.Contains(err.Error(), "failed to fetch documents") {
+		if errors.Is(err, domain.ErrDocumentNotFound) {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch documents"),
 			)
 		}
 
-		if strings.Contains(err.Error(), "failed to count documents") {
+		if errors.Is(err, domain.ErrDocumentNotFound) {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to count documents"),
 			)
@@ -220,15 +224,15 @@ func (h *DocumentHandler) GetByID(c *fiber.Ctx) error {
 	// Get document WITHOUT parsed text (avoid large response)
 	response, err := h.getUseCase.Execute(c.Context(), documentID, userID, false)
 	if err != nil {
-		if strings.Contains(err.Error(), "access denied") {
+		if errors.Is(err, domain.ErrAccessDenied) {
 			return c.Status(fiber.StatusForbidden).JSON(
 				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
 			)
 		}
 
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, domain.ErrDocumentNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "not found"),
+				dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "document not found"),
 			)
 		}
 
@@ -274,13 +278,13 @@ func (h *DocumentHandler) Delete(c *fiber.Ctx) error {
 	// 3. Вызвать use case (вся логика внутри)
 	if err := h.deleteUseCase.Execute(c.Context(), documentID, userID); err != nil {
 		// Определяем тип ошибки
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, domain.ErrDocumentNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(
 				dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "document not found"),
 			)
 		}
 
-		if strings.Contains(err.Error(), "access denied") {
+		if errors.Is(err, domain.ErrAccessDenied) {
 			return c.Status(fiber.StatusForbidden).JSON(
 				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
 			)
@@ -332,19 +336,19 @@ func (h *DocumentHandler) Parse(c *fiber.Ctx) error {
 	if err := h.parseUseCase.Execute(c.Context(), documentID, userID); err != nil {
 		// Определяем тип ошибки
 
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, domain.ErrDocumentNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(
 				dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "document not found"),
 			)
 		}
 
-		if strings.Contains(err.Error(), "unauthorized") {
+		if errors.Is(err, domain.ErrUnauthorized) {
 			return c.Status(fiber.StatusForbidden).JSON(
 				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
 			)
 		}
 
-		if strings.Contains(err.Error(), "already parsed") {
+		if errors.Is(err, domain.ErrAlreadyParsed) {
 			return c.Status(fiber.StatusBadRequest).JSON(
 				dto.NewErrorResponse(dto.ErrCodeInvalidInput, "document already parsed"),
 			)

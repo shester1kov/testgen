@@ -61,8 +61,8 @@ func TestDocument_GetContentType(t *testing.T) {
 
 	t.Run("Determines content type by file type if not set", func(t *testing.T) {
 		tests := []struct {
-			fileType    FileType
-			expectedCT  string
+			fileType   FileType
+			expectedCT string
 		}{
 			{FileTypePDF, "application/pdf"},
 			{FileTypeDOCX, "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},

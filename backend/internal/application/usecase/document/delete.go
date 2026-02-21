@@ -3,6 +3,7 @@ package document
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
@@ -56,7 +57,7 @@ func (uc *DeleteUseCase) Execute(ctx context.Context, documentID uuid.UUID, user
 			zap.Error(err),
 			zap.String("document_id", documentID.String()),
 		)
-		return fmt.Errorf("document not found: %w", err)
+		return fmt.Errorf("%w: %v", domain.ErrDocumentNotFound, err)
 	}
 
 	user, err := uc.userRepo.FindByID(ctx, userID)
@@ -72,7 +73,7 @@ func (uc *DeleteUseCase) Execute(ctx context.Context, documentID uuid.UUID, user
 			zap.String("document_id", documentID.String()),
 			zap.String("requesting_user_id", userID.String()),
 		)
-		return fmt.Errorf("access denied: document belongs to another user")
+		return domain.ErrAccessDenied
 	}
 
 	// Удаляем файл из MinIO ПЕРЕД удалением из БД

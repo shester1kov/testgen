@@ -41,15 +41,15 @@ type UploadQuizRequest struct {
 
 // UploadQuizResponse represents quiz upload response
 type UploadQuizResponse struct {
-	QuizID           string `json:"quiz_id"` // Empty for question-only import
-	CourseID         string `json:"course_id"`
-	CategoryID       string `json:"category_id"`
-	CategoryName     string `json:"category_name"`
-	QuestionsImported int   `json:"questions_imported"`
-	QuestionBankURL  string `json:"question_bank_url"`
-	Note             string `json:"note"`
-	Success          bool   `json:"success"`
-	Message          string `json:"message"`
+	QuizID            string `json:"quiz_id"` // Empty for question-only import
+	CourseID          string `json:"course_id"`
+	CategoryID        string `json:"category_id"`
+	CategoryName      string `json:"category_name"`
+	QuestionsImported int    `json:"questions_imported"`
+	QuestionBankURL   string `json:"question_bank_url"`
+	Note              string `json:"note"`
+	Success           bool   `json:"success"`
+	Message           string `json:"message"`
 }
 
 // UploadQuiz uploads a quiz to Moodle using custom import endpoint

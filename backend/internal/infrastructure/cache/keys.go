@@ -10,19 +10,19 @@ import (
 // Cache key prefixes and TTL constants
 const (
 	// Key prefixes
-	UserByIDPrefix    = "user:id:"
-	UserByEmailPrefix = "user:email:"
-	DocumentByIDPrefix = "document:id:"
+	UserByIDPrefix        = "user:id:"
+	UserByEmailPrefix     = "user:email:"
+	DocumentByIDPrefix    = "document:id:"
 	DocumentsByUserPrefix = "documents:user:"
-	TestByIDPrefix = "test:id:"
-	TestsByUserPrefix = "tests:user:"
+	TestByIDPrefix        = "test:id:"
+	TestsByUserPrefix     = "tests:user:"
 	QuestionsByTestPrefix = "questions:test:"
 
 	// TTL values
-	UserTTL         = 30 * time.Minute
-	DocumentTTL     = 1 * time.Hour
-	TestTTL         = 30 * time.Minute
-	QuestionsTTL    = 1 * time.Hour
+	UserTTL      = 30 * time.Minute
+	DocumentTTL  = 1 * time.Hour
+	TestTTL      = 30 * time.Minute
+	QuestionsTTL = 1 * time.Hour
 )
 
 // Key builders for type safety

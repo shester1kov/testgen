@@ -17,11 +17,11 @@ const (
 
 // Role represents a user role in the system
 type Role struct {
-	ID          uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	Name        RoleName   `json:"name" gorm:"type:varchar(50);uniqueIndex;not null"`
-	Description string     `json:"description" gorm:"type:text"`
-	CreatedAt   time.Time  `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt   time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
+	ID          uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	Name        RoleName  `json:"name" gorm:"type:varchar(50);uniqueIndex;not null"`
+	Description string    `json:"description" gorm:"type:text"`
+	CreatedAt   time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt   time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
 // TableName specifies the table name for GORM

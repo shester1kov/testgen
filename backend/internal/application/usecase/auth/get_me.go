@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
@@ -25,7 +26,7 @@ func NewGetMeUseCase(userRepo repository.UserRepository) *GetMeUseCase {
 func (uc *GetMeUseCase) Execute(ctx context.Context, userID uuid.UUID) (*dto.UserDTO, error) {
 	user, err := uc.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("user not found: %w", err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrUserNotFound, err)
 	}
 
 	return &dto.UserDTO{

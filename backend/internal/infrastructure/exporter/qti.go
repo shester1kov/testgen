@@ -14,28 +14,28 @@ import (
 
 // QTIAssessment represents the root element
 type QTIAssessment struct {
-	XMLName          xml.Name           `xml:"assessmentTest"`
-	Xmlns            string             `xml:"xmlns,attr"`
-	XmlnsXsi         string             `xml:"xmlns:xsi,attr"`
-	Identifier       string             `xml:"identifier,attr"`
-	Title            string             `xml:"title,attr"`
-	TestParts        []QTITestPart      `xml:"testPart"`
+	XMLName    xml.Name      `xml:"assessmentTest"`
+	Xmlns      string        `xml:"xmlns,attr"`
+	XmlnsXsi   string        `xml:"xmlns:xsi,attr"`
+	Identifier string        `xml:"identifier,attr"`
+	Title      string        `xml:"title,attr"`
+	TestParts  []QTITestPart `xml:"testPart"`
 }
 
 // QTITestPart represents a test part
 type QTITestPart struct {
-	Identifier       string              `xml:"identifier,attr"`
-	NavigationMode   string              `xml:"navigationMode,attr"`
-	SubmissionMode   string              `xml:"submissionMode,attr"`
-	AssessmentSections []QTISection      `xml:"assessmentSection"`
+	Identifier         string       `xml:"identifier,attr"`
+	NavigationMode     string       `xml:"navigationMode,attr"`
+	SubmissionMode     string       `xml:"submissionMode,attr"`
+	AssessmentSections []QTISection `xml:"assessmentSection"`
 }
 
 // QTISection represents an assessment section
 type QTISection struct {
-	Identifier string          `xml:"identifier,attr"`
-	Title      string          `xml:"title,attr"`
-	Visible    string          `xml:"visible,attr"`
-	Items      []QTIItemRef    `xml:"assessmentItemRef"`
+	Identifier string       `xml:"identifier,attr"`
+	Title      string       `xml:"title,attr"`
+	Visible    string       `xml:"visible,attr"`
+	Items      []QTIItemRef `xml:"assessmentItemRef"`
 }
 
 // QTIItemRef references an assessment item
@@ -46,24 +46,24 @@ type QTIItemRef struct {
 
 // QTIItem represents a single assessment item (question)
 type QTIItem struct {
-	XMLName          xml.Name              `xml:"assessmentItem"`
-	Xmlns            string                `xml:"xmlns,attr"`
-	Identifier       string                `xml:"identifier,attr"`
-	Title            string                `xml:"title,attr"`
-	Adaptive         string                `xml:"adaptive,attr"`
-	TimeDependent    string                `xml:"timeDependent,attr"`
-	ResponseDecl     []QTIResponseDecl     `xml:"responseDeclaration"`
-	OutcomeDecl      []QTIOutcomeDecl      `xml:"outcomeDeclaration"`
-	ItemBody         QTIItemBody           `xml:"itemBody"`
-	ResponseProc     *QTIResponseProcessing `xml:"responseProcessing,omitempty"`
+	XMLName       xml.Name               `xml:"assessmentItem"`
+	Xmlns         string                 `xml:"xmlns,attr"`
+	Identifier    string                 `xml:"identifier,attr"`
+	Title         string                 `xml:"title,attr"`
+	Adaptive      string                 `xml:"adaptive,attr"`
+	TimeDependent string                 `xml:"timeDependent,attr"`
+	ResponseDecl  []QTIResponseDecl      `xml:"responseDeclaration"`
+	OutcomeDecl   []QTIOutcomeDecl       `xml:"outcomeDeclaration"`
+	ItemBody      QTIItemBody            `xml:"itemBody"`
+	ResponseProc  *QTIResponseProcessing `xml:"responseProcessing,omitempty"`
 }
 
 // QTIResponseDecl declares response variables
 type QTIResponseDecl struct {
-	Identifier   string          `xml:"identifier,attr"`
-	Cardinality  string          `xml:"cardinality,attr"`
-	BaseType     string          `xml:"baseType,attr"`
-	CorrectResp  *QTICorrectResp `xml:"correctResponse,omitempty"`
+	Identifier  string          `xml:"identifier,attr"`
+	Cardinality string          `xml:"cardinality,attr"`
+	BaseType    string          `xml:"baseType,attr"`
+	CorrectResp *QTICorrectResp `xml:"correctResponse,omitempty"`
 }
 
 // QTICorrectResp contains correct response values
@@ -78,10 +78,10 @@ type QTIValue struct {
 
 // QTIOutcomeDecl declares outcome variables
 type QTIOutcomeDecl struct {
-	Identifier   string     `xml:"identifier,attr"`
-	Cardinality  string     `xml:"cardinality,attr"`
-	BaseType     string     `xml:"baseType,attr"`
-	DefaultValue *QTIValue  `xml:"defaultValue>value,omitempty"`
+	Identifier   string    `xml:"identifier,attr"`
+	Cardinality  string    `xml:"cardinality,attr"`
+	BaseType     string    `xml:"baseType,attr"`
+	DefaultValue *QTIValue `xml:"defaultValue>value,omitempty"`
 }
 
 // QTIItemBody contains the question content

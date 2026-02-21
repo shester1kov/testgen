@@ -6,6 +6,8 @@ import (
 	"io"
 	"path/filepath"
 
+	"github.com/shester1kov/testgen-backend/internal/domain"
+
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
@@ -61,13 +63,13 @@ func (uc *UploadUseCase) Execute(ctx context.Context, params UploadParams) (*ent
 			zap.Int64("size", params.FileSize),
 			zap.Int64("max_size", uc.maxFileSize),
 		)
-		return nil, fmt.Errorf("file size exceeds maximum allowed size of %d bytes", uc.maxFileSize)
+		return nil, fmt.Errorf("%w: maximum allowed size of %d bytes", domain.ErrFileSizeExceeds, uc.maxFileSize)
 	}
 
 	// Validate file type
 	validTypes := map[string]bool{"pdf": true, "docx": true, "pptx": true, "txt": true, "md": true}
 	if !validTypes[params.FileType] {
-		return nil, fmt.Errorf("unsupported file type: %s", params.FileType)
+		return nil, fmt.Errorf("%w: %s", domain.ErrUnsupportedFileType, params.FileType)
 	}
 
 	// Определяем Content-Type для MinIO

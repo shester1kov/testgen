@@ -7,8 +7,8 @@ type UpdateUserRoleRequest struct {
 
 // UserListResponse represents paginated user list response
 type UserListResponse struct {
-	Users      []UserDTO `json:"users"`
-	Total      int64     `json:"total"`
-	Limit      int       `json:"limit"`
-	Offset     int       `json:"offset"`
+	Users  []UserDTO `json:"users"`
+	Total  int64     `json:"total"`
+	Limit  int       `json:"limit"`
+	Offset int       `json:"offset"`
 }

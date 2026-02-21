@@ -15,8 +15,8 @@ type LoginRequest struct {
 
 // AuthResponse represents authentication response
 type AuthResponse struct {
-	Token string    `json:"token"`
-	User  UserDTO   `json:"user"`
+	Token string  `json:"token"`
+	User  UserDTO `json:"user"`
 }
 
 // UserDTO represents user data transfer object

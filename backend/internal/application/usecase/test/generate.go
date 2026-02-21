@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/shester1kov/testgen-backend/internal/domain"
+
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
@@ -47,7 +49,7 @@ type GenerateParams struct {
 	UserID       uuid.UUID
 	DocumentID   uuid.UUID
 	Title        string
-	NumQuestions  int
+	NumQuestions int
 	Difficulty   string
 	LLMProvider  string
 }
@@ -57,7 +59,7 @@ func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (
 	// Get document
 	document, err := uc.documentRepo.FindByID(ctx, params.DocumentID)
 	if err != nil {
-		return nil, fmt.Errorf("document not found: %w", err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrDocumentNotFound, err)
 	}
 
 	// Check access: admin sees all, others only own documents
@@ -72,7 +74,7 @@ func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (
 
 	// Check if document is parsed
 	if !document.IsParsed() {
-		return nil, fmt.Errorf("document not parsed yet")
+		return nil, domain.ErrNotParsedYet
 	}
 
 	// Default provider
@@ -84,7 +86,7 @@ func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (
 	// Create LLM strategy
 	strategy, err := uc.llmFactory.CreateStrategy(provider)
 	if err != nil {
-		return nil, fmt.Errorf("invalid LLM provider: %w", err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrInvalidLLMProvider, err)
 	}
 
 	// Generate questions via LLM

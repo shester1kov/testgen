@@ -4,11 +4,11 @@ import "fmt"
 
 // LLMFactory creates LLM strategies based on provider name
 type LLMFactory struct {
-	perplexityKey   string
-	openaiKey       string
-	yandexKey       string
-	yandexFolderID  string
-	yandexModel     string
+	perplexityKey  string
+	openaiKey      string
+	yandexKey      string
+	yandexFolderID string
+	yandexModel    string
 }
 
 // NewLLMFactory creates a new LLM factory

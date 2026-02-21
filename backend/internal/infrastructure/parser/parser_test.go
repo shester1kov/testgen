@@ -39,12 +39,12 @@ func TestDocumentParserFactory_CreateParser_UnsupportedType(t *testing.T) {
 		"zip",
 		"unknown",
 		"",
-		"PDF",     // case sensitive
-		" pdf",    // with whitespace
-		"pdf ",    // trailing whitespace
-		"doc",     // old format
-		"xls",     // Excel
-		"xlsx",    // Excel
+		"PDF",  // case sensitive
+		" pdf", // with whitespace
+		"pdf ", // trailing whitespace
+		"doc",  // old format
+		"xls",  // Excel
+		"xlsx", // Excel
 		"csv",
 	}
 

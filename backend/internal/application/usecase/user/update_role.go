@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,19 +31,19 @@ func (uc *UpdateRoleUseCase) Execute(ctx context.Context, userID uuid.UUID, role
 	// Validate role name
 	rn := entity.RoleName(roleName)
 	if rn != entity.RoleNameAdmin && rn != entity.RoleNameTeacher && rn != entity.RoleNameStudent {
-		return nil, fmt.Errorf("invalid role name: %s", roleName)
+		return nil, fmt.Errorf("%w: %s", domain.ErrInvalidRoleName, roleName)
 	}
 
 	// Find user
 	user, err := uc.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("user not found: %w", err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrUserNotFound, err)
 	}
 
 	// Find role by name
 	role, err := uc.roleRepo.FindByName(ctx, rn)
 	if err != nil {
-		return nil, fmt.Errorf("role not found: %w", err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrRoleNotFound, err)
 	}
 
 	// Update user role

@@ -15,16 +15,16 @@ type UpdateTestRequest struct {
 
 // UpdateQuestionRequest represents question update request
 type UpdateQuestionRequest struct {
-	QuestionText string              `json:"question_text" validate:"omitempty,min=3"`
-	QuestionType string              `json:"question_type" validate:"omitempty,oneof=single_choice multiple_choice true_false short_answer"`
-	Difficulty   string              `json:"difficulty" validate:"omitempty,oneof=easy medium hard"`
-	Points       *float64            `json:"points" validate:"omitempty,gt=0"`
+	QuestionText string                `json:"question_text" validate:"omitempty,min=3"`
+	QuestionType string                `json:"question_type" validate:"omitempty,oneof=single_choice multiple_choice true_false short_answer"`
+	Difficulty   string                `json:"difficulty" validate:"omitempty,oneof=easy medium hard"`
+	Points       *float64              `json:"points" validate:"omitempty,gt=0"`
 	Answers      []UpdateAnswerRequest `json:"answers"`
 }
 
 // UpdateAnswerRequest represents answer update request
 type UpdateAnswerRequest struct {
-	ID         *string `json:"id"`          // If nil, create new answer
+	ID         *string `json:"id"` // If nil, create new answer
 	AnswerText string  `json:"answer_text" validate:"required"`
 	IsCorrect  bool    `json:"is_correct"`
 	OrderNum   int     `json:"order_num"`
@@ -42,17 +42,17 @@ type GenerateTestRequest struct {
 
 // TestResponse represents test response
 type TestResponse struct {
-	ID             string          `json:"id"`
-	UserID         string          `json:"user_id"`
-	UserName       *string         `json:"user_name,omitempty"`  // Only for admin
-	UserEmail      *string         `json:"user_email,omitempty"` // Only for admin
-	Title          string          `json:"title"`
-	Description    string          `json:"description"`
-	TotalQuestions int             `json:"total_questions"`
-	Status         string          `json:"status"`
-	MoodleSynced   bool            `json:"moodle_synced"`
-	CreatedAt      string          `json:"created_at"`
-	Questions      []QuestionDTO   `json:"questions,omitempty"`
+	ID             string        `json:"id"`
+	UserID         string        `json:"user_id"`
+	UserName       *string       `json:"user_name,omitempty"`  // Only for admin
+	UserEmail      *string       `json:"user_email,omitempty"` // Only for admin
+	Title          string        `json:"title"`
+	Description    string        `json:"description"`
+	TotalQuestions int           `json:"total_questions"`
+	Status         string        `json:"status"`
+	MoodleSynced   bool          `json:"moodle_synced"`
+	CreatedAt      string        `json:"created_at"`
+	Questions      []QuestionDTO `json:"questions,omitempty"`
 }
 
 // QuestionDTO represents question data
@@ -108,8 +108,8 @@ type MoodleCoursesResponse struct {
 
 // MoodleCourse represents a Moodle course
 type MoodleCourse struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
 	ShortName string `json:"short_name,omitempty"`
 }
 

@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,7 +38,7 @@ type UpdateParams struct {
 func (uc *UpdateUseCase) Execute(ctx context.Context, params UpdateParams) (*dto.TestResponse, error) {
 	test, err := uc.testRepo.FindByID(ctx, params.TestID)
 	if err != nil {
-		return nil, fmt.Errorf("test not found: %w", err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrTestNotFound, err)
 	}
 
 	user, err := uc.userRepo.FindByID(ctx, params.UserID)
@@ -46,7 +47,7 @@ func (uc *UpdateUseCase) Execute(ctx context.Context, params UpdateParams) (*dto
 	}
 
 	if test.UserID != params.UserID && !user.IsAdmin() {
-		return nil, fmt.Errorf("access denied")
+		return nil, domain.ErrAccessDenied
 	}
 
 	sanitizedTitle := security.SanitizeInput(params.Title)

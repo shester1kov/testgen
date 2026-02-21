@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
@@ -38,12 +39,12 @@ func (uc *ExportMoodleUseCase) Execute(ctx context.Context, testID uuid.UUID, us
 	// Get test
 	test, err := uc.testRepo.FindByID(ctx, testID)
 	if err != nil {
-		return "", fmt.Errorf("test not found: %w", err)
+		return "", fmt.Errorf("%w: %v", domain.ErrTestNotFound, err)
 	}
 
 	// Verify ownership
 	if test.UserID != userID {
-		return "", fmt.Errorf("unauthorized access to test")
+		return "", domain.ErrUnauthorized
 	}
 
 	// Get questions

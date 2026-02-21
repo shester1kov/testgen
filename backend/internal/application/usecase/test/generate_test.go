@@ -115,7 +115,7 @@ func TestGenerateUseCase_Execute(t *testing.T) {
 			}},
 			userRepo:    defaultUserRepo,
 			params:      GenerateParams{UserID: userID, DocumentID: documentID, NumQuestions: 1},
-			expectedErr: "document not parsed",
+			expectedErr: "not parsed yet",
 		},
 		{
 			name: "errors on unknown LLM provider",

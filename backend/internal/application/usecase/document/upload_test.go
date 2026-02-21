@@ -200,7 +200,7 @@ func TestUploadUseCase_Execute_FileTooLarge(t *testing.T) {
 	_, err := uc.Execute(ctx, params)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "file size exceeds maximum")
+	assert.Contains(t, err.Error(), "file size exceeds limit")
 
 	// Storage and repo should not be called
 	mockStorage.AssertNotCalled(t, "Upload")

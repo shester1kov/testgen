@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 	"strings"
 
 	"github.com/google/uuid"
@@ -39,7 +40,7 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, req dto.RegisterRequest)
 	// Check if user already exists
 	existingUser, err := uc.userRepo.FindByEmail(ctx, sanitizedEmail)
 	if err == nil && existingUser != nil {
-		return nil, fmt.Errorf("user with email %s already exists", sanitizedEmail)
+		return nil, domain.ErrAlreadyExists
 	}
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, fmt.Errorf("failed to check existing user: %w", err)

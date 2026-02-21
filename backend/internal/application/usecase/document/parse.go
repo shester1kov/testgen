@@ -3,6 +3,7 @@ package document
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
@@ -56,7 +57,7 @@ func (uc *ParseUseCase) Execute(
 			zap.Error(err),
 			zap.String("document_id", documentID.String()),
 		)
-		return fmt.Errorf("document not found: %w", err)
+		return fmt.Errorf("%w: %v", domain.ErrDocumentNotFound, err)
 	}
 
 	user, err := uc.userRepo.FindByID(ctx, userID)
@@ -71,7 +72,7 @@ func (uc *ParseUseCase) Execute(
 			zap.String("requesting_user_id", userID.String()),
 			zap.String("owner_user_id", document.UserID.String()),
 		)
-		return fmt.Errorf("unauthorized access to document")
+		return domain.ErrUnauthorized
 	}
 
 	// Check if already parsed
@@ -79,7 +80,7 @@ func (uc *ParseUseCase) Execute(
 		uc.logger.Warn("Document already parsed",
 			zap.String("document_id", documentID.String()),
 		)
-		return fmt.Errorf("document already parsed")
+		return domain.ErrAlreadyParsed
 	}
 
 	// Mark as parsing

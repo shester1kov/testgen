@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"github.com/shester1kov/testgen-backend/internal/domain"
 
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/domain/entity"
@@ -48,7 +49,7 @@ type ExportResult struct {
 func (uc *ExportUseCase) Execute(ctx context.Context, testID uuid.UUID, userID uuid.UUID, format string) (*ExportResult, error) {
 	test, err := uc.testRepo.FindByID(ctx, testID)
 	if err != nil {
-		return nil, fmt.Errorf("test not found: %w", err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrTestNotFound, err)
 	}
 
 	user, err := uc.userRepo.FindByID(ctx, userID)
@@ -57,7 +58,7 @@ func (uc *ExportUseCase) Execute(ctx context.Context, testID uuid.UUID, userID u
 	}
 
 	if test.UserID != userID && !user.IsAdmin() {
-		return nil, fmt.Errorf("access denied")
+		return nil, domain.ErrAccessDenied
 	}
 
 	questions, err := uc.questionRepo.FindByTestID(ctx, testID)
@@ -80,7 +81,7 @@ func (uc *ExportUseCase) Execute(ctx context.Context, testID uuid.UUID, userID u
 
 	exp, err := uc.exporterFactory.GetExporter(exporter.ExportFormat(format))
 	if err != nil {
-		return nil, fmt.Errorf("unsupported export format: %s", format)
+		return nil, fmt.Errorf("%w: %s", domain.ErrUnsupportedExport, format)
 	}
 
 	result, err := exp.Export(test, questions, answersMap)
