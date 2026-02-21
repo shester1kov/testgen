@@ -1,41 +1,34 @@
 package handler
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
-	"github.com/shester1kov/testgen-backend/internal/domain/entity"
-	"github.com/shester1kov/testgen-backend/internal/domain/repository"
-	"github.com/shester1kov/testgen-backend/internal/infrastructure/exporter"
-	"github.com/shester1kov/testgen-backend/internal/infrastructure/moodle"
-	"github.com/shester1kov/testgen-backend/pkg/security"
+	moodleuc "github.com/shester1kov/testgen-backend/internal/application/usecase/moodle"
 )
 
 // MoodleHandler handles Moodle integration operations
 type MoodleHandler struct {
-	testRepo        repository.TestRepository
-	questionRepo    repository.QuestionRepository
-	answerRepo      repository.AnswerRepository
-	exporterFactory *exporter.ExporterFactory
-	moodleClient    *moodle.Client
+	exportXMLUseCase          *moodleuc.ExportXMLUseCase
+	syncUseCase               *moodleuc.SyncUseCase
+	getCoursesUseCase         *moodleuc.GetCoursesUseCase
+	validateConnectionUseCase *moodleuc.ValidateConnectionUseCase
 }
 
 // NewMoodleHandler creates a new Moodle handler
 func NewMoodleHandler(
-	testRepo repository.TestRepository,
-	questionRepo repository.QuestionRepository,
-	answerRepo repository.AnswerRepository,
-	exporterFactory *exporter.ExporterFactory,
-	moodleClient *moodle.Client,
+	exportXMLUseCase *moodleuc.ExportXMLUseCase,
+	syncUseCase *moodleuc.SyncUseCase,
+	getCoursesUseCase *moodleuc.GetCoursesUseCase,
+	validateConnectionUseCase *moodleuc.ValidateConnectionUseCase,
 ) *MoodleHandler {
 	return &MoodleHandler{
-		testRepo:        testRepo,
-		questionRepo:    questionRepo,
-		answerRepo:      answerRepo,
-		exporterFactory: exporterFactory,
-		moodleClient:    moodleClient,
+		exportXMLUseCase:          exportXMLUseCase,
+		syncUseCase:               syncUseCase,
+		getCoursesUseCase:         getCoursesUseCase,
+		validateConnectionUseCase: validateConnectionUseCase,
 	}
 }
 
@@ -66,58 +59,25 @@ func (h *MoodleHandler) ExportToXML(c *fiber.Ctx) error {
 		)
 	}
 
-	// Get test
-	test, err := h.testRepo.FindByID(c.Context(), testID)
-	if err != nil || test.UserID != userID {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
-		)
-	}
-
-	// Get questions for the test
-	questions, err := h.questionRepo.FindByTestID(c.Context(), testID)
+	result, err := h.exportXMLUseCase.Execute(c.Context(), testID, userID)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve questions"),
-		)
-	}
-
-	if len(questions) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeTestHasNoQuestions, "test has no questions"),
-		)
-	}
-
-	// Get answers for each question
-	answersMap := make(map[string][]*entity.Answer)
-	for _, q := range questions {
-		answers, err := h.answerRepo.FindByQuestionID(c.Context(), q.ID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve answers"),
+		if strings.Contains(err.Error(), "test not found") {
+			return c.Status(fiber.StatusNotFound).JSON(
+				dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
 			)
 		}
-		answersMap[q.ID.String()] = answers
-	}
-
-	// Export to Moodle XML
-	exp, err := h.exporterFactory.GetExporter(exporter.FormatMoodleXML)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to get exporter"),
-		)
-	}
-
-	result, err := exp.Export(test, questions, answersMap)
-	if err != nil {
+		if strings.Contains(err.Error(), "no questions") {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				dto.NewErrorResponse(dto.ErrCodeTestHasNoQuestions, "test has no questions"),
+			)
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to export XML"),
 		)
 	}
 
-	// Set headers for file download
 	c.Set("Content-Type", result.ContentType)
-	c.Set("Content-Disposition", "attachment; filename="+test.Title+"."+result.FileExt)
+	c.Set("Content-Disposition", "attachment; filename="+result.Title+"."+result.FileExt)
 
 	return c.SendString(result.Content)
 }
@@ -158,95 +118,38 @@ func (h *MoodleHandler) SyncToMoodle(c *fiber.Ctx) error {
 		)
 	}
 
-	// Sanitize course name
-	sanitizedCourseName := security.SanitizeInput(req.CourseName)
-
-	// Get test
-	test, err := h.testRepo.FindByID(c.Context(), testID)
-	if err != nil || test.UserID != userID {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
-		)
-	}
-
-	// Get questions
-	questions, err := h.questionRepo.FindByTestID(c.Context(), testID)
+	result, err := h.syncUseCase.Execute(c.Context(), moodleuc.SyncParams{
+		TestID:     testID,
+		UserID:     userID,
+		CourseName: req.CourseName,
+	})
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve questions"),
-		)
-	}
-
-	if len(questions) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeTestHasNoQuestions, "test has no questions"),
-		)
-	}
-
-	// Get answers
-	answersMap := make(map[string][]*entity.Answer)
-	for _, q := range questions {
-		answers, err := h.answerRepo.FindByQuestionID(c.Context(), q.ID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve answers"),
+		if strings.Contains(err.Error(), "test not found") {
+			return c.Status(fiber.StatusNotFound).JSON(
+				dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
 			)
 		}
-		answersMap[q.ID.String()] = answers
-	}
-
-	// Export to Moodle XML
-	exp, err := h.exporterFactory.GetExporter(exporter.FormatMoodleXML)
-	if err != nil {
+		if strings.Contains(err.Error(), "no questions") {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				dto.NewErrorResponse(dto.ErrCodeTestHasNoQuestions, "test has no questions"),
+			)
+		}
+		if strings.Contains(err.Error(), "failed to sync with Moodle") {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				dto.NewErrorResponse(dto.ErrCodeMoodleSyncFailed, err.Error()),
+			)
+		}
+		if strings.Contains(err.Error(), "moodle upload failed") {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				dto.NewErrorResponse(dto.ErrCodeMoodleUploadFailed, err.Error()),
+			)
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to get exporter"),
+			dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to sync test"),
 		)
 	}
 
-	result, err := exp.Export(test, questions, answersMap)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to export XML"),
-		)
-	}
-
-	// Upload to Moodle
-	uploadResp, err := h.moodleClient.UploadQuiz(c.Context(), moodle.UploadQuizRequest{
-		CourseName: sanitizedCourseName,
-		QuizName:   test.Title,
-		XMLContent: result.Content,
-	})
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeMoodleSyncFailed, "failed to sync with Moodle: "+err.Error()),
-		)
-	}
-
-	if !uploadResp.Success {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeMoodleUploadFailed, "moodle upload failed: "+uploadResp.Message),
-		)
-	}
-
-	// Update test with Moodle sync info
-	// Use CategoryID as MoodleID since questions are imported to question bank
-	moodleID := uploadResp.QuizID
-	if moodleID == "" {
-		moodleID = uploadResp.CategoryID
-	}
-
-	test.MarkMoodleSynced(moodleID)
-	if err := h.testRepo.Update(c.Context(), test); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to update test"),
-		)
-	}
-
-	return c.JSON(dto.MoodleSyncResponse{
-		Message:  uploadResp.Message + ". " + uploadResp.Note,
-		MoodleID: moodleID,
-		CourseID: uploadResp.CourseID,
-	})
+	return c.JSON(result)
 }
 
 // GetMoodleCourses godoc
@@ -260,26 +163,14 @@ func (h *MoodleHandler) SyncToMoodle(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Failed to retrieve courses"
 // @Router /moodle/courses [get]
 func (h *MoodleHandler) GetMoodleCourses(c *fiber.Ctx) error {
-	courses, err := h.moodleClient.GetCourses(c.Context())
+	result, err := h.getCoursesUseCase.Execute(c.Context())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeMoodleNotConnected, "failed to retrieve Moodle courses: "+err.Error()),
+			dto.NewErrorResponse(dto.ErrCodeMoodleNotConnected, err.Error()),
 		)
 	}
 
-	// Convert to DTOs
-	courseDTOs := make([]dto.MoodleCourse, len(courses))
-	for i, course := range courses {
-		courseDTOs[i] = dto.MoodleCourse{
-			ID:        fmt.Sprintf("%d", course.ID),
-			Name:      course.FullName,
-			ShortName: course.ShortName,
-		}
-	}
-
-	return c.JSON(dto.MoodleCoursesResponse{
-		Courses: courseDTOs,
-	})
+	return c.JSON(result)
 }
 
 // ValidateMoodleConnection godoc
@@ -293,7 +184,7 @@ func (h *MoodleHandler) GetMoodleCourses(c *fiber.Ctx) error {
 // @Failure 503 {object} dto.MoodleConnectionResponse "Connection failed"
 // @Router /moodle/validate [get]
 func (h *MoodleHandler) ValidateMoodleConnection(c *fiber.Ctx) error {
-	if err := h.moodleClient.ValidateConnection(c.Context()); err != nil {
+	if err := h.validateConnectionUseCase.Execute(c.Context()); err != nil {
 		return c.Status(fiber.StatusServiceUnavailable).JSON(dto.MoodleConnectionResponse{
 			Connected: false,
 			Error:     err.Error(),

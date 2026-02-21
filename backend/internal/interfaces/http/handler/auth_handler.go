@@ -5,42 +5,43 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
-	"github.com/shester1kov/testgen-backend/internal/domain/entity"
-	"github.com/shester1kov/testgen-backend/internal/domain/repository"
-	apperrors "github.com/shester1kov/testgen-backend/pkg/errors"
-	"github.com/shester1kov/testgen-backend/pkg/utils"
-	"gorm.io/gorm"
+	"github.com/shester1kov/testgen-backend/internal/application/usecase/auth"
 )
 
 // AuthHandler handles authentication requests
 type AuthHandler struct {
-	userRepo       repository.UserRepository
-	roleRepo       repository.RoleRepository
-	jwtManager     *utils.JWTManager
-	cookieName     string
-	cookieDomain   string
-	cookiePath     string
-	cookieSecure   bool
-	cookieHTTPOnly bool
-	cookieSameSite string
-	jwtExpiration  string
+	registerUseCase *auth.RegisterUseCase
+	loginUseCase    *auth.LoginUseCase
+	getMeUseCase    *auth.GetMeUseCase
+	cookieName      string
+	cookieDomain    string
+	cookiePath      string
+	cookieSecure    bool
+	cookieHTTPOnly  bool
+	cookieSameSite  string
+	jwtExpiration   string
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(userRepo repository.UserRepository, roleRepo repository.RoleRepository, jwtManager *utils.JWTManager, cookieName, cookieDomain, cookiePath, cookieSameSite, jwtExpiration string, cookieSecure, cookieHTTPOnly bool) *AuthHandler {
+func NewAuthHandler(
+	registerUseCase *auth.RegisterUseCase,
+	loginUseCase *auth.LoginUseCase,
+	getMeUseCase *auth.GetMeUseCase,
+	cookieName, cookieDomain, cookiePath, cookieSameSite, jwtExpiration string,
+	cookieSecure, cookieHTTPOnly bool,
+) *AuthHandler {
 	return &AuthHandler{
-		userRepo:       userRepo,
-		roleRepo:       roleRepo,
-		jwtManager:     jwtManager,
-		cookieName:     cookieName,
-		cookieDomain:   cookieDomain,
-		cookiePath:     cookiePath,
-		cookieSecure:   cookieSecure,
-		cookieHTTPOnly: cookieHTTPOnly,
-		cookieSameSite: cookieSameSite,
-		jwtExpiration:  jwtExpiration,
+		registerUseCase: registerUseCase,
+		loginUseCase:    loginUseCase,
+		getMeUseCase:    getMeUseCase,
+		cookieName:      cookieName,
+		cookieDomain:    cookieDomain,
+		cookiePath:      cookiePath,
+		cookieSecure:    cookieSecure,
+		cookieHTTPOnly:  cookieHTTPOnly,
+		cookieSameSite:  cookieSameSite,
+		jwtExpiration:   jwtExpiration,
 	}
 }
 
@@ -90,64 +91,22 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 	req.FullName = strings.TrimSpace(req.FullName)
 
-	// Check if user already exists
-	existingUser, err := h.userRepo.FindByEmail(c.Context(), req.Email)
-	if err == nil && existingUser != nil {
-		return c.Status(fiber.StatusConflict).JSON(
-			dto.NewErrorResponse(dto.ErrCodeUserExists, "User with this email already exists"),
-		)
-	}
-
-	// Get default student role
-	studentRole, err := h.roleRepo.FindByName(c.Context(), entity.RoleNameStudent)
+	result, err := h.registerUseCase.Execute(c.Context(), req)
 	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			return c.Status(fiber.StatusConflict).JSON(
+				dto.NewErrorResponse(dto.ErrCodeUserExists, "User with this email already exists"),
+			)
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeRoleNotFound, "Failed to get default student role"),
-		)
-	}
-
-	// Create new user with student role
-	user := &entity.User{
-		Email:    req.Email,
-		FullName: req.FullName,
-		RoleID:   studentRole.ID,
-	}
-
-	if err := user.SetPassword(req.Password); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInternalError, "Failed to hash password"),
-		)
-	}
-
-	if err := h.userRepo.Create(c.Context(), user); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "Failed to create user"),
-		)
-	}
-
-	// Load role for response
-	user.Role = studentRole
-
-	// Generate JWT token
-	token, err := h.jwtManager.GenerateToken(user.ID, user.Email, user.GetRoleName())
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInternalError, "Failed to generate token"),
+			dto.NewErrorResponse(dto.ErrCodeInternalError, "Failed to register user"),
 		)
 	}
 
 	// Set token in HTTP-only cookie
-	h.setCookie(c, token)
+	h.setCookie(c, result.Token)
 
-	return c.Status(fiber.StatusCreated).JSON(dto.AuthResponse{
-		Token: token,
-		User: dto.UserDTO{
-			ID:       user.ID.String(),
-			Email:    user.Email,
-			FullName: user.FullName,
-			Role:     user.GetRoleName(),
-		},
-	})
+	return c.Status(fiber.StatusCreated).JSON(result)
 }
 
 // Login godoc
@@ -173,46 +132,22 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	// Normalize email to lowercase for case-insensitive matching
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 
-	// Find user by email
-	user, err := h.userRepo.FindByEmail(c.Context(), req.Email)
+	result, err := h.loginUseCase.Execute(c.Context(), req)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if strings.Contains(err.Error(), "invalid email or password") {
 			return c.Status(fiber.StatusUnauthorized).JSON(
 				dto.NewErrorResponse(dto.ErrCodeInvalidCredentials, "Invalid email or password"),
 			)
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "Failed to find user"),
-		)
-	}
-
-	// Check password
-	if !user.CheckPassword(req.Password) {
-		return c.Status(fiber.StatusUnauthorized).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInvalidCredentials, "Invalid email or password"),
-		)
-	}
-
-	// Generate JWT token
-	token, err := h.jwtManager.GenerateToken(user.ID, user.Email, user.GetRoleName())
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInternalError, "Failed to generate token"),
+			dto.NewErrorResponse(dto.ErrCodeInternalError, "Failed to login"),
 		)
 	}
 
 	// Set token in HTTP-only cookie
-	h.setCookie(c, token)
+	h.setCookie(c, result.Token)
 
-	return c.JSON(dto.AuthResponse{
-		Token: token,
-		User: dto.UserDTO{
-			ID:       user.ID.String(),
-			Email:    user.Email,
-			FullName: user.FullName,
-			Role:     user.GetRoleName(),
-		},
-	})
+	return c.JSON(result)
 }
 
 // Logout godoc
@@ -248,49 +183,19 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 // @Failure 404 {object} dto.ErrorResponse
 // @Router /auth/me [get]
 func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
-	rawUserID := c.Locals("userID")
-	if rawUserID == nil {
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(
 			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
 		)
 	}
 
-	var userID uuid.UUID
-	switch v := rawUserID.(type) {
-	case uuid.UUID:
-		userID = v
-	case string:
-		parsedID, err := uuid.Parse(v)
-		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(
-				dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
-			)
-		}
-		userID = parsedID
-	default:
-		return c.Status(fiber.StatusUnauthorized).JSON(
-			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
-		)
-	}
-
-	if userID == uuid.Nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(
-			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
-		)
-	}
-
-	user, err := h.userRepo.FindByID(c.Context(), userID)
+	result, err := h.getMeUseCase.Execute(c.Context(), userID)
 	if err != nil {
-		appErr := apperrors.NotFound("user not found")
-		return c.Status(appErr.Code).JSON(
-			dto.NewErrorResponse(dto.ErrCodeUserNotFound, appErr.Message),
+		return c.Status(fiber.StatusNotFound).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUserNotFound, "User not found"),
 		)
 	}
 
-	return c.JSON(dto.UserDTO{
-		ID:       user.ID.String(),
-		Email:    user.Email,
-		FullName: user.FullName,
-		Role:     user.GetRoleName(),
-	})
+	return c.JSON(result)
 }

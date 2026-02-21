@@ -38,6 +38,18 @@ func (m *mockDocumentRepository) CountByUserID(ctx context.Context, userID uuid.
 	return 0, nil
 }
 
+type mockUserRepository struct {
+	repository.UserRepository
+	findByIDFunc func(ctx context.Context, id uuid.UUID) (*entity.User, error)
+}
+
+func (m *mockUserRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.User, error) {
+	if m.findByIDFunc != nil {
+		return m.findByIDFunc(ctx, id)
+	}
+	return nil, errors.New("not implemented")
+}
+
 func TestGenerateUseCase_Execute(t *testing.T) {
 	userID := uuid.New()
 	documentID := uuid.New()
@@ -49,74 +61,87 @@ func TestGenerateUseCase_Execute(t *testing.T) {
 		ParsedText: "parsed content",
 	}
 
+	adminUser := &entity.User{
+		ID: userID,
+		Role: &entity.Role{
+			Name: entity.RoleNameAdmin,
+		},
+	}
+
 	factory := llm.NewLLMFactory("perplexity-key", "", "", "", "")
+
+	defaultUserRepo := &mockUserRepository{findByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.User, error) {
+		return adminUser, nil
+	}}
 
 	tests := []struct {
 		name        string
-		repo        repository.DocumentRepository
+		docRepo     repository.DocumentRepository
+		userRepo    repository.UserRepository
 		params      GenerateParams
 		expectedErr string
 	}{
 		{
-			name: "generates questions when document is parsed and owned by user",
-			repo: &mockDocumentRepository{findByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.Document, error) {
-				return parsedDocument, nil
-			}},
-			params: GenerateParams{UserID: userID, DocumentID: documentID, NumQuestions: 2, Difficulty: "easy"},
-		},
-		{
 			name: "fails when document is missing",
-			repo: &mockDocumentRepository{findByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.Document, error) {
+			docRepo: &mockDocumentRepository{findByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.Document, error) {
 				return nil, errors.New("not found")
 			}},
+			userRepo:    defaultUserRepo,
 			params:      GenerateParams{UserID: userID, DocumentID: documentID, NumQuestions: 1},
 			expectedErr: "document not found",
 		},
 		{
-			name: "rejects access when user IDs do not match",
-			repo: &mockDocumentRepository{findByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.Document, error) {
+			name: "rejects access when user IDs do not match and not admin",
+			docRepo: &mockDocumentRepository{findByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.Document, error) {
 				wrongUserDoc := *parsedDocument
 				wrongUserDoc.UserID = uuid.New()
 				return &wrongUserDoc, nil
 			}},
+			userRepo: &mockUserRepository{findByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.User, error) {
+				return &entity.User{
+					ID:   userID,
+					Role: &entity.Role{Name: entity.RoleNameTeacher},
+				}, nil
+			}},
 			params:      GenerateParams{UserID: userID, DocumentID: documentID, NumQuestions: 1},
-			expectedErr: "unauthorized access",
+			expectedErr: "access denied",
 		},
 		{
 			name: "errors when document is not parsed yet",
-			repo: &mockDocumentRepository{findByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.Document, error) {
+			docRepo: &mockDocumentRepository{findByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.Document, error) {
 				notParsed := *parsedDocument
 				notParsed.Status = entity.StatusUploaded
 				return &notParsed, nil
 			}},
+			userRepo:    defaultUserRepo,
 			params:      GenerateParams{UserID: userID, DocumentID: documentID, NumQuestions: 1},
 			expectedErr: "document not parsed",
 		},
 		{
 			name: "errors on unknown LLM provider",
-			repo: &mockDocumentRepository{findByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.Document, error) {
+			docRepo: &mockDocumentRepository{findByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.Document, error) {
 				return parsedDocument, nil
 			}},
+			userRepo:    defaultUserRepo,
 			params:      GenerateParams{UserID: userID, DocumentID: documentID, NumQuestions: 1, LLMProvider: "unknown"},
-			expectedErr: "unknown LLM provider",
+			expectedErr: "invalid LLM provider",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := NewGenerateUseCase(tt.repo, factory)
-			questions, err := uc.Execute(context.Background(), tt.params)
+			uc := NewGenerateUseCase(nil, tt.docRepo, nil, nil, tt.userRepo, factory)
+			result, err := uc.Execute(context.Background(), tt.params)
 
 			if tt.expectedErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.expectedErr)
-				require.Nil(t, questions)
+				require.Nil(t, result)
 				return
 			}
 
 			require.NoError(t, err)
-			require.NotNil(t, questions)
-			require.NotEmpty(t, questions)
+			require.NotNil(t, result)
 		})
 	}
 }

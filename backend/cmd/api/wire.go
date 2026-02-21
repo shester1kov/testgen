@@ -6,7 +6,12 @@ package main
 
 import (
 	"github.com/google/wire"
+	"github.com/shester1kov/testgen-backend/internal/application/usecase/auth"
 	"github.com/shester1kov/testgen-backend/internal/application/usecase/document"
+	moodleuc "github.com/shester1kov/testgen-backend/internal/application/usecase/moodle"
+	"github.com/shester1kov/testgen-backend/internal/application/usecase/stats"
+	testuc "github.com/shester1kov/testgen-backend/internal/application/usecase/test"
+	"github.com/shester1kov/testgen-backend/internal/application/usecase/user"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/cache"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/exporter"
@@ -35,7 +40,7 @@ type ApplicationContainer struct {
 	// infra
 	JWTManager *utils.JWTManager
 
-	// repositories (для seeder)
+	// repositories (for seeder)
 	UserRepo    repository.UserRepository
 	RoleRepo    repository.RoleRepository
 	RedisClient *cache.RedisClient
@@ -73,12 +78,40 @@ func InitializeApplication(cfg *config.Config, db *gorm.DB, log *logger.Logger) 
 		// Moodle components
 		provideMoodleClient,
 
+		// Auth Use Cases
+		provideRegisterUseCase,
+		provideLoginUseCase,
+		provideGetMeUseCase,
+
 		// Document Use Cases
 		provideUploadUseCase,
 		provideDeleteUseCase,
 		provideParseUseCase,
-		provideListUseCase,
-		provideGetUseCase,
+		provideListDocumentUseCase,
+		provideGetDocumentUseCase,
+
+		// User Use Cases
+		provideListUserUseCase,
+		provideUpdateRoleUseCase,
+
+		// Test Use Cases
+		provideCreateTestUseCase,
+		provideGenerateTestUseCase,
+		provideListTestUseCase,
+		provideGetTestUseCase,
+		provideUpdateTestUseCase,
+		provideDeleteTestUseCase,
+		provideUpdateQuestionUseCase,
+		provideExportTestUseCase,
+
+		// Moodle Use Cases
+		provideExportXMLUseCase,
+		provideSyncUseCase,
+		provideGetCoursesUseCase,
+		provideValidateConnectionUseCase,
+
+		// Stats Use Cases
+		provideDashboardUseCase,
 
 		// Handlers
 		provideAuthHandler,
@@ -124,14 +157,14 @@ func provideMoodleClient(cfg *config.Config) *moodle.Client {
 
 func provideAuthHandler(
 	cfg *config.Config,
-	userRepo repository.UserRepository,
-	roleRepo repository.RoleRepository,
-	jwtManager *utils.JWTManager,
+	registerUseCase *auth.RegisterUseCase,
+	loginUseCase *auth.LoginUseCase,
+	getMeUseCase *auth.GetMeUseCase,
 ) *handler.AuthHandler {
 	return handler.NewAuthHandler(
-		userRepo,
-		roleRepo,
-		jwtManager,
+		registerUseCase,
+		loginUseCase,
+		getMeUseCase,
 		cfg.Cookie.Name,
 		cfg.Cookie.Domain,
 		cfg.Cookie.Path,
@@ -152,6 +185,31 @@ func provideMinIOStorage(cfg *config.Config, log *logger.Logger) (storage.Storag
 		log.Logger,
 	)
 }
+
+// Auth Use Case providers
+
+func provideRegisterUseCase(
+	userRepo repository.UserRepository,
+	roleRepo repository.RoleRepository,
+	jwtManager *utils.JWTManager,
+) *auth.RegisterUseCase {
+	return auth.NewRegisterUseCase(userRepo, roleRepo, jwtManager)
+}
+
+func provideLoginUseCase(
+	userRepo repository.UserRepository,
+	jwtManager *utils.JWTManager,
+) *auth.LoginUseCase {
+	return auth.NewLoginUseCase(userRepo, jwtManager)
+}
+
+func provideGetMeUseCase(
+	userRepo repository.UserRepository,
+) *auth.GetMeUseCase {
+	return auth.NewGetMeUseCase(userRepo)
+}
+
+// Document Use Case providers
 
 func provideUploadUseCase(
 	documentRepo repository.DocumentRepository,
@@ -193,7 +251,7 @@ func provideParseUseCase(
 	)
 }
 
-func provideListUseCase(
+func provideListDocumentUseCase(
 	documentRepo repository.DocumentRepository,
 	userRepo repository.UserRepository,
 	log *logger.Logger,
@@ -205,7 +263,7 @@ func provideListUseCase(
 	)
 }
 
-func provideGetUseCase(
+func provideGetDocumentUseCase(
 	documentRepo repository.DocumentRepository,
 	log *logger.Logger,
 ) *document.GetUseCase {
@@ -213,4 +271,126 @@ func provideGetUseCase(
 		documentRepo,
 		log.Logger,
 	)
+}
+
+// User Use Case providers
+
+func provideListUserUseCase(
+	userRepo repository.UserRepository,
+) *user.ListUseCase {
+	return user.NewListUseCase(userRepo)
+}
+
+func provideUpdateRoleUseCase(
+	userRepo repository.UserRepository,
+	roleRepo repository.RoleRepository,
+) *user.UpdateRoleUseCase {
+	return user.NewUpdateRoleUseCase(userRepo, roleRepo)
+}
+
+// Test Use Case providers
+
+func provideCreateTestUseCase(
+	testRepo repository.TestRepository,
+) *testuc.CreateUseCase {
+	return testuc.NewCreateUseCase(testRepo)
+}
+
+func provideGenerateTestUseCase(
+	testRepo repository.TestRepository,
+	documentRepo repository.DocumentRepository,
+	questionRepo repository.QuestionRepository,
+	answerRepo repository.AnswerRepository,
+	userRepo repository.UserRepository,
+	llmFactory *llm.LLMFactory,
+) *testuc.GenerateUseCase {
+	return testuc.NewGenerateUseCase(testRepo, documentRepo, questionRepo, answerRepo, userRepo, llmFactory)
+}
+
+func provideListTestUseCase(
+	testRepo repository.TestRepository,
+	userRepo repository.UserRepository,
+) *testuc.ListUseCase {
+	return testuc.NewListUseCase(testRepo, userRepo)
+}
+
+func provideGetTestUseCase(
+	testRepo repository.TestRepository,
+	questionRepo repository.QuestionRepository,
+	answerRepo repository.AnswerRepository,
+) *testuc.GetUseCase {
+	return testuc.NewGetUseCase(testRepo, questionRepo, answerRepo)
+}
+
+func provideUpdateTestUseCase(
+	testRepo repository.TestRepository,
+) *testuc.UpdateUseCase {
+	return testuc.NewUpdateUseCase(testRepo)
+}
+
+func provideDeleteTestUseCase(
+	testRepo repository.TestRepository,
+) *testuc.DeleteUseCase {
+	return testuc.NewDeleteUseCase(testRepo)
+}
+
+func provideUpdateQuestionUseCase(
+	testRepo repository.TestRepository,
+	questionRepo repository.QuestionRepository,
+	answerRepo repository.AnswerRepository,
+) *testuc.UpdateQuestionUseCase {
+	return testuc.NewUpdateQuestionUseCase(testRepo, questionRepo, answerRepo)
+}
+
+func provideExportTestUseCase(
+	testRepo repository.TestRepository,
+	questionRepo repository.QuestionRepository,
+	answerRepo repository.AnswerRepository,
+	exporterFactory *exporter.ExporterFactory,
+) *testuc.ExportUseCase {
+	return testuc.NewExportUseCase(testRepo, questionRepo, answerRepo, exporterFactory)
+}
+
+// Moodle Use Case providers
+
+func provideExportXMLUseCase(
+	testRepo repository.TestRepository,
+	questionRepo repository.QuestionRepository,
+	answerRepo repository.AnswerRepository,
+	exporterFactory *exporter.ExporterFactory,
+) *moodleuc.ExportXMLUseCase {
+	return moodleuc.NewExportXMLUseCase(testRepo, questionRepo, answerRepo, exporterFactory)
+}
+
+func provideSyncUseCase(
+	testRepo repository.TestRepository,
+	questionRepo repository.QuestionRepository,
+	answerRepo repository.AnswerRepository,
+	exporterFactory *exporter.ExporterFactory,
+	moodleClient *moodle.Client,
+) *moodleuc.SyncUseCase {
+	return moodleuc.NewSyncUseCase(testRepo, questionRepo, answerRepo, exporterFactory, moodleClient)
+}
+
+func provideGetCoursesUseCase(
+	moodleClient *moodle.Client,
+) *moodleuc.GetCoursesUseCase {
+	return moodleuc.NewGetCoursesUseCase(moodleClient)
+}
+
+func provideValidateConnectionUseCase(
+	moodleClient *moodle.Client,
+) *moodleuc.ValidateConnectionUseCase {
+	return moodleuc.NewValidateConnectionUseCase(moodleClient)
+}
+
+// Stats Use Case providers
+
+func provideDashboardUseCase(
+	testRepo repository.TestRepository,
+	documentRepo repository.DocumentRepository,
+	questionRepo repository.QuestionRepository,
+	userRepo repository.UserRepository,
+) *stats.DashboardUseCase {
+	return stats.NewDashboardUseCase(testRepo, documentRepo, questionRepo, userRepo)
 }

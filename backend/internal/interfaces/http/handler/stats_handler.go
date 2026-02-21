@@ -2,29 +2,17 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
-	"github.com/shester1kov/testgen-backend/internal/domain/repository"
+	"github.com/shester1kov/testgen-backend/internal/application/usecase/stats"
 )
 
 type StatsHandler struct {
-	testRepo     repository.TestRepository
-	documentRepo repository.DocumentRepository
-	questionRepo repository.QuestionRepository
-	userRepo     repository.UserRepository
+	dashboardUseCase *stats.DashboardUseCase
 }
 
-func NewStatsHandler(
-	testRepo repository.TestRepository,
-	documentRepo repository.DocumentRepository,
-	questionRepo repository.QuestionRepository,
-	userRepo repository.UserRepository,
-) *StatsHandler {
+func NewStatsHandler(dashboardUseCase *stats.DashboardUseCase) *StatsHandler {
 	return &StatsHandler{
-		testRepo:     testRepo,
-		documentRepo: documentRepo,
-		questionRepo: questionRepo,
-		userRepo:     userRepo,
+		dashboardUseCase: dashboardUseCase,
 	}
 }
 
@@ -39,46 +27,19 @@ func NewStatsHandler(
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /stats/dashboard [get]
 func (h *StatsHandler) GetDashboardStats(c *fiber.Ctx) error {
-	userIDStr, ok := c.Locals("userID").(string)
+	userID, ok := getUserIDFromContext(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(
 			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "user not authenticated"),
 		)
 	}
 
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInvalidInput, "invalid user ID"),
-		)
-	}
-
-	// Get user to check role
-	user, err := h.userRepo.FindByID(c.Context(), userID)
+	result, err := h.dashboardUseCase.Execute(c.Context(), userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch user"),
+			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch statistics"),
 		)
 	}
 
-	var documentsCount, testsCount, questionsCount int64
-
-	// Admin sees all data, teacher/student sees only their own
-	if user.IsAdmin() {
-		// Get total counts for all users
-		documentsCount, _ = h.documentRepo.CountAll(c.Context())
-		testsCount, _ = h.testRepo.CountAll(c.Context())
-		questionsCount, _ = h.questionRepo.CountAll(c.Context())
-	} else {
-		// Get counts for current user only
-		documentsCount, _ = h.documentRepo.CountByUserID(c.Context(), userID)
-		testsCount, _ = h.testRepo.CountByUserID(c.Context(), userID)
-		questionsCount, _ = h.questionRepo.CountByUserID(c.Context(), userID)
-	}
-
-	return c.JSON(dto.DashboardStatsResponse{
-		DocumentsCount: documentsCount,
-		TestsCount:     testsCount,
-		QuestionsCount: questionsCount,
-	})
+	return c.JSON(result)
 }

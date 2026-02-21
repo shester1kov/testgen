@@ -2,26 +2,25 @@ package handler
 
 import (
 	"strconv"
-	"time"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
-	"github.com/shester1kov/testgen-backend/internal/domain/entity"
-	"github.com/shester1kov/testgen-backend/internal/domain/repository"
+	"github.com/shester1kov/testgen-backend/internal/application/usecase/user"
 )
 
 // UserHandler handles user management requests
 type UserHandler struct {
-	userRepo repository.UserRepository
-	roleRepo repository.RoleRepository
+	listUseCase       *user.ListUseCase
+	updateRoleUseCase *user.UpdateRoleUseCase
 }
 
 // NewUserHandler creates a new user handler
-func NewUserHandler(userRepo repository.UserRepository, roleRepo repository.RoleRepository) *UserHandler {
+func NewUserHandler(listUseCase *user.ListUseCase, updateRoleUseCase *user.UpdateRoleUseCase) *UserHandler {
 	return &UserHandler{
-		userRepo: userRepo,
-		roleRepo: roleRepo,
+		listUseCase:       listUseCase,
+		updateRoleUseCase: updateRoleUseCase,
 	}
 }
 
@@ -55,39 +54,14 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 		)
 	}
 
-	// Get users
-	users, err := h.userRepo.List(c.Context(), limit, offset)
+	result, err := h.listUseCase.Execute(c.Context(), limit, offset)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch users"),
 		)
 	}
 
-	// Get total count
-	total, err := h.userRepo.Count(c.Context())
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to count users"),
-		)
-	}
-
-	// Convert to DTOs
-	userDTOs := make([]dto.UserDTO, len(users))
-	for i, user := range users {
-		userDTOs[i] = dto.UserDTO{
-			ID:       user.ID.String(),
-			Email:    user.Email,
-			FullName: user.FullName,
-			Role:     user.GetRoleName(),
-		}
-	}
-
-	return c.JSON(dto.UserListResponse{
-		Users:  userDTOs,
-		Total:  total,
-		Limit:  limit,
-		Offset: offset,
-	})
+	return c.JSON(result)
 }
 
 // UpdateUserRole godoc
@@ -124,46 +98,27 @@ func (h *UserHandler) UpdateUserRole(c *fiber.Ctx) error {
 		)
 	}
 
-	// Validate role name
-	roleName := entity.RoleName(req.RoleName)
-	if roleName != entity.RoleNameAdmin && roleName != entity.RoleNameTeacher && roleName != entity.RoleNameStudent {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInvalidRole, "invalid role name"),
-		)
-	}
-
-	// Find user
-	user, err := h.userRepo.FindByID(c.Context(), userID)
+	result, err := h.updateRoleUseCase.Execute(c.Context(), userID, req.RoleName)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeUserNotFound, "user not found"),
-		)
-	}
-
-	// Find role by name
-	role, err := h.roleRepo.FindByName(c.Context(), roleName)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeRoleNotFound, "role not found in database"),
-		)
-	}
-
-	// Update user role and timestamp
-	user.RoleID = role.ID
-	user.UpdatedAt = time.Now()
-	if err := h.userRepo.Update(c.Context(), user); err != nil {
+		if strings.Contains(err.Error(), "invalid role name") {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				dto.NewErrorResponse(dto.ErrCodeInvalidRole, "invalid role name"),
+			)
+		}
+		if strings.Contains(err.Error(), "user not found") {
+			return c.Status(fiber.StatusNotFound).JSON(
+				dto.NewErrorResponse(dto.ErrCodeUserNotFound, "user not found"),
+			)
+		}
+		if strings.Contains(err.Error(), "role not found") {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				dto.NewErrorResponse(dto.ErrCodeRoleNotFound, "role not found in database"),
+			)
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to update user role"),
 		)
 	}
 
-	// Load updated role for response
-	user.Role = role
-
-	return c.JSON(dto.UserDTO{
-		ID:       user.ID.String(),
-		Email:    user.Email,
-		FullName: user.FullName,
-		Role:     user.GetRoleName(),
-	})
+	return c.JSON(result)
 }

@@ -1,45 +1,44 @@
 package handler
 
 import (
-	"time"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
-	"github.com/shester1kov/testgen-backend/internal/domain/entity"
-	"github.com/shester1kov/testgen-backend/internal/domain/repository"
-	"github.com/shester1kov/testgen-backend/internal/infrastructure/exporter"
-	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
-	"github.com/shester1kov/testgen-backend/pkg/security"
+	testuc "github.com/shester1kov/testgen-backend/internal/application/usecase/test"
 )
 
 type TestHandler struct {
-	testRepo        repository.TestRepository
-	documentRepo    repository.DocumentRepository
-	questionRepo    repository.QuestionRepository
-	answerRepo      repository.AnswerRepository
-	userRepo        repository.UserRepository
-	llmFactory      *llm.LLMFactory
-	exporterFactory *exporter.ExporterFactory
+	createUseCase         *testuc.CreateUseCase
+	generateUseCase       *testuc.GenerateUseCase
+	listUseCase           *testuc.ListUseCase
+	getUseCase            *testuc.GetUseCase
+	updateUseCase         *testuc.UpdateUseCase
+	deleteUseCase         *testuc.DeleteUseCase
+	updateQuestionUseCase *testuc.UpdateQuestionUseCase
+	exportUseCase         *testuc.ExportUseCase
 }
 
 func NewTestHandler(
-	testRepo repository.TestRepository,
-	documentRepo repository.DocumentRepository,
-	questionRepo repository.QuestionRepository,
-	answerRepo repository.AnswerRepository,
-	userRepo repository.UserRepository,
-	llmFactory *llm.LLMFactory,
-	exporterFactory *exporter.ExporterFactory,
+	createUseCase *testuc.CreateUseCase,
+	generateUseCase *testuc.GenerateUseCase,
+	listUseCase *testuc.ListUseCase,
+	getUseCase *testuc.GetUseCase,
+	updateUseCase *testuc.UpdateUseCase,
+	deleteUseCase *testuc.DeleteUseCase,
+	updateQuestionUseCase *testuc.UpdateQuestionUseCase,
+	exportUseCase *testuc.ExportUseCase,
 ) *TestHandler {
 	return &TestHandler{
-		testRepo:        testRepo,
-		documentRepo:    documentRepo,
-		questionRepo:    questionRepo,
-		answerRepo:      answerRepo,
-		userRepo:        userRepo,
-		llmFactory:      llmFactory,
-		exporterFactory: exporterFactory,
+		createUseCase:         createUseCase,
+		generateUseCase:       generateUseCase,
+		listUseCase:           listUseCase,
+		getUseCase:            getUseCase,
+		updateUseCase:         updateUseCase,
+		deleteUseCase:         deleteUseCase,
+		updateQuestionUseCase: updateQuestionUseCase,
+		exportUseCase:         exportUseCase,
 	}
 }
 
@@ -70,26 +69,19 @@ func (h *TestHandler) Create(c *fiber.Ctx) error {
 		)
 	}
 
-	// Sanitize user input to prevent XSS attacks
-	sanitizedTitle := security.SanitizeInput(req.Title)
-	sanitizedDescription := security.SanitizeMultiline(req.Description)
-
-	test := &entity.Test{UserID: userID, Title: sanitizedTitle, Description: sanitizedDescription}
-	if req.DocumentID != nil {
-		docID, _ := uuid.Parse(*req.DocumentID)
-		test.DocumentID = &docID
-	}
-
-	if err := h.testRepo.Create(c.Context(), test); err != nil {
+	result, err := h.createUseCase.Execute(c.Context(), testuc.CreateParams{
+		UserID:      userID,
+		Title:       req.Title,
+		Description: req.Description,
+		DocumentID:  req.DocumentID,
+	})
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to create test"),
 		)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(dto.TestResponse{
-		ID: test.ID.String(), UserID: test.UserID.String(), Title: test.Title, Description: test.Description,
-		TotalQuestions: 0, Status: string(test.Status), CreatedAt: test.CreatedAt.Format("2006-01-02T15:04:05Z"),
-	})
+	return c.Status(fiber.StatusCreated).JSON(result)
 }
 
 // Generate godoc
@@ -121,134 +113,47 @@ func (h *TestHandler) Generate(c *fiber.Ctx) error {
 	}
 
 	docID, _ := uuid.Parse(req.DocumentID)
-	document, err := h.documentRepo.FindByID(c.Context(), docID)
-	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "document not found"),
-		)
-	}
 
-	// Check if user has access to document (admin sees all, others see only their own)
-	user, err := h.userRepo.FindByID(c.Context(), userID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch user"),
-		)
-	}
-
-	// Non-admin users can only generate tests from their own documents
-	if !user.IsAdmin() && document.UserID != userID {
-		return c.Status(fiber.StatusForbidden).JSON(
-			dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied to this document"),
-		)
-	}
-
-	if !document.IsParsed() {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDocumentNotParsed, "document not parsed yet"),
-		)
-	}
-
-	provider := req.LLMProvider
-	if provider == "" {
-		provider = "perplexity"
-	}
-
-	strategy, err := h.llmFactory.CreateStrategy(provider)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInvalidProvider, err.Error()),
-		)
-	}
-
-	llmContext := llm.NewLLMContext(strategy)
-	questions, err := llmContext.GenerateQuestions(c.Context(), llm.GenerationParams{
-		Text: document.ParsedText, NumQuestions: req.NumQuestions, Difficulty: req.Difficulty,
+	result, err := h.generateUseCase.Execute(c.Context(), testuc.GenerateParams{
+		UserID:      userID,
+		DocumentID:  docID,
+		Title:       req.Title,
+		NumQuestions: req.NumQuestions,
+		Difficulty:  req.Difficulty,
+		LLMProvider: req.LLMProvider,
 	})
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeGenerationFailed, "failed to generate questions"),
-		)
-	}
-
-	// Sanitize user input
-	sanitizedTitle := security.SanitizeInput(req.Title)
-
-	// Create Test entity
-	test := &entity.Test{
-		ID:             uuid.New(),
-		UserID:         userID,
-		DocumentID:     &docID,
-		Title:          sanitizedTitle,
-		TotalQuestions: len(questions),
-		Status:         entity.TestStatusDraft,
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
-	}
-
-	// Save test to database
-	if err := h.testRepo.Create(c.Context(), test); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to save test"),
-		)
-	}
-
-	// Save questions and answers to database
-	for i, q := range questions {
-		// Sanitize question text from LLM output (defense in depth)
-		sanitizedQuestionText := security.SanitizeMultiline(q.QuestionText)
-
-		question := &entity.Question{
-			ID:           uuid.New(),
-			TestID:       test.ID,
-			QuestionText: sanitizedQuestionText,
-			QuestionType: entity.QuestionType(q.QuestionType),
-			Difficulty:   entity.Difficulty(q.Difficulty),
-			Points:       1.0, // Default points
-			OrderNum:     i + 1,
-			CreatedAt:    time.Now(),
-			UpdatedAt:    time.Now(),
-		}
-
-		if err := h.questionRepo.Create(c.Context(), question); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to save question"),
+		if strings.Contains(err.Error(), "document not found") {
+			return c.Status(fiber.StatusNotFound).JSON(
+				dto.NewErrorResponse(dto.ErrCodeDocumentNotFound, "document not found"),
 			)
 		}
-
-		// Save answers
-		for j, a := range q.Answers {
-			// Sanitize answer text from LLM output
-			sanitizedAnswerText := security.SanitizeInput(a.Text)
-
-			answer := &entity.Answer{
-				ID:         uuid.New(),
-				QuestionID: question.ID,
-				AnswerText: sanitizedAnswerText,
-				IsCorrect:  a.IsCorrect,
-				OrderNum:   j + 1,
-				CreatedAt:  time.Now(),
-			}
-
-			if err := h.answerRepo.Create(c.Context(), answer); err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(
-					dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to save answer"),
-				)
-			}
+		if strings.Contains(err.Error(), "access denied") {
+			return c.Status(fiber.StatusForbidden).JSON(
+				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied to this document"),
+			)
 		}
+		if strings.Contains(err.Error(), "not parsed yet") {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				dto.NewErrorResponse(dto.ErrCodeDocumentNotParsed, "document not parsed yet"),
+			)
+		}
+		if strings.Contains(err.Error(), "invalid LLM provider") {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				dto.NewErrorResponse(dto.ErrCodeInvalidProvider, err.Error()),
+			)
+		}
+		if strings.Contains(err.Error(), "failed to generate") {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				dto.NewErrorResponse(dto.ErrCodeGenerationFailed, "failed to generate questions"),
+			)
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to generate test"),
+		)
 	}
 
-	// Return test response with ID
-	return c.Status(fiber.StatusCreated).JSON(dto.TestResponse{
-		ID:             test.ID.String(),
-		UserID:         test.UserID.String(),
-		Title:          test.Title,
-		Description:    "", // Empty for generated tests
-		TotalQuestions: test.TotalQuestions,
-		Status:         string(test.Status),
-		MoodleSynced:   false,
-		CreatedAt:      test.CreatedAt.Format(time.RFC3339),
-	})
+	return c.Status(fiber.StatusCreated).JSON(result)
 }
 
 // List godoc
@@ -271,82 +176,16 @@ func (h *TestHandler) List(c *fiber.Ctx) error {
 		)
 	}
 
-	// Get user to check role
-	user, err := h.userRepo.FindByID(c.Context(), userID)
+	page, pageSize := c.QueryInt("page", 1), c.QueryInt("page_size", 20)
+
+	result, err := h.listUseCase.Execute(c.Context(), userID, page, pageSize)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch user"),
+			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch tests"),
 		)
 	}
 
-	page, pageSize := c.QueryInt("page", 1), c.QueryInt("page_size", 20)
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
-	}
-	offset := (page - 1) * pageSize
-
-	var tests []*entity.Test
-	var total int64
-
-	// Admin sees all tests, others see only their own
-	if user.IsAdmin() {
-		tests, err = h.testRepo.FindAll(c.Context(), pageSize, offset)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch tests"),
-			)
-		}
-
-		total, err = h.testRepo.CountAll(c.Context())
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to count tests"),
-			)
-		}
-	} else {
-		tests, err = h.testRepo.FindByUserID(c.Context(), userID, pageSize, offset)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to fetch tests"),
-			)
-		}
-
-		total, err = h.testRepo.CountByUserID(c.Context(), userID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to count tests"),
-			)
-		}
-	}
-
-	result := make([]dto.TestResponse, len(tests))
-	for i, t := range tests {
-		// Include user info for admin
-		var userName *string
-		var userEmail *string
-		if user.IsAdmin() && t.User.ID != uuid.Nil {
-			userName = &t.User.FullName
-			userEmail = &t.User.Email
-		}
-
-		result[i] = dto.TestResponse{
-			ID:             t.ID.String(),
-			UserID:         t.UserID.String(),
-			UserName:       userName,
-			UserEmail:      userEmail,
-			Title:          t.Title,
-			Description:    t.Description,
-			TotalQuestions: t.TotalQuestions,
-			Status:         string(t.Status),
-			MoodleSynced:   t.MoodleSynced,
-			CreatedAt:      t.CreatedAt.Format(time.RFC3339),
-		}
-	}
-
-	return c.JSON(dto.TestListResponse{Tests: result, Total: total, Page: page, PageSize: pageSize})
+	return c.JSON(result)
 }
 
 // GetByID godoc
@@ -370,64 +209,15 @@ func (h *TestHandler) GetByID(c *fiber.Ctx) error {
 		)
 	}
 	testID, _ := uuid.Parse(c.Params("id"))
-	test, err := h.testRepo.FindByID(c.Context(), testID)
-	if err != nil || test.UserID != userID {
+
+	result, err := h.getUseCase.Execute(c.Context(), testID, userID)
+	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(
 			dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
 		)
 	}
 
-	// Load questions with answers
-	questions, err := h.questionRepo.FindByTestID(c.Context(), testID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to load questions"),
-		)
-	}
-
-	// Build questions DTO with answers
-	questionsDTO := make([]dto.QuestionDTO, len(questions))
-	for i, q := range questions {
-		// Load answers for each question
-		answers, err := h.answerRepo.FindByQuestionID(c.Context(), q.ID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to load answers"),
-			)
-		}
-
-		// Build answers DTO
-		answersDTO := make([]dto.AnswerDTO, len(answers))
-		for j, a := range answers {
-			answersDTO[j] = dto.AnswerDTO{
-				ID:         a.ID.String(),
-				AnswerText: a.AnswerText,
-				IsCorrect:  a.IsCorrect,
-				OrderNum:   a.OrderNum,
-			}
-		}
-
-		questionsDTO[i] = dto.QuestionDTO{
-			ID:           q.ID.String(),
-			QuestionText: q.QuestionText,
-			QuestionType: string(q.QuestionType),
-			Difficulty:   string(q.Difficulty),
-			Points:       q.Points,
-			OrderNum:     q.OrderNum,
-			Answers:      answersDTO,
-		}
-	}
-
-	return c.JSON(dto.TestResponse{
-		ID:             test.ID.String(),
-		Title:          test.Title,
-		Description:    test.Description,
-		TotalQuestions: test.TotalQuestions,
-		Status:         string(test.Status),
-		MoodleSynced:   test.MoodleSynced,
-		CreatedAt:      test.CreatedAt.Format(time.RFC3339),
-		Questions:      questionsDTO,
-	})
+	return c.JSON(result)
 }
 
 // Delete godoc
@@ -452,14 +242,13 @@ func (h *TestHandler) Delete(c *fiber.Ctx) error {
 		)
 	}
 	testID, _ := uuid.Parse(c.Params("id"))
-	test, err := h.testRepo.FindByID(c.Context(), testID)
-	if err != nil || test.UserID != userID {
+
+	if err := h.deleteUseCase.Execute(c.Context(), testID, userID); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(
 			dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
 		)
 	}
 
-	h.testRepo.Delete(c.Context(), testID)
 	return c.JSON(dto.NewMessageResponse("test deleted"))
 }
 
@@ -494,21 +283,6 @@ func (h *TestHandler) Update(c *fiber.Ctx) error {
 		)
 	}
 
-	// Check if test exists and belongs to user
-	test, err := h.testRepo.FindByID(c.Context(), testID)
-	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
-		)
-	}
-
-	if test.UserID != userID {
-		return c.Status(fiber.StatusForbidden).JSON(
-			dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
-		)
-	}
-
-	// Parse request
 	var req dto.UpdateTestRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
@@ -516,41 +290,34 @@ func (h *TestHandler) Update(c *fiber.Ctx) error {
 		)
 	}
 
-	// Sanitize user input
-	sanitizedTitle := security.SanitizeInput(req.Title)
-	sanitizedDescription := security.SanitizeMultiline(req.Description)
-
-	// Validate title if provided
-	if req.Title != "" && len(sanitizedTitle) < 3 {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInvalidInput, "title must be at least 3 characters"),
-		)
-	}
-
-	// Update fields if provided
-	if req.Title != "" {
-		test.Title = sanitizedTitle
-	}
-	test.Description = sanitizedDescription // Allow empty description
-	test.UpdatedAt = time.Now()
-
-	// Save to database
-	if err := h.testRepo.Update(c.Context(), test); err != nil {
+	result, err := h.updateUseCase.Execute(c.Context(), testuc.UpdateParams{
+		TestID:      testID,
+		UserID:      userID,
+		Title:       req.Title,
+		Description: req.Description,
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "test not found") {
+			return c.Status(fiber.StatusNotFound).JSON(
+				dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
+			)
+		}
+		if strings.Contains(err.Error(), "access denied") {
+			return c.Status(fiber.StatusForbidden).JSON(
+				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
+			)
+		}
+		if strings.Contains(err.Error(), "title must be at least") {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				dto.NewErrorResponse(dto.ErrCodeInvalidInput, "title must be at least 3 characters"),
+			)
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to update test"),
 		)
 	}
 
-	return c.JSON(dto.TestResponse{
-		ID:             test.ID.String(),
-		UserID:         test.UserID.String(),
-		Title:          test.Title,
-		Description:    test.Description,
-		TotalQuestions: test.TotalQuestions,
-		Status:         string(test.Status),
-		MoodleSynced:   test.MoodleSynced,
-		CreatedAt:      test.CreatedAt.Format(time.RFC3339),
-	})
+	return c.JSON(result)
 }
 
 // UpdateQuestion godoc
@@ -592,29 +359,6 @@ func (h *TestHandler) UpdateQuestion(c *fiber.Ctx) error {
 		)
 	}
 
-	// Check if test exists and belongs to user
-	test, err := h.testRepo.FindByID(c.Context(), testID)
-	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
-		)
-	}
-
-	if test.UserID != userID {
-		return c.Status(fiber.StatusForbidden).JSON(
-			dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
-		)
-	}
-
-	// Check if question exists and belongs to test
-	question, err := h.questionRepo.FindByID(c.Context(), questionID)
-	if err != nil || question.TestID != testID {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeNotFound, "question not found"),
-		)
-	}
-
-	// Parse request
 	var req dto.UpdateQuestionRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
@@ -622,95 +366,43 @@ func (h *TestHandler) UpdateQuestion(c *fiber.Ctx) error {
 		)
 	}
 
-	// Sanitize user input
-	sanitizedQuestionText := security.SanitizeMultiline(req.QuestionText)
-
-	// Validate question text if provided
-	if req.QuestionText != "" && len(sanitizedQuestionText) < 3 {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInvalidInput, "question text must be at least 3 characters"),
-		)
-	}
-
-	// Update fields if provided
-	if req.QuestionText != "" {
-		question.QuestionText = sanitizedQuestionText
-	}
-	if req.QuestionType != "" {
-		question.QuestionType = entity.QuestionType(req.QuestionType)
-	}
-	if req.Difficulty != "" {
-		question.Difficulty = entity.Difficulty(req.Difficulty)
-	}
-	if req.Points != nil {
-		question.Points = *req.Points
-	}
-	question.UpdatedAt = time.Now()
-
-	// Save question
-	if err := h.questionRepo.Update(c.Context(), question); err != nil {
+	result, err := h.updateQuestionUseCase.Execute(c.Context(), testuc.UpdateQuestionParams{
+		TestID:       testID,
+		QuestionID:   questionID,
+		UserID:       userID,
+		QuestionText: req.QuestionText,
+		QuestionType: req.QuestionType,
+		Difficulty:   req.Difficulty,
+		Points:       req.Points,
+		Answers:      req.Answers,
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "test not found") {
+			return c.Status(fiber.StatusNotFound).JSON(
+				dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
+			)
+		}
+		if strings.Contains(err.Error(), "access denied") {
+			return c.Status(fiber.StatusForbidden).JSON(
+				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
+			)
+		}
+		if strings.Contains(err.Error(), "question not found") {
+			return c.Status(fiber.StatusNotFound).JSON(
+				dto.NewErrorResponse(dto.ErrCodeNotFound, "question not found"),
+			)
+		}
+		if strings.Contains(err.Error(), "question text must be at least") {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				dto.NewErrorResponse(dto.ErrCodeInvalidInput, "question text must be at least 3 characters"),
+			)
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to update question"),
 		)
 	}
 
-	// Update answers if provided
-	if len(req.Answers) > 0 {
-		// Delete old answers
-		oldAnswers, _ := h.answerRepo.FindByQuestionID(c.Context(), questionID)
-		for _, oldAnswer := range oldAnswers {
-			h.answerRepo.Delete(c.Context(), oldAnswer.ID)
-		}
-
-		// Create new answers
-		for _, answerReq := range req.Answers {
-			// Sanitize answer text
-			sanitizedAnswerText := security.SanitizeInput(answerReq.AnswerText)
-
-			answer := &entity.Answer{
-				ID:         uuid.New(),
-				QuestionID: questionID,
-				AnswerText: sanitizedAnswerText,
-				IsCorrect:  answerReq.IsCorrect,
-				OrderNum:   answerReq.OrderNum,
-				CreatedAt:  time.Now(),
-			}
-			if err := h.answerRepo.Create(c.Context(), answer); err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(
-					dto.NewErrorResponse(dto.ErrCodeInternalError, "failed to create answer"),
-				)
-			}
-		}
-	}
-
-	// Load updated answers
-	answers, err := h.answerRepo.FindByQuestionID(c.Context(), questionID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to load answers"),
-		)
-	}
-
-	// Build answers DTO
-	answersDTO := make([]dto.AnswerDTO, len(answers))
-	for i, a := range answers {
-		answersDTO[i] = dto.AnswerDTO{
-			ID:         a.ID.String(),
-			AnswerText: a.AnswerText,
-			IsCorrect:  a.IsCorrect,
-			OrderNum:   a.OrderNum,
-		}
-	}
-
-	return c.JSON(dto.QuestionDTO{
-		ID:           question.ID.String(),
-		QuestionText: question.QuestionText,
-		QuestionType: string(question.QuestionType),
-		Difficulty:   string(question.Difficulty),
-		Points:       question.Points,
-		OrderNum:     question.OrderNum,
-		Answers:      answersDTO,
-	})
+	return c.JSON(result)
 }
 
 // ExportToJSON godoc
@@ -728,81 +420,7 @@ func (h *TestHandler) UpdateQuestion(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /tests/{id}/export/json [get]
 func (h *TestHandler) ExportToJSON(c *fiber.Ctx) error {
-	userID, ok := getUserIDFromContext(c)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(
-			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
-		)
-	}
-
-	testID, err := uuid.Parse(c.Params("id"))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInvalidTestID, "invalid test ID"),
-		)
-	}
-
-	// Check if test exists and belongs to user
-	test, err := h.testRepo.FindByID(c.Context(), testID)
-	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
-		)
-	}
-
-	if test.UserID != userID {
-		return c.Status(fiber.StatusForbidden).JSON(
-			dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
-		)
-	}
-
-	// Get questions for the test
-	questions, err := h.questionRepo.FindByTestID(c.Context(), testID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve questions"),
-		)
-	}
-
-	if len(questions) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeTestHasNoQuestions, "test has no questions"),
-		)
-	}
-
-	// Get answers for each question
-	answersMap := make(map[string][]*entity.Answer)
-	for _, q := range questions {
-		answers, err := h.answerRepo.FindByQuestionID(c.Context(), q.ID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve answers"),
-			)
-		}
-		answersMap[q.ID.String()] = answers
-	}
-
-	// Export to JSON using exporter factory
-	exp, err := h.exporterFactory.GetExporter(exporter.FormatJSON)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to get exporter"),
-		)
-	}
-
-	result, err := exp.Export(test, questions, answersMap)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to export JSON"),
-		)
-	}
-
-	// Set headers for file download
-	filename := test.Title + "." + result.FileExt
-	c.Set("Content-Type", result.ContentType)
-	c.Set("Content-Disposition", "attachment; filename="+filename)
-
-	return c.SendString(result.Content)
+	return h.handleExport(c, "json")
 }
 
 // ExportToXML godoc
@@ -820,81 +438,7 @@ func (h *TestHandler) ExportToJSON(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Export failed"
 // @Router /tests/{id}/export/xml [get]
 func (h *TestHandler) ExportToXML(c *fiber.Ctx) error {
-	userID, ok := getUserIDFromContext(c)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(
-			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
-		)
-	}
-
-	testID, err := uuid.Parse(c.Params("id"))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInvalidTestID, "invalid test ID"),
-		)
-	}
-
-	// Check if test exists and belongs to user
-	test, err := h.testRepo.FindByID(c.Context(), testID)
-	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
-		)
-	}
-
-	if test.UserID != userID {
-		return c.Status(fiber.StatusForbidden).JSON(
-			dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
-		)
-	}
-
-	// Get questions for the test
-	questions, err := h.questionRepo.FindByTestID(c.Context(), testID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve questions"),
-		)
-	}
-
-	if len(questions) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeTestHasNoQuestions, "test has no questions"),
-		)
-	}
-
-	// Get answers for each question
-	answersMap := make(map[string][]*entity.Answer)
-	for _, q := range questions {
-		answers, err := h.answerRepo.FindByQuestionID(c.Context(), q.ID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve answers"),
-			)
-		}
-		answersMap[q.ID.String()] = answers
-	}
-
-	// Export to Moodle XML using exporter factory
-	exp, err := h.exporterFactory.GetExporter(exporter.FormatMoodleXML)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to get exporter"),
-		)
-	}
-
-	result, err := exp.Export(test, questions, answersMap)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to export XML"),
-		)
-	}
-
-	// Set headers for file download
-	filename := test.Title + "." + result.FileExt
-	c.Set("Content-Type", result.ContentType)
-	c.Set("Content-Disposition", "attachment; filename="+filename)
-
-	return c.SendString(result.Content)
+	return h.handleExport(c, "moodle_xml")
 }
 
 // Export godoc
@@ -913,84 +457,8 @@ func (h *TestHandler) ExportToXML(c *fiber.Ctx) error {
 // @Failure 500 {object} dto.ErrorResponse "Export failed"
 // @Router /tests/{id}/export [get]
 func (h *TestHandler) Export(c *fiber.Ctx) error {
-	userID, ok := getUserIDFromContext(c)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(
-			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
-		)
-	}
-
-	testID, err := uuid.Parse(c.Params("id"))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInvalidTestID, "invalid test ID"),
-		)
-	}
-
 	format := c.Query("format", "moodle_xml")
-
-	// Check if test exists and belongs to user
-	test, err := h.testRepo.FindByID(c.Context(), testID)
-	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(
-			dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
-		)
-	}
-
-	if test.UserID != userID {
-		return c.Status(fiber.StatusForbidden).JSON(
-			dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
-		)
-	}
-
-	// Get questions for the test
-	questions, err := h.questionRepo.FindByTestID(c.Context(), testID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve questions"),
-		)
-	}
-
-	if len(questions) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeTestHasNoQuestions, "test has no questions"),
-		)
-	}
-
-	// Get answers for each question
-	answersMap := make(map[string][]*entity.Answer)
-	for _, q := range questions {
-		answers, err := h.answerRepo.FindByQuestionID(c.Context(), q.ID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
-				dto.NewErrorResponse(dto.ErrCodeDatabaseError, "failed to retrieve answers"),
-			)
-		}
-		answersMap[q.ID.String()] = answers
-	}
-
-	// Get exporter for the requested format
-	exp, err := h.exporterFactory.GetExporter(exporter.ExportFormat(format))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			dto.NewErrorResponse(dto.ErrCodeInvalidInput, "unsupported export format: "+format),
-		)
-	}
-
-	// Export
-	result, err := exp.Export(test, questions, answersMap)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			dto.NewErrorResponse(dto.ErrCodeExportFailed, err.Error()),
-		)
-	}
-
-	// Set headers for file download
-	filename := test.Title + "." + result.FileExt
-	c.Set("Content-Type", result.ContentType)
-	c.Set("Content-Disposition", "attachment; filename="+filename)
-
-	return c.SendString(result.Content)
+	return h.handleExport(c, format)
 }
 
 // GetExportFormats godoc
@@ -1010,6 +478,56 @@ func (h *TestHandler) GetExportFormats(c *fiber.Ctx) error {
 		)
 	}
 
-	formats := h.exporterFactory.GetAvailableFormats()
+	formats := h.exportUseCase.GetAvailableFormats()
 	return c.JSON(formats)
+}
+
+// handleExport is a shared helper for all export endpoints
+func (h *TestHandler) handleExport(c *fiber.Ctx, format string) error {
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			dto.NewErrorResponse(dto.ErrCodeUnauthorized, "Unauthorized"),
+		)
+	}
+
+	testID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			dto.NewErrorResponse(dto.ErrCodeInvalidTestID, "invalid test ID"),
+		)
+	}
+
+	result, err := h.exportUseCase.Execute(c.Context(), testID, userID, format)
+	if err != nil {
+		if strings.Contains(err.Error(), "test not found") {
+			return c.Status(fiber.StatusNotFound).JSON(
+				dto.NewErrorResponse(dto.ErrCodeTestNotFound, "test not found"),
+			)
+		}
+		if strings.Contains(err.Error(), "access denied") {
+			return c.Status(fiber.StatusForbidden).JSON(
+				dto.NewErrorResponse(dto.ErrCodeForbidden, "access denied"),
+			)
+		}
+		if strings.Contains(err.Error(), "no questions") {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				dto.NewErrorResponse(dto.ErrCodeTestHasNoQuestions, "test has no questions"),
+			)
+		}
+		if strings.Contains(err.Error(), "unsupported export format") {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				dto.NewErrorResponse(dto.ErrCodeInvalidInput, err.Error()),
+			)
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			dto.NewErrorResponse(dto.ErrCodeExportFailed, "failed to export"),
+		)
+	}
+
+	filename := result.Title + "." + result.FileExt
+	c.Set("Content-Type", result.ContentType)
+	c.Set("Content-Disposition", "attachment; filename="+filename)
+
+	return c.SendString(result.Content)
 }

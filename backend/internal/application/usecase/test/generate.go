@@ -3,22 +3,41 @@ package test
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/shester1kov/testgen-backend/internal/application/dto"
+	"github.com/shester1kov/testgen-backend/internal/domain/entity"
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
+	"github.com/shester1kov/testgen-backend/pkg/security"
 )
 
 // GenerateUseCase handles test generation using LLM
 type GenerateUseCase struct {
+	testRepo     repository.TestRepository
 	documentRepo repository.DocumentRepository
+	questionRepo repository.QuestionRepository
+	answerRepo   repository.AnswerRepository
+	userRepo     repository.UserRepository
 	llmFactory   *llm.LLMFactory
 }
 
 // NewGenerateUseCase creates a new generate use case
-func NewGenerateUseCase(documentRepo repository.DocumentRepository, llmFactory *llm.LLMFactory) *GenerateUseCase {
+func NewGenerateUseCase(
+	testRepo repository.TestRepository,
+	documentRepo repository.DocumentRepository,
+	questionRepo repository.QuestionRepository,
+	answerRepo repository.AnswerRepository,
+	userRepo repository.UserRepository,
+	llmFactory *llm.LLMFactory,
+) *GenerateUseCase {
 	return &GenerateUseCase{
+		testRepo:     testRepo,
 		documentRepo: documentRepo,
+		questionRepo: questionRepo,
+		answerRepo:   answerRepo,
+		userRepo:     userRepo,
 		llmFactory:   llmFactory,
 	}
 }
@@ -27,22 +46,28 @@ func NewGenerateUseCase(documentRepo repository.DocumentRepository, llmFactory *
 type GenerateParams struct {
 	UserID       uuid.UUID
 	DocumentID   uuid.UUID
-	NumQuestions int
+	Title        string
+	NumQuestions  int
 	Difficulty   string
 	LLMProvider  string
 }
 
-// Execute executes the generate use case
-func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) ([]llm.GeneratedQuestion, error) {
+// Execute executes the generate use case — generates questions via LLM and saves the full test
+func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (*dto.TestResponse, error) {
 	// Get document
 	document, err := uc.documentRepo.FindByID(ctx, params.DocumentID)
 	if err != nil {
 		return nil, fmt.Errorf("document not found: %w", err)
 	}
 
-	// Verify ownership
-	if document.UserID != params.UserID {
-		return nil, fmt.Errorf("unauthorized access to document")
+	// Check access: admin sees all, others only own documents
+	user, err := uc.userRepo.FindByID(ctx, params.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user: %w", err)
+	}
+
+	if !user.IsAdmin() && document.UserID != params.UserID {
+		return nil, fmt.Errorf("access denied to this document")
 	}
 
 	// Check if document is parsed
@@ -50,7 +75,7 @@ func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (
 		return nil, fmt.Errorf("document not parsed yet")
 	}
 
-	// Default to perplexity if no provider specified
+	// Default provider
 	provider := params.LLMProvider
 	if provider == "" {
 		provider = "perplexity"
@@ -59,10 +84,10 @@ func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (
 	// Create LLM strategy
 	strategy, err := uc.llmFactory.CreateStrategy(provider)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create LLM strategy: %w", err)
+		return nil, fmt.Errorf("invalid LLM provider: %w", err)
 	}
 
-	// Create LLM context and generate questions
+	// Generate questions via LLM
 	llmContext := llm.NewLLMContext(strategy)
 	questions, err := llmContext.GenerateQuestions(ctx, llm.GenerationParams{
 		Text:         document.ParsedText,
@@ -73,5 +98,70 @@ func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (
 		return nil, fmt.Errorf("failed to generate questions: %w", err)
 	}
 
-	return questions, nil
+	// Sanitize title
+	sanitizedTitle := security.SanitizeInput(params.Title)
+
+	// Create test entity
+	test := &entity.Test{
+		ID:             uuid.New(),
+		UserID:         params.UserID,
+		DocumentID:     &params.DocumentID,
+		Title:          sanitizedTitle,
+		TotalQuestions: len(questions),
+		Status:         entity.TestStatusDraft,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+
+	if err := uc.testRepo.Create(ctx, test); err != nil {
+		return nil, fmt.Errorf("failed to save test: %w", err)
+	}
+
+	// Save questions and answers
+	for i, q := range questions {
+		sanitizedQuestionText := security.SanitizeMultiline(q.QuestionText)
+
+		question := &entity.Question{
+			ID:           uuid.New(),
+			TestID:       test.ID,
+			QuestionText: sanitizedQuestionText,
+			QuestionType: entity.QuestionType(q.QuestionType),
+			Difficulty:   entity.Difficulty(q.Difficulty),
+			Points:       1.0,
+			OrderNum:     i + 1,
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+		}
+
+		if err := uc.questionRepo.Create(ctx, question); err != nil {
+			return nil, fmt.Errorf("failed to save question: %w", err)
+		}
+
+		for j, a := range q.Answers {
+			sanitizedAnswerText := security.SanitizeInput(a.Text)
+
+			answer := &entity.Answer{
+				ID:         uuid.New(),
+				QuestionID: question.ID,
+				AnswerText: sanitizedAnswerText,
+				IsCorrect:  a.IsCorrect,
+				OrderNum:   j + 1,
+				CreatedAt:  time.Now(),
+			}
+
+			if err := uc.answerRepo.Create(ctx, answer); err != nil {
+				return nil, fmt.Errorf("failed to save answer: %w", err)
+			}
+		}
+	}
+
+	return &dto.TestResponse{
+		ID:             test.ID.String(),
+		UserID:         test.UserID.String(),
+		Title:          test.Title,
+		TotalQuestions: test.TotalQuestions,
+		Status:         string(test.Status),
+		MoodleSynced:   false,
+		CreatedAt:      test.CreatedAt.Format(time.RFC3339),
+	}, nil
 }
