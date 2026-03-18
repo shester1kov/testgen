@@ -36,9 +36,9 @@
     <!-- Main Content -->
     <main class="flex-grow flex flex-col justify-center items-center relative z-10 px-4 sm:px-6 lg:px-8 text-center max-w-5xl mx-auto">
       <div class="mb-8">
-        <h1 class="text-5xl sm:text-7xl font-bold text-glow mb-6 leading-tight">
+        <h1 class="text-5xl sm:text-7xl font-bold mb-6 leading-tight text-neon-orange drop-shadow-[0_0_8px_rgba(255,107,53,0.5)]">
           Автоматическая генерация <br />
-          <span class="text-neon-orange">учебных тестов</span>
+          учебных тестов
         </h1>
         <p class="mt-4 max-w-2xl mx-auto text-xl text-text-secondary">
           Используйте возможности искусственного интеллекта для мгновенного создания качественных тестовых заданий на основе ваших учебных материалов.

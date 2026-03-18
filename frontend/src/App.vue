@@ -16,6 +16,7 @@ const authStore = useAuthStore()
 
 const layout = computed(() => {
   const layoutName = route.meta.layout as string
+  if (layoutName === 'none') return 'div'
   return layoutName === 'auth' ? AuthLayout : DefaultLayout
 })
 

@@ -6,7 +6,7 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     name: 'Welcome',
     component: () => import('@/views/WelcomeView.vue'),
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: false, layout: 'none' },
   },
   {
     path: '/login',
