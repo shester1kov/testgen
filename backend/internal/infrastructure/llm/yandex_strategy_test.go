@@ -11,50 +11,244 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestYandexGPTStrategy_BuildPrompt(t *testing.T) {
-	strategy := NewYandexGPTStrategy("test-key", "test-folder", "yandexgpt-lite")
-
-	t.Run("builds prompt with all parameters", func(t *testing.T) {
+func TestBuildSystemPrompt_Difficulty(t *testing.T) {
+	t.Run("easy: all single_choice, no multiple_choice mention", func(t *testing.T) {
 		params := GenerationParams{
-			Text:          "Test document text",
-			NumQuestions:  5,
-			QuestionTypes: []QuestionType{SingleChoice, MultipleChoice},
-			Difficulty:    "hard",
-			Language:      "ru",
+			NumQuestions:        5,
+			Difficulty:          "easy",
+			MultipleChoiceCount: 0,
 		}
 
-		prompt := strategy.buildPrompt(params)
+		prompt := BuildSystemPrompt(params)
 
-		require.Contains(t, prompt, "5 тестовых вопросов")
-		require.Contains(t, prompt, "Test document text")
-		require.Contains(t, prompt, "single_choice, multiple_choice")
-		require.Contains(t, prompt, "hard")
-		require.Contains(t, prompt, "ru")
+		require.Contains(t, prompt, "5 тестовых вопросов типа single_choice")
+		require.Contains(t, prompt, "easy")
+		require.NotContains(t, prompt, "multiple_choice")
 	})
 
-	t.Run("uses default values when not provided", func(t *testing.T) {
+	t.Run("medium: split between single_choice and multiple_choice", func(t *testing.T) {
 		params := GenerationParams{
-			Text:         "Test text",
-			NumQuestions: 3,
+			NumQuestions:        10,
+			Difficulty:          "medium",
+			MultipleChoiceCount: 3, // ceil(10 * 0.3)
 		}
 
-		prompt := strategy.buildPrompt(params)
+		prompt := BuildSystemPrompt(params)
 
-		require.Contains(t, prompt, "single_choice")
+		require.Contains(t, prompt, "10 тестовых вопросов")
+		require.Contains(t, prompt, "7 вопросов типа single_choice")
+		require.Contains(t, prompt, "3 вопросов типа multiple_choice")
 		require.Contains(t, prompt, "medium")
-		require.Contains(t, prompt, "ru")
 	})
 
-	t.Run("handles multiple question types", func(t *testing.T) {
+	t.Run("hard: majority multiple_choice", func(t *testing.T) {
 		params := GenerationParams{
-			Text:          "Test text",
-			NumQuestions:  2,
-			QuestionTypes: []QuestionType{TrueFalse, ShortAnswer},
+			NumQuestions:        10,
+			Difficulty:          "hard",
+			MultipleChoiceCount: 6, // ceil(10 * 0.6)
 		}
 
-		prompt := strategy.buildPrompt(params)
+		prompt := BuildSystemPrompt(params)
 
-		require.Contains(t, prompt, "true_false, short_answer")
+		require.Contains(t, prompt, "10 тестовых вопросов")
+		require.Contains(t, prompt, "4 вопросов типа single_choice")
+		require.Contains(t, prompt, "6 вопросов типа multiple_choice")
+		require.Contains(t, prompt, "hard")
+	})
+
+	t.Run("defaults difficulty to medium when empty", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        3,
+			MultipleChoiceCount: 0,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.Contains(t, prompt, "medium")
+	})
+
+	t.Run("includes self-contained question rules", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        3,
+			Difficulty:          "easy",
+			MultipleChoiceCount: 0,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.Contains(t, prompt, "САМОДОСТАТОЧНЫМ")
+		require.Contains(t, prompt, "В примере выше")
+	})
+
+	t.Run("includes multiple_choice JSON example when count > 0", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "medium",
+			MultipleChoiceCount: 2,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.Contains(t, prompt, `"type": "multiple_choice"`)
+		require.Contains(t, prompt, `"type": "single_choice"`)
+	})
+
+	t.Run("excludes multiple_choice JSON example when count is 0", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "easy",
+			MultipleChoiceCount: 0,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.NotContains(t, prompt, `"type": "multiple_choice"`)
+		require.Contains(t, prompt, `"type": "single_choice"`)
+	})
+}
+
+func TestBuildSystemPrompt_AcademicProfiles(t *testing.T) {
+	t.Run("universal profile produces no profile block", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "medium",
+			MultipleChoiceCount: 0,
+			Profile:             ProfileUniversal,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.NotContains(t, prompt, "ПРОФИЛЬ ДИСЦИПЛИНЫ")
+	})
+
+	t.Run("empty profile treated as universal — no profile block", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "medium",
+			MultipleChoiceCount: 0,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.NotContains(t, prompt, "ПРОФИЛЬ ДИСЦИПЛИНЫ")
+	})
+
+	t.Run("technological profile includes technical domain guidance", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "medium",
+			MultipleChoiceCount: 0,
+			Profile:             ProfileTechnological,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.Contains(t, prompt, "ПРОФИЛЬ ДИСЦИПЛИНЫ")
+		require.Contains(t, prompt, "технологический")
+		require.Contains(t, prompt, "алгоритм")
+	})
+
+	t.Run("natural_science profile includes science domain guidance", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "easy",
+			MultipleChoiceCount: 0,
+			Profile:             ProfileNaturalScience,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.Contains(t, prompt, "ПРОФИЛЬ ДИСЦИПЛИНЫ")
+		require.Contains(t, prompt, "естественно-научный")
+		require.Contains(t, prompt, "законах природы")
+	})
+
+	t.Run("humanities profile includes humanities domain guidance", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "hard",
+			MultipleChoiceCount: 3,
+			Profile:             ProfileHumanities,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.Contains(t, prompt, "ПРОФИЛЬ ДИСЦИПЛИНЫ")
+		require.Contains(t, prompt, "гуманитарный")
+		require.Contains(t, prompt, "периодизации")
+	})
+
+	t.Run("social_economic profile includes social-economic domain guidance", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "medium",
+			MultipleChoiceCount: 0,
+			Profile:             ProfileSocialEconomic,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.Contains(t, prompt, "ПРОФИЛЬ ДИСЦИПЛИНЫ")
+		require.Contains(t, prompt, "социально-экономический")
+		require.Contains(t, prompt, "нормативной базы")
+	})
+
+	t.Run("creative profile includes creative domain guidance", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "easy",
+			MultipleChoiceCount: 0,
+			Profile:             ProfileCreative,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.Contains(t, prompt, "ПРОФИЛЬ ДИСЦИПЛИНЫ")
+		require.Contains(t, prompt, "творческий")
+		require.Contains(t, prompt, "художественных стилях")
+	})
+
+	t.Run("profile-specific JSON examples replace generic OOP examples for natural_science", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "medium",
+			MultipleChoiceCount: 0,
+			Profile:             ProfileNaturalScience,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.Contains(t, prompt, "Бойля")
+		require.NotContains(t, prompt, "инкапсуляция в объектно-ориентированном")
+	})
+
+	t.Run("profile-specific JSON examples replace generic OOP examples for humanities", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "medium",
+			MultipleChoiceCount: 2,
+			Profile:             ProfileHumanities,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.Contains(t, prompt, "Достоевского")
+		require.NotContains(t, prompt, "инкапсуляция в объектно-ориентированном")
+	})
+
+	t.Run("difficulty ratio logic is preserved with profile — hard 60% multiple_choice", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        10,
+			Difficulty:          "hard",
+			MultipleChoiceCount: 6,
+			Profile:             ProfileSocialEconomic,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.Contains(t, prompt, "4 вопросов типа single_choice")
+		require.Contains(t, prompt, "6 вопросов типа multiple_choice")
+		require.Contains(t, prompt, "социально-экономический")
 	})
 }
 

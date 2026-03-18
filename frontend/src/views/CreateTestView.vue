@@ -137,6 +137,28 @@
           </div>
         </div>
 
+        <!-- Academic Profile -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-text-primary mb-2">
+            Учебный профиль дисциплины
+          </label>
+          <select
+            v-model="form.academicProfile"
+            class="input-cyber w-full"
+          >
+            <option
+              v-for="(label, value) in academicProfileOptions"
+              :key="value"
+              :value="value"
+            >
+              {{ label }}
+            </option>
+          </select>
+          <p class="text-text-muted text-sm mt-2">
+            Профиль адаптирует стиль формулировок и примеры вопросов под область знаний дисциплины
+          </p>
+        </div>
+
         <!-- LLM Provider -->
         <div class="mb-6">
           <label class="block text-sm font-medium text-text-primary mb-2">
@@ -194,17 +216,20 @@ import { useRouter } from 'vue-router'
 import { useDocumentsStore } from '@/features/documents/stores/documentsStore'
 import testService from '@/services/testService'
 import logger from '@/utils/logger'
-import { QuestionType, Difficulty } from '@/features/tests/types/test.types'
+import { QuestionType, Difficulty, AcademicProfile, ACADEMIC_PROFILE_LABELS } from '@/features/tests/types/test.types'
 
 const router = useRouter()
 const documentsStore = useDocumentsStore()
+
+const academicProfileOptions = ACADEMIC_PROFILE_LABELS
 
 const form = ref({
   documentId: '',
   title: '',
   numQuestions: 10,
   difficulty: 'medium',
-  llmProvider: 'yandexgpt'
+  llmProvider: 'yandexgpt',
+  academicProfile: AcademicProfile.UNIVERSAL
 })
 
 const isLoading = ref(false)
@@ -260,7 +285,8 @@ async function handleSubmit() {
       num_questions: form.value.numQuestions,
       difficulty: form.value.difficulty as Difficulty,
       llm_provider: form.value.llmProvider,
-      question_types: [QuestionType.SINGLE_CHOICE] // Default for now
+      question_types: [QuestionType.SINGLE_CHOICE], // Default for now
+      academic_profile: form.value.academicProfile,
     })
 
     logger.info('Test generated successfully', 'CreateTestView', { testId: response.id })

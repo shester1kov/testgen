@@ -15,13 +15,27 @@ const (
 	ShortAnswer    QuestionType = "short_answer"
 )
 
+// AcademicProfile represents the educational profile of a discipline
+type AcademicProfile string
+
+const (
+	ProfileTechnological  AcademicProfile = "technological"
+	ProfileNaturalScience AcademicProfile = "natural_science"
+	ProfileHumanities     AcademicProfile = "humanities"
+	ProfileSocialEconomic AcademicProfile = "social_economic"
+	ProfileCreative       AcademicProfile = "creative"
+	ProfileUniversal      AcademicProfile = "universal"
+)
+
 // GenerationParams holds parameters for question generation
 type GenerationParams struct {
-	Text          string
-	NumQuestions  int
-	QuestionTypes []QuestionType
-	Difficulty    string
-	Language      string
+	Text                string
+	NumQuestions        int
+	QuestionTypes       []QuestionType
+	Difficulty          string
+	Language            string
+	MultipleChoiceCount int             // number of multiple_choice questions; the rest are single_choice
+	Profile             AcademicProfile // academic profile of the discipline
 }
 
 // GeneratedQuestion represents a generated question with answers

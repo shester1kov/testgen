@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/shester1kov/testgen-backend/internal/domain"
@@ -46,12 +47,13 @@ func NewGenerateUseCase(
 
 // GenerateParams contains generation parameters
 type GenerateParams struct {
-	UserID       uuid.UUID
-	DocumentID   uuid.UUID
-	Title        string
-	NumQuestions int
-	Difficulty   string
-	LLMProvider  string
+	UserID          uuid.UUID
+	DocumentID      uuid.UUID
+	Title           string
+	NumQuestions    int
+	Difficulty      string
+	LLMProvider     string
+	AcademicProfile llm.AcademicProfile
 }
 
 // Execute executes the generate use case — generates questions via LLM and saves the full test
@@ -89,12 +91,30 @@ func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (
 		return nil, fmt.Errorf("%w: %v", domain.ErrInvalidLLMProvider, err)
 	}
 
+	// Compute multiple_choice count based on difficulty
+	// easy: 0%, medium: 30% (ceil), hard: 60% (ceil)
+	multipleChoiceCount := 0
+	switch params.Difficulty {
+	case "medium":
+		multipleChoiceCount = int(math.Ceil(float64(params.NumQuestions) * 0.3))
+	case "hard":
+		multipleChoiceCount = int(math.Ceil(float64(params.NumQuestions) * 0.6))
+	}
+
+	// Default profile
+	profile := params.AcademicProfile
+	if profile == "" {
+		profile = llm.ProfileUniversal
+	}
+
 	// Generate questions via LLM
 	llmContext := llm.NewLLMContext(strategy)
 	questions, err := llmContext.GenerateQuestions(ctx, llm.GenerationParams{
-		Text:         document.ParsedText,
-		NumQuestions: params.NumQuestions,
-		Difficulty:   params.Difficulty,
+		Text:                document.ParsedText,
+		NumQuestions:        params.NumQuestions,
+		Difficulty:          params.Difficulty,
+		MultipleChoiceCount: multipleChoiceCount,
+		Profile:             profile,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate questions: %w", err)

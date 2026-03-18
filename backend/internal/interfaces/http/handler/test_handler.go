@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/shester1kov/testgen-backend/internal/application/dto"
 	testuc "github.com/shester1kov/testgen-backend/internal/application/usecase/test"
+	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
 )
 
 type TestHandler struct {
@@ -117,12 +118,13 @@ func (h *TestHandler) Generate(c *fiber.Ctx) error {
 	docID, _ := uuid.Parse(req.DocumentID)
 
 	result, err := h.generateUseCase.Execute(c.Context(), testuc.GenerateParams{
-		UserID:       userID,
-		DocumentID:   docID,
-		Title:        req.Title,
-		NumQuestions: req.NumQuestions,
-		Difficulty:   req.Difficulty,
-		LLMProvider:  req.LLMProvider,
+		UserID:          userID,
+		DocumentID:      docID,
+		Title:           req.Title,
+		NumQuestions:    req.NumQuestions,
+		Difficulty:      req.Difficulty,
+		LLMProvider:     req.LLMProvider,
+		AcademicProfile: llm.AcademicProfile(req.AcademicProfile),
 	})
 	if err != nil {
 		if errors.Is(err, domain.ErrDocumentNotFound) {

@@ -32,12 +32,13 @@ type UpdateAnswerRequest struct {
 
 // GenerateTestRequest represents test generation request
 type GenerateTestRequest struct {
-	DocumentID    string   `json:"document_id" validate:"required,uuid"`
-	Title         string   `json:"title" validate:"required,min=3"`
-	NumQuestions  int      `json:"num_questions" validate:"required,min=1,max=50"`
-	QuestionTypes []string `json:"question_types"`
-	Difficulty    string   `json:"difficulty" validate:"required,oneof=easy medium hard"`
-	LLMProvider   string   `json:"llm_provider" validate:"omitempty,oneof=perplexity openai yandexgpt"`
+	DocumentID      string   `json:"document_id" validate:"required,uuid"`
+	Title           string   `json:"title" validate:"required,min=3"`
+	NumQuestions    int      `json:"num_questions" validate:"required,min=1,max=50"`
+	QuestionTypes   []string `json:"question_types"`
+	Difficulty      string   `json:"difficulty" validate:"required,oneof=easy medium hard"`
+	LLMProvider     string   `json:"llm_provider" validate:"omitempty,oneof=perplexity openai yandexgpt"`
+	AcademicProfile string   `json:"academic_profile" validate:"omitempty,oneof=technological natural_science humanities social_economic creative universal"`
 }
 
 // TestResponse represents test response

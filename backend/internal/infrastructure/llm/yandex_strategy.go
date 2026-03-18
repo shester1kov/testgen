@@ -106,25 +106,22 @@ func (s *YandexGPTStrategy) GenerateQuestions(ctx context.Context, params Genera
 		return nil, fmt.Errorf("yandexgpt folder ID not configured")
 	}
 
-	// Build the prompt
-	prompt := s.buildPrompt(params)
-
 	// Prepare the request
 	reqBody := YandexGPTRequest{
 		ModelURI: fmt.Sprintf("gpt://%s/%s", s.folderID, s.model),
 		CompletionOptions: YandexCompletionOptions{
 			Stream:      false,
-			Temperature: 0.6, // Match Python example
+			Temperature: 0.6,
 			MaxTokens:   "2000",
 		},
 		Messages: []YandexMessage{
 			{
 				Role: "system",
-				Text: "Ты - профессиональный создатель тестовых вопросов для образовательных целей. Генерируй качественные вопросы на русском языке в формате JSON.",
+				Text: BuildSystemPrompt(params),
 			},
 			{
 				Role: "user",
-				Text: prompt,
+				Text: params.Text,
 			},
 		},
 	}
@@ -197,86 +194,6 @@ func (s *YandexGPTStrategy) GenerateQuestions(ctx context.Context, params Genera
 	}
 
 	return questions, nil
-}
-
-// buildPrompt creates a prompt for question generation
-func (s *YandexGPTStrategy) buildPrompt(params GenerationParams) string {
-	var questionTypesStr string
-	if len(params.QuestionTypes) > 0 {
-		types := make([]string, len(params.QuestionTypes))
-		for i, qt := range params.QuestionTypes {
-			types[i] = string(qt)
-		}
-		questionTypesStr = strings.Join(types, ", ")
-	} else {
-		questionTypesStr = string(SingleChoice)
-	}
-
-	difficulty := params.Difficulty
-	if difficulty == "" {
-		difficulty = "medium"
-	}
-
-	language := params.Language
-	if language == "" {
-		language = "ru"
-	}
-
-	prompt := fmt.Sprintf(`На основе следующего текста создай %d тестовых вопросов.
-
-ТЕКСТ:
-%s
-
-ТРЕБОВАНИЯ:
-- Типы вопросов: %s
-- Сложность: %s
-- Язык: %s
-- Для каждого вопроса типа single_choice создай 4 варианта ответа (1 правильный, 3 неправильных)
-- Для каждого вопроса типа multiple_choice создай 5-6 вариантов (2-3 правильных, 2-3 неправильных)
-- Для true_false создай только 2 варианта: "Верно" и "Неверно"
-
-ВАЖНО - ПРАВИЛА ФОРМУЛИРОВКИ ВОПРОСОВ:
-1. Каждый вопрос должен быть САМОДОСТАТОЧНЫМ и понятным без ссылок на текст
-2. НЕ используй фразы типа "В примере выше", "Как показано в коде", "Согласно тексту лекции"
-3. Если в тексте есть конкретный пример кода или ситуации - включи его ПОЛНОСТЬЮ в текст вопроса
-4. Вопрос должен содержать всю необходимую информацию для ответа
-5. Формулируй вопросы в общем виде, проверяя понимание концепций, а не запоминание примеров
-
-ПРИМЕРЫ:
-ПЛОХО: "В приведённом выше примере наследования, какой метод будет вызван?"
-ХОРОШО: "В следующем коде:\nclass Parent { void foo() {...} }\nclass Child extends Parent { void foo() {...} }\nChild obj = new Child();\nКакой метод будет вызван при obj.foo()?"
-
-ПЛОХО: "Согласно лекции, что такое полиморфизм?"
-ХОРОШО: "Что такое полиморфизм в объектно-ориентированном программировании?"
-
-ФОРМАТ ОТВЕТА (строго JSON):
-{
-  "questions": [
-    {
-      "question": "Текст вопроса",
-      "type": "single_choice",
-      "difficulty": "%s",
-      "answers": [
-        {"text": "Вариант ответа 1", "is_correct": true},
-        {"text": "Вариант ответа 2", "is_correct": false},
-        {"text": "Вариант ответа 3", "is_correct": false},
-        {"text": "Вариант ответа 4", "is_correct": false}
-      ],
-      "explanation": "Краткое объяснение правильного ответа"
-    }
-  ]
-}
-
-Верни ТОЛЬКО валидный JSON без дополнительного текста.`,
-		params.NumQuestions,
-		params.Text,
-		questionTypesStr,
-		difficulty,
-		language,
-		difficulty,
-	)
-
-	return prompt
 }
 
 // parseQuestions parses the generated JSON into GeneratedQuestion structs

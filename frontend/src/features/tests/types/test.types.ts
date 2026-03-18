@@ -56,6 +56,24 @@ export interface Answer {
   created_at: string
 }
 
+export enum AcademicProfile {
+  TECHNOLOGICAL = 'technological',
+  NATURAL_SCIENCE = 'natural_science',
+  HUMANITIES = 'humanities',
+  SOCIAL_ECONOMIC = 'social_economic',
+  CREATIVE = 'creative',
+  UNIVERSAL = 'universal',
+}
+
+export const ACADEMIC_PROFILE_LABELS: Record<AcademicProfile, string> = {
+  [AcademicProfile.TECHNOLOGICAL]: 'Технологический',
+  [AcademicProfile.NATURAL_SCIENCE]: 'Естественно-научный',
+  [AcademicProfile.HUMANITIES]: 'Гуманитарный',
+  [AcademicProfile.SOCIAL_ECONOMIC]: 'Социально-экономический',
+  [AcademicProfile.CREATIVE]: 'Творческий',
+  [AcademicProfile.UNIVERSAL]: 'Универсальный',
+}
+
 export interface TestGenerationRequest {
   document_id: string
   title: string
@@ -64,6 +82,7 @@ export interface TestGenerationRequest {
   question_types: QuestionType[]
   difficulty: Difficulty
   llm_provider?: string
+  academic_profile?: AcademicProfile
 }
 
 export interface TestExportRequest {
