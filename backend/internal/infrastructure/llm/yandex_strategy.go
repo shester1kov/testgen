@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // YandexGPTStrategy implements LLM strategy for YandexGPT API
@@ -18,6 +20,7 @@ type YandexGPTStrategy struct {
 	model    string
 	baseURL  string // Base URL for API (for testing)
 	client   *http.Client
+	logger   *zap.Logger
 }
 
 // YandexGPTRequest represents the request structure for YandexGPT API
@@ -80,10 +83,18 @@ type QuestionResponse struct {
 	} `json:"questions"`
 }
 
-// NewYandexGPTStrategy creates a new YandexGPT strategy
-func NewYandexGPTStrategy(apiKey, folderID, model string) *YandexGPTStrategy {
+// NewYandexGPTStrategy creates a new YandexGPT strategy.
+// The logger parameter is optional; if omitted, a no-op logger is used.
+func NewYandexGPTStrategy(apiKey, folderID, model string, logger ...*zap.Logger) *YandexGPTStrategy {
 	if model == "" {
 		model = "yandexgpt-lite" // Default to lite model (cheaper, faster)
+	}
+
+	var l *zap.Logger
+	if len(logger) > 0 && logger[0] != nil {
+		l = logger[0]
+	} else {
+		l = zap.NewNop()
 	}
 
 	return &YandexGPTStrategy{
@@ -94,15 +105,18 @@ func NewYandexGPTStrategy(apiKey, folderID, model string) *YandexGPTStrategy {
 		client: &http.Client{
 			Timeout: 60 * time.Second,
 		},
+		logger: l,
 	}
 }
 
 // GenerateQuestions generates questions using YandexGPT API
 func (s *YandexGPTStrategy) GenerateQuestions(ctx context.Context, params GenerationParams) ([]GeneratedQuestion, error) {
 	if s.apiKey == "" {
+		s.logger.Error("yandexgpt API key not configured")
 		return nil, fmt.Errorf("yandexgpt API key not configured")
 	}
 	if s.folderID == "" {
+		s.logger.Error("yandexgpt folder ID not configured")
 		return nil, fmt.Errorf("yandexgpt folder ID not configured")
 	}
 
@@ -112,7 +126,7 @@ func (s *YandexGPTStrategy) GenerateQuestions(ctx context.Context, params Genera
 		CompletionOptions: YandexCompletionOptions{
 			Stream:      false,
 			Temperature: 0.6,
-			MaxTokens:   "2000",
+			MaxTokens:   "8000",
 		},
 		Messages: []YandexMessage{
 			{
@@ -142,7 +156,12 @@ func (s *YandexGPTStrategy) GenerateQuestions(ctx context.Context, params Genera
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Api-Key %s", s.apiKey))
 
-	// Log request for debugging
+	s.logger.Debug("sending request to yandexgpt API",
+		zap.String("model", s.model),
+		zap.Int("num_questions", params.NumQuestions),
+		zap.String("difficulty", params.Difficulty),
+		zap.String("profile", string(params.Profile)),
+	)
 
 	// Send request
 	resp, err := s.client.Do(req)
@@ -157,14 +176,12 @@ func (s *YandexGPTStrategy) GenerateQuestions(ctx context.Context, params Genera
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	// Log first 500 chars of response for debugging
-	bodyPreview := string(body)
-	if len(bodyPreview) > 500 {
-		bodyPreview = bodyPreview[:500] + "..."
-	}
-
 	// Check status code
 	if resp.StatusCode != http.StatusOK {
+		s.logger.Error("yandexgpt API returned non-200 status",
+			zap.Int("status", resp.StatusCode),
+			zap.String("body", string(body)),
+		)
 		return nil, fmt.Errorf("yandexgpt API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
@@ -181,11 +198,9 @@ func (s *YandexGPTStrategy) GenerateQuestions(ctx context.Context, params Genera
 
 	generatedText := yandexResp.Result.Alternatives[0].Message.Text
 
-	// Log first 300 chars of generated text
-	textPreview := generatedText
-	if len(textPreview) > 300 {
-		textPreview = textPreview[:300] + "..."
-	}
+	s.logger.Debug("received response from yandexgpt",
+		zap.Int("text_length", len(generatedText)),
+	)
 
 	// Parse the JSON from the generated text
 	questions, err := s.parseQuestions(generatedText, params)
@@ -208,11 +223,14 @@ func (s *YandexGPTStrategy) parseQuestions(text string, params GenerationParams)
 
 	var qResponse QuestionResponse
 	if err := json.Unmarshal([]byte(text), &qResponse); err != nil {
-		// Log first 500 chars of problematic text
 		preview := text
 		if len(preview) > 500 {
 			preview = preview[:500] + "..."
 		}
+		s.logger.Error("failed to parse JSON from yandexgpt response",
+			zap.Error(err),
+			zap.String("response_preview", preview),
+		)
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 

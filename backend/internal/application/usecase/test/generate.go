@@ -14,6 +14,7 @@ import (
 	"github.com/shester1kov/testgen-backend/internal/domain/repository"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
 	"github.com/shester1kov/testgen-backend/pkg/security"
+	"go.uber.org/zap"
 )
 
 // GenerateUseCase handles test generation using LLM
@@ -24,9 +25,11 @@ type GenerateUseCase struct {
 	answerRepo   repository.AnswerRepository
 	userRepo     repository.UserRepository
 	llmFactory   *llm.LLMFactory
+	logger       *zap.Logger
 }
 
-// NewGenerateUseCase creates a new generate use case
+// NewGenerateUseCase creates a new generate use case.
+// The logger parameter is optional; if omitted, a no-op logger is used.
 func NewGenerateUseCase(
 	testRepo repository.TestRepository,
 	documentRepo repository.DocumentRepository,
@@ -34,7 +37,15 @@ func NewGenerateUseCase(
 	answerRepo repository.AnswerRepository,
 	userRepo repository.UserRepository,
 	llmFactory *llm.LLMFactory,
+	logger ...*zap.Logger,
 ) *GenerateUseCase {
+	var l *zap.Logger
+	if len(logger) > 0 && logger[0] != nil {
+		l = logger[0]
+	} else {
+		l = zap.NewNop()
+	}
+
 	return &GenerateUseCase{
 		testRepo:     testRepo,
 		documentRepo: documentRepo,
@@ -42,6 +53,7 @@ func NewGenerateUseCase(
 		answerRepo:   answerRepo,
 		userRepo:     userRepo,
 		llmFactory:   llmFactory,
+		logger:       l,
 	}
 }
 
@@ -71,7 +83,7 @@ func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (
 	}
 
 	if !user.IsAdmin() && document.UserID != params.UserID {
-		return nil, fmt.Errorf("access denied to this document")
+		return nil, fmt.Errorf("%w: document %s", domain.ErrAccessDenied, params.DocumentID)
 	}
 
 	// Check if document is parsed
@@ -117,7 +129,12 @@ func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (
 		Profile:             profile,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate questions: %w", err)
+		uc.logger.Error("LLM generation failed",
+			zap.String("provider", params.LLMProvider),
+			zap.String("document_id", params.DocumentID.String()),
+			zap.Error(err),
+		)
+		return nil, fmt.Errorf("%w: %v", domain.ErrFailedToGenerate, err)
 	}
 
 	// Sanitize title

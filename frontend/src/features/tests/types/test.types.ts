@@ -79,7 +79,6 @@ export interface TestGenerationRequest {
   title: string
   description?: string
   num_questions: number
-  question_types: QuestionType[]
   difficulty: Difficulty
   llm_provider?: string
   academic_profile?: AcademicProfile

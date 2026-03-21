@@ -216,7 +216,7 @@ import { useRouter } from 'vue-router'
 import { useDocumentsStore } from '@/features/documents/stores/documentsStore'
 import testService from '@/services/testService'
 import logger from '@/utils/logger'
-import { QuestionType, Difficulty, AcademicProfile, ACADEMIC_PROFILE_LABELS } from '@/features/tests/types/test.types'
+import { Difficulty, AcademicProfile, ACADEMIC_PROFILE_LABELS } from '@/features/tests/types/test.types'
 
 const router = useRouter()
 const documentsStore = useDocumentsStore()
@@ -285,7 +285,6 @@ async function handleSubmit() {
       num_questions: form.value.numQuestions,
       difficulty: form.value.difficulty as Difficulty,
       llm_provider: form.value.llmProvider,
-      question_types: [QuestionType.SINGLE_CHOICE], // Default for now
       academic_profile: form.value.academicProfile,
     })
 

@@ -1,6 +1,10 @@
 package llm
 
-import "fmt"
+import (
+	"fmt"
+
+	"go.uber.org/zap"
+)
 
 // LLMFactory creates LLM strategies based on provider name
 type LLMFactory struct {
@@ -9,16 +13,26 @@ type LLMFactory struct {
 	yandexKey      string
 	yandexFolderID string
 	yandexModel    string
+	logger         *zap.Logger
 }
 
-// NewLLMFactory creates a new LLM factory
-func NewLLMFactory(perplexityKey, openaiKey, yandexKey, yandexFolderID, yandexModel string) *LLMFactory {
+// NewLLMFactory creates a new LLM factory.
+// The logger parameter is optional; if omitted, a no-op logger is used.
+func NewLLMFactory(perplexityKey, openaiKey, yandexKey, yandexFolderID, yandexModel string, logger ...*zap.Logger) *LLMFactory {
+	var l *zap.Logger
+	if len(logger) > 0 && logger[0] != nil {
+		l = logger[0]
+	} else {
+		l = zap.NewNop()
+	}
+
 	return &LLMFactory{
 		perplexityKey:  perplexityKey,
 		openaiKey:      openaiKey,
 		yandexKey:      yandexKey,
 		yandexFolderID: yandexFolderID,
 		yandexModel:    yandexModel,
+		logger:         l,
 	}
 }
 
@@ -30,7 +44,7 @@ func (f *LLMFactory) CreateStrategy(provider string) (LLMStrategy, error) {
 	case "openai":
 		return NewOpenAIStrategy(f.openaiKey), nil
 	case "yandexgpt", "yandex":
-		return NewYandexGPTStrategy(f.yandexKey, f.yandexFolderID, f.yandexModel), nil
+		return NewYandexGPTStrategy(f.yandexKey, f.yandexFolderID, f.yandexModel, f.logger), nil
 	default:
 		return nil, fmt.Errorf("unknown LLM provider: %s", provider)
 	}

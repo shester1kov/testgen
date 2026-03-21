@@ -125,13 +125,14 @@ func provideJWTManager(cfg *config.Config) (*utils.JWTManager, error) {
 	return utils.NewJWTManager(cfg.JWT.Secret, cfg.JWT.Expiration)
 }
 
-func provideLLMFactory(cfg *config.Config) *llm.LLMFactory {
+func provideLLMFactory(cfg *config.Config, log *logger.Logger) *llm.LLMFactory {
 	return llm.NewLLMFactory(
 		cfg.LLM.PerplexityAPIKey,
 		cfg.LLM.OpenAIAPIKey,
 		cfg.LLM.YandexAPIKey,
 		cfg.LLM.YandexFolderID,
 		cfg.LLM.YandexModel,
+		log.Logger,
 	)
 }
 
@@ -289,8 +290,9 @@ func provideGenerateTestUseCase(
 	answerRepo repository.AnswerRepository,
 	userRepo repository.UserRepository,
 	llmFactory *llm.LLMFactory,
+	log *logger.Logger,
 ) *testuc.GenerateUseCase {
-	return testuc.NewGenerateUseCase(testRepo, documentRepo, questionRepo, answerRepo, userRepo, llmFactory)
+	return testuc.NewGenerateUseCase(testRepo, documentRepo, questionRepo, answerRepo, userRepo, llmFactory, log.Logger)
 }
 
 func provideListTestUseCase(
