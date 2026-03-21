@@ -19,6 +19,7 @@ import (
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/persistence/postgres"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/storage"
 	"github.com/shester1kov/testgen-backend/internal/interfaces/http/handler"
+	"github.com/shester1kov/testgen-backend/internal/interfaces/http/middleware"
 	"github.com/shester1kov/testgen-backend/pkg/config"
 	"github.com/shester1kov/testgen-backend/pkg/logger"
 	"github.com/shester1kov/testgen-backend/pkg/utils"
@@ -41,6 +42,9 @@ type ApplicationContainer struct {
 	UserRepo    repository.UserRepository
 	RoleRepo    repository.RoleRepository
 	RedisClient *cache.RedisClient
+
+	// activity logging
+	ActivityLogger *middleware.ActivityLogger
 }
 
 // InitializeApplication sets up all dependencies using Wire
@@ -59,6 +63,8 @@ func InitializeApplication(cfg *config.Config, db *gorm.DB, log *logger.Logger) 
 		postgres.NewTestRepository,
 		postgres.NewQuestionRepository,
 		postgres.NewAnswerRepository,
+		postgres.NewActivityLogRepository,
+		middleware.NewActivityLogger,
 
 		// JWT Manager
 		provideJWTManager,

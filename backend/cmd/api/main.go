@@ -142,7 +142,7 @@ func main() {
 	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	// Setup routes
-	router.SetupRoutes(app, authHandler, userHandler, documentHandler, testHandler, statsHandler, jwtManager, cfg.Cookie.Name)
+	router.SetupRoutes(app, authHandler, userHandler, documentHandler, testHandler, statsHandler, jwtManager, cfg.Cookie.Name, container.ActivityLogger)
 
 	// Root endpoint
 	// @Summary API version information
