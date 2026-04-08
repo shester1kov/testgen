@@ -27,6 +27,37 @@ const (
 	ProfileUniversal      AcademicProfile = "universal"
 )
 
+// ExampleAnswer is a single answer option within a ProfileData question example.
+type ExampleAnswer struct {
+	Text      string
+	IsCorrect bool
+}
+
+// QuestionExample is a domain-specific example question loaded from the DB for use in prompts.
+type QuestionExample struct {
+	QuestionType QuestionType
+	QuestionText string
+	Answers      []ExampleAnswer
+	Explanation  string
+}
+
+// FormulationExample is a ПЛОХО/ХОРОШО phrasing pair loaded from the DB.
+type FormulationExample struct {
+	Bad  string
+	Good string
+}
+
+// ProfileData contains all academic profile configuration loaded from the DB.
+// When set on GenerationParams, BuildSystemPrompt uses this data instead of the
+// hardcoded fallback functions.
+type ProfileData struct {
+	Code             AcademicProfile
+	Temperature      float64
+	Instruction      string // profile block text; empty for universal
+	Formulations     []FormulationExample
+	QuestionExamples []QuestionExample
+}
+
 // GenerationParams holds parameters for question generation
 type GenerationParams struct {
 	Text                string
@@ -36,6 +67,12 @@ type GenerationParams struct {
 	Language            string
 	MultipleChoiceCount int             // number of multiple_choice questions; the rest are single_choice
 	Profile             AcademicProfile // academic profile of the discipline
+	// Temperature overrides the hardcoded LLM temperature when set (non-zero).
+	// Populated from ProfileData.Temperature by the generate use case.
+	Temperature float64
+	// ProfileData carries the full profile loaded from the DB.
+	// When non-nil, BuildSystemPrompt uses this data instead of the hardcoded fallback.
+	ProfileData *ProfileData
 }
 
 // GeneratedQuestion represents a generated question with answers

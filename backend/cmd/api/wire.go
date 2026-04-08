@@ -64,6 +64,8 @@ func InitializeApplication(cfg *config.Config, db *gorm.DB, log *logger.Logger) 
 		postgres.NewQuestionRepository,
 		postgres.NewAnswerRepository,
 		postgres.NewActivityLogRepository,
+		postgres.NewAcademicProfileRepository,
+		postgres.NewTestGenerationConfigRepository,
 		middleware.NewActivityLogger,
 
 		// JWT Manager
@@ -295,10 +297,12 @@ func provideGenerateTestUseCase(
 	questionRepo repository.QuestionRepository,
 	answerRepo repository.AnswerRepository,
 	userRepo repository.UserRepository,
+	academicProfileRepo repository.AcademicProfileRepository,
+	genConfigRepo repository.TestGenerationConfigRepository,
 	llmFactory *llm.LLMFactory,
 	log *logger.Logger,
 ) *testuc.GenerateUseCase {
-	return testuc.NewGenerateUseCase(testRepo, documentRepo, questionRepo, answerRepo, userRepo, llmFactory, log.Logger)
+	return testuc.NewGenerateUseCase(testRepo, documentRepo, questionRepo, answerRepo, userRepo, academicProfileRepo, genConfigRepo, llmFactory, log.Logger)
 }
 
 func provideListTestUseCase(

@@ -45,7 +45,7 @@ func setupTestHandler(
 	}
 
 	createUseCase := testuc.NewCreateUseCase(testRepo)
-	generateUseCase := testuc.NewGenerateUseCase(testRepo, docRepo, questionRepo, answerRepo, userRepo, llmFactory)
+	generateUseCase := testuc.NewGenerateUseCase(testRepo, docRepo, questionRepo, answerRepo, userRepo, nil, nil, llmFactory)
 	listUseCase := testuc.NewListUseCase(testRepo, userRepo)
 	getUseCase := testuc.NewGetUseCase(testRepo, questionRepo, answerRepo, userRepo)
 	updateUseCase := testuc.NewUpdateUseCase(testRepo, userRepo)

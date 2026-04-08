@@ -130,7 +130,7 @@ func TestGenerateUseCase_Execute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := NewGenerateUseCase(nil, tt.docRepo, nil, nil, tt.userRepo, factory)
+			uc := NewGenerateUseCase(nil, tt.docRepo, nil, nil, tt.userRepo, nil, nil, factory)
 			result, err := uc.Execute(context.Background(), tt.params)
 
 			if tt.expectedErr != "" {

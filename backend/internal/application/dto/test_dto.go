@@ -41,19 +41,32 @@ type GenerateTestRequest struct {
 	AcademicProfile string   `json:"academic_profile" validate:"omitempty,oneof=technological natural_science humanities social_economic creative universal"`
 }
 
+// GenerationConfigDTO represents the LLM generation parameters used to create a test.
+// Nil/absent when the test was created manually.
+type GenerationConfigDTO struct {
+	AcademicProfile     string  `json:"academic_profile"`
+	AcademicProfileName string  `json:"academic_profile_name"`
+	Difficulty          string  `json:"difficulty"`
+	NumQuestions        int     `json:"num_questions"`
+	LLMProvider         string  `json:"llm_provider"`
+	Language            string  `json:"language"`
+	Temperature         float64 `json:"temperature"`
+}
+
 // TestResponse represents test response
 type TestResponse struct {
-	ID             string        `json:"id"`
-	UserID         string        `json:"user_id"`
-	UserName       *string       `json:"user_name,omitempty"`  // Only for admin
-	UserEmail      *string       `json:"user_email,omitempty"` // Only for admin
-	Title          string        `json:"title"`
-	Description    string        `json:"description"`
-	TotalQuestions int           `json:"total_questions"`
-	Status         string        `json:"status"`
-	MoodleSynced   bool          `json:"moodle_synced"`
-	CreatedAt      string        `json:"created_at"`
-	Questions      []QuestionDTO `json:"questions,omitempty"`
+	ID               string               `json:"id"`
+	UserID           string               `json:"user_id"`
+	UserName         *string              `json:"user_name,omitempty"`  // Only for admin
+	UserEmail        *string              `json:"user_email,omitempty"` // Only for admin
+	Title            string               `json:"title"`
+	Description      string               `json:"description"`
+	TotalQuestions   int                  `json:"total_questions"`
+	Status           string               `json:"status"`
+	MoodleSynced     bool                 `json:"moodle_synced"`
+	CreatedAt        string               `json:"created_at"`
+	Questions        []QuestionDTO        `json:"questions,omitempty"`
+	GenerationConfig *GenerationConfigDTO `json:"generation_config,omitempty"`
 }
 
 // QuestionDTO represents question data

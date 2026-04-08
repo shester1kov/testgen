@@ -80,11 +80,17 @@ func TestBuildSystemPrompt_Difficulty(t *testing.T) {
 		require.Contains(t, prompt, "В примере выше")
 	})
 
-	t.Run("includes multiple_choice JSON example when count > 0", func(t *testing.T) {
+	t.Run("includes multiple_choice JSON example when count > 0 and ProfileData is set", func(t *testing.T) {
 		params := GenerationParams{
 			NumQuestions:        5,
 			Difficulty:          "medium",
 			MultipleChoiceCount: 2,
+			ProfileData: &ProfileData{
+				QuestionExamples: []QuestionExample{
+					{QuestionType: SingleChoice, QuestionText: "Вопрос single", Answers: []ExampleAnswer{{Text: "А", IsCorrect: true}}, Explanation: "Пояснение"},
+					{QuestionType: MultipleChoice, QuestionText: "Вопрос multiple", Answers: []ExampleAnswer{{Text: "А", IsCorrect: true}, {Text: "Б", IsCorrect: false}}, Explanation: "Пояснение"},
+				},
+			},
 		}
 
 		prompt := BuildSystemPrompt(params)
@@ -93,11 +99,17 @@ func TestBuildSystemPrompt_Difficulty(t *testing.T) {
 		require.Contains(t, prompt, `"type": "single_choice"`)
 	})
 
-	t.Run("excludes multiple_choice JSON example when count is 0", func(t *testing.T) {
+	t.Run("excludes multiple_choice JSON example when count is 0 and ProfileData is set", func(t *testing.T) {
 		params := GenerationParams{
 			NumQuestions:        5,
 			Difficulty:          "easy",
 			MultipleChoiceCount: 0,
+			ProfileData: &ProfileData{
+				QuestionExamples: []QuestionExample{
+					{QuestionType: SingleChoice, QuestionText: "Вопрос single", Answers: []ExampleAnswer{{Text: "А", IsCorrect: true}}, Explanation: "Пояснение"},
+					{QuestionType: MultipleChoice, QuestionText: "Вопрос multiple", Answers: []ExampleAnswer{{Text: "А", IsCorrect: true}}, Explanation: "Пояснение"},
+				},
+			},
 		}
 
 		prompt := BuildSystemPrompt(params)
@@ -105,15 +117,55 @@ func TestBuildSystemPrompt_Difficulty(t *testing.T) {
 		require.NotContains(t, prompt, `"type": "multiple_choice"`)
 		require.Contains(t, prompt, `"type": "single_choice"`)
 	})
+
+	t.Run("no ProfileData produces empty examples section", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "easy",
+			MultipleChoiceCount: 2,
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.NotContains(t, prompt, `"type": "single_choice"`)
+		require.NotContains(t, prompt, `"type": "multiple_choice"`)
+	})
 }
 
 func TestBuildSystemPrompt_AcademicProfiles(t *testing.T) {
-	t.Run("universal profile produces no profile block", func(t *testing.T) {
+	// Helper: minimal ProfileData with the instruction text and one example per type.
+	makeProfile := func(code AcademicProfile, instruction string, singleText, multipleText string) *ProfileData {
+		examples := []QuestionExample{
+			{
+				QuestionType: SingleChoice,
+				QuestionText: singleText,
+				Answers:      []ExampleAnswer{{Text: "А", IsCorrect: true}, {Text: "Б", IsCorrect: false}},
+				Explanation:  "Пояснение",
+			},
+		}
+		if multipleText != "" {
+			examples = append(examples, QuestionExample{
+				QuestionType: MultipleChoice,
+				QuestionText: multipleText,
+				Answers:      []ExampleAnswer{{Text: "А", IsCorrect: true}, {Text: "Б", IsCorrect: false}},
+				Explanation:  "Пояснение",
+			})
+		}
+		return &ProfileData{
+			Code:        code,
+			Instruction: instruction,
+			Formulations: []FormulationExample{
+				{Bad: "ПЛОХО для " + string(code), Good: "ХОРОШО для " + string(code)},
+			},
+			QuestionExamples: examples,
+		}
+	}
+
+	t.Run("no ProfileData produces no profile block", func(t *testing.T) {
 		params := GenerationParams{
 			NumQuestions:        5,
 			Difficulty:          "medium",
 			MultipleChoiceCount: 0,
-			Profile:             ProfileUniversal,
 		}
 
 		prompt := BuildSystemPrompt(params)
@@ -121,11 +173,12 @@ func TestBuildSystemPrompt_AcademicProfiles(t *testing.T) {
 		require.NotContains(t, prompt, "ПРОФИЛЬ ДИСЦИПЛИНЫ")
 	})
 
-	t.Run("empty profile treated as universal — no profile block", func(t *testing.T) {
+	t.Run("ProfileData with empty instruction produces no profile block", func(t *testing.T) {
 		params := GenerationParams{
 			NumQuestions:        5,
 			Difficulty:          "medium",
 			MultipleChoiceCount: 0,
+			ProfileData:         &ProfileData{Code: ProfileUniversal},
 		}
 
 		prompt := BuildSystemPrompt(params)
@@ -133,12 +186,13 @@ func TestBuildSystemPrompt_AcademicProfiles(t *testing.T) {
 		require.NotContains(t, prompt, "ПРОФИЛЬ ДИСЦИПЛИНЫ")
 	})
 
-	t.Run("technological profile includes technical domain guidance", func(t *testing.T) {
+	t.Run("technological ProfileData includes technical domain instruction", func(t *testing.T) {
+		instruction := "ПРОФИЛЬ ДИСЦИПЛИНЫ: технологический (программирование, инженерия, математика, информатика).\nАкцентируй вопросы на точных определениях, алгоритмах, формулах."
 		params := GenerationParams{
 			NumQuestions:        5,
 			Difficulty:          "medium",
 			MultipleChoiceCount: 0,
-			Profile:             ProfileTechnological,
+			ProfileData:         makeProfile(ProfileTechnological, instruction, "Вопрос про алгоритм", ""),
 		}
 
 		prompt := BuildSystemPrompt(params)
@@ -148,12 +202,13 @@ func TestBuildSystemPrompt_AcademicProfiles(t *testing.T) {
 		require.Contains(t, prompt, "алгоритм")
 	})
 
-	t.Run("natural_science profile includes science domain guidance", func(t *testing.T) {
+	t.Run("natural_science ProfileData includes science domain instruction", func(t *testing.T) {
+		instruction := "ПРОФИЛЬ ДИСЦИПЛИНЫ: естественно-научный (физика, химия, биология).\nАкцентируй вопросы на законах природы."
 		params := GenerationParams{
 			NumQuestions:        5,
 			Difficulty:          "easy",
 			MultipleChoiceCount: 0,
-			Profile:             ProfileNaturalScience,
+			ProfileData:         makeProfile(ProfileNaturalScience, instruction, "Закон Бойля–Мариотта", ""),
 		}
 
 		prompt := BuildSystemPrompt(params)
@@ -163,12 +218,13 @@ func TestBuildSystemPrompt_AcademicProfiles(t *testing.T) {
 		require.Contains(t, prompt, "законах природы")
 	})
 
-	t.Run("humanities profile includes humanities domain guidance", func(t *testing.T) {
+	t.Run("humanities ProfileData includes humanities domain instruction", func(t *testing.T) {
+		instruction := "ПРОФИЛЬ ДИСЦИПЛИНЫ: гуманитарный (история, литература, философия).\nАкцентируй вопросы на авторстве, периодизации."
 		params := GenerationParams{
 			NumQuestions:        5,
 			Difficulty:          "hard",
 			MultipleChoiceCount: 3,
-			Profile:             ProfileHumanities,
+			ProfileData:         makeProfile(ProfileHumanities, instruction, "Достоевский", "Эпоха Просвещения"),
 		}
 
 		prompt := BuildSystemPrompt(params)
@@ -178,12 +234,13 @@ func TestBuildSystemPrompt_AcademicProfiles(t *testing.T) {
 		require.Contains(t, prompt, "периодизации")
 	})
 
-	t.Run("social_economic profile includes social-economic domain guidance", func(t *testing.T) {
+	t.Run("social_economic ProfileData includes social-economic domain instruction", func(t *testing.T) {
+		instruction := "ПРОФИЛЬ ДИСЦИПЛИНЫ: социально-экономический.\nАкцентируй вопросы на нормативной базы."
 		params := GenerationParams{
 			NumQuestions:        5,
 			Difficulty:          "medium",
 			MultipleChoiceCount: 0,
-			Profile:             ProfileSocialEconomic,
+			ProfileData:         makeProfile(ProfileSocialEconomic, instruction, "Вопрос про ВВП", ""),
 		}
 
 		prompt := BuildSystemPrompt(params)
@@ -193,12 +250,13 @@ func TestBuildSystemPrompt_AcademicProfiles(t *testing.T) {
 		require.Contains(t, prompt, "нормативной базы")
 	})
 
-	t.Run("creative profile includes creative domain guidance", func(t *testing.T) {
+	t.Run("creative ProfileData includes creative domain instruction", func(t *testing.T) {
+		instruction := "ПРОФИЛЬ ДИСЦИПЛИНЫ: творческий (изобразительное искусство, дизайн).\nАкцентируй вопросы на художественных стилях."
 		params := GenerationParams{
 			NumQuestions:        5,
 			Difficulty:          "easy",
 			MultipleChoiceCount: 0,
-			Profile:             ProfileCreative,
+			ProfileData:         makeProfile(ProfileCreative, instruction, "Импрессионизм", ""),
 		}
 
 		prompt := BuildSystemPrompt(params)
@@ -208,40 +266,39 @@ func TestBuildSystemPrompt_AcademicProfiles(t *testing.T) {
 		require.Contains(t, prompt, "художественных стилях")
 	})
 
-	t.Run("profile-specific JSON examples replace generic OOP examples for natural_science", func(t *testing.T) {
+	t.Run("ProfileData question example text appears in prompt", func(t *testing.T) {
 		params := GenerationParams{
 			NumQuestions:        5,
 			Difficulty:          "medium",
 			MultipleChoiceCount: 0,
-			Profile:             ProfileNaturalScience,
+			ProfileData:         makeProfile(ProfileNaturalScience, "Блок профиля", "Закон Бойля–Мариотта", ""),
 		}
 
 		prompt := BuildSystemPrompt(params)
 
-		require.Contains(t, prompt, "Бойля")
-		require.NotContains(t, prompt, "инкапсуляция в объектно-ориентированном")
+		require.Contains(t, prompt, "Закон Бойля–Мариотта")
 	})
 
-	t.Run("profile-specific JSON examples replace generic OOP examples for humanities", func(t *testing.T) {
+	t.Run("ProfileData with multiple_choice example appears when count > 0", func(t *testing.T) {
 		params := GenerationParams{
 			NumQuestions:        5,
 			Difficulty:          "medium",
 			MultipleChoiceCount: 2,
-			Profile:             ProfileHumanities,
+			ProfileData:         makeProfile(ProfileHumanities, "Блок профиля", "Достоевский", "Черты эпохи Просвещения"),
 		}
 
 		prompt := BuildSystemPrompt(params)
 
-		require.Contains(t, prompt, "Достоевского")
-		require.NotContains(t, prompt, "инкапсуляция в объектно-ориентированном")
+		require.Contains(t, prompt, "Достоевский")
+		require.Contains(t, prompt, "Черты эпохи Просвещения")
 	})
 
-	t.Run("difficulty ratio logic is preserved with profile — hard 60% multiple_choice", func(t *testing.T) {
+	t.Run("difficulty ratio counts are preserved regardless of ProfileData", func(t *testing.T) {
 		params := GenerationParams{
 			NumQuestions:        10,
 			Difficulty:          "hard",
 			MultipleChoiceCount: 6,
-			Profile:             ProfileSocialEconomic,
+			ProfileData:         makeProfile(ProfileSocialEconomic, "ПРОФИЛЬ ДИСЦИПЛИНЫ: социально-экономический.", "Вопрос", "МногоВыборВопрос"),
 		}
 
 		prompt := BuildSystemPrompt(params)
@@ -249,6 +306,27 @@ func TestBuildSystemPrompt_AcademicProfiles(t *testing.T) {
 		require.Contains(t, prompt, "4 вопросов типа single_choice")
 		require.Contains(t, prompt, "6 вопросов типа multiple_choice")
 		require.Contains(t, prompt, "социально-экономический")
+	})
+
+	t.Run("ProfileData formulation examples appear in prompt", func(t *testing.T) {
+		params := GenerationParams{
+			NumQuestions:        5,
+			Difficulty:          "medium",
+			MultipleChoiceCount: 0,
+			ProfileData: &ProfileData{
+				Code:        ProfileTechnological,
+				Instruction: "Блок профиля",
+				Formulations: []FormulationExample{
+					{Bad: "Плохой вопрос про полиморфизм", Good: "Хороший вопрос про полиморфизм в ООП"},
+				},
+			},
+		}
+
+		prompt := BuildSystemPrompt(params)
+
+		require.Contains(t, prompt, "ПРИМЕРЫ ПРАВИЛЬНОЙ И НЕПРАВИЛЬНОЙ ФОРМУЛИРОВКИ")
+		require.Contains(t, prompt, "Плохой вопрос про полиморфизм")
+		require.Contains(t, prompt, "Хороший вопрос про полиморфизм в ООП")
 	})
 }
 

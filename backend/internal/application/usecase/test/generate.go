@@ -19,13 +19,15 @@ import (
 
 // GenerateUseCase handles test generation using LLM
 type GenerateUseCase struct {
-	testRepo     repository.TestRepository
-	documentRepo repository.DocumentRepository
-	questionRepo repository.QuestionRepository
-	answerRepo   repository.AnswerRepository
-	userRepo     repository.UserRepository
-	llmFactory   *llm.LLMFactory
-	logger       *zap.Logger
+	testRepo            repository.TestRepository
+	documentRepo        repository.DocumentRepository
+	questionRepo        repository.QuestionRepository
+	answerRepo          repository.AnswerRepository
+	userRepo            repository.UserRepository
+	academicProfileRepo repository.AcademicProfileRepository
+	genConfigRepo       repository.TestGenerationConfigRepository
+	llmFactory          *llm.LLMFactory
+	logger              *zap.Logger
 }
 
 // NewGenerateUseCase creates a new generate use case.
@@ -36,6 +38,8 @@ func NewGenerateUseCase(
 	questionRepo repository.QuestionRepository,
 	answerRepo repository.AnswerRepository,
 	userRepo repository.UserRepository,
+	academicProfileRepo repository.AcademicProfileRepository,
+	genConfigRepo repository.TestGenerationConfigRepository,
 	llmFactory *llm.LLMFactory,
 	logger ...*zap.Logger,
 ) *GenerateUseCase {
@@ -47,13 +51,15 @@ func NewGenerateUseCase(
 	}
 
 	return &GenerateUseCase{
-		testRepo:     testRepo,
-		documentRepo: documentRepo,
-		questionRepo: questionRepo,
-		answerRepo:   answerRepo,
-		userRepo:     userRepo,
-		llmFactory:   llmFactory,
-		logger:       l,
+		testRepo:            testRepo,
+		documentRepo:        documentRepo,
+		questionRepo:        questionRepo,
+		answerRepo:          answerRepo,
+		userRepo:            userRepo,
+		academicProfileRepo: academicProfileRepo,
+		genConfigRepo:       genConfigRepo,
+		llmFactory:          llmFactory,
+		logger:              l,
 	}
 }
 
@@ -119,15 +125,36 @@ func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (
 		profile = llm.ProfileUniversal
 	}
 
-	// Generate questions via LLM
-	llmContext := llm.NewLLMContext(strategy)
-	questions, err := llmContext.GenerateQuestions(ctx, llm.GenerationParams{
+	// Load profile data from DB to get per-profile temperature and prompt content.
+	// Falls back to hardcoded prompt builder data when repo is unavailable (e.g. in tests).
+	var profileEntity *entity.AcademicProfile
+	if uc.academicProfileRepo != nil {
+		profileEntity, err = uc.academicProfileRepo.FindByCode(ctx, string(profile))
+		if err != nil {
+			uc.logger.Warn("academic profile not found in DB, falling back to hardcoded data",
+				zap.String("profile", string(profile)),
+				zap.Error(err),
+			)
+			profileEntity = nil
+		}
+	}
+
+	genParams := llm.GenerationParams{
 		Text:                document.ParsedText,
 		NumQuestions:        params.NumQuestions,
 		Difficulty:          params.Difficulty,
 		MultipleChoiceCount: multipleChoiceCount,
 		Profile:             profile,
-	})
+	}
+
+	if profileEntity != nil {
+		genParams.Temperature = profileEntity.Temperature
+		genParams.ProfileData = toProfileData(profileEntity, profile)
+	}
+
+	// Generate questions via LLM
+	llmContext := llm.NewLLMContext(strategy)
+	questions, err := llmContext.GenerateQuestions(ctx, genParams)
 	if err != nil {
 		uc.logger.Error("LLM generation failed",
 			zap.String("provider", params.LLMProvider),
@@ -154,6 +181,25 @@ func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (
 
 	if err := uc.testRepo.Create(ctx, test); err != nil {
 		return nil, fmt.Errorf("failed to save test: %w", err)
+	}
+
+	// Save generation config when profile was loaded from DB
+	if profileEntity != nil {
+		genConfig := &entity.TestGenerationConfig{
+			TestID:            test.ID,
+			AcademicProfileID: profileEntity.ID,
+			Difficulty:        params.Difficulty,
+			NumQuestions:      params.NumQuestions,
+			LLMProvider:       provider,
+			Language:          "ru",
+			CreatedAt:         time.Now(),
+		}
+		if err := uc.genConfigRepo.Create(ctx, genConfig); err != nil {
+			uc.logger.Warn("failed to save test generation config",
+				zap.String("test_id", test.ID.String()),
+				zap.Error(err),
+			)
+		}
 	}
 
 	// Save questions and answers
@@ -203,4 +249,40 @@ func (uc *GenerateUseCase) Execute(ctx context.Context, params GenerateParams) (
 		MoodleSynced:   false,
 		CreatedAt:      test.CreatedAt.Format(time.RFC3339),
 	}, nil
+}
+
+// toProfileData converts a DB entity to the llm.ProfileData used by the prompt builder.
+func toProfileData(p *entity.AcademicProfile, code llm.AcademicProfile) *llm.ProfileData {
+	formulations := make([]llm.FormulationExample, len(p.Formulations))
+	for i, f := range p.Formulations {
+		formulations[i] = llm.FormulationExample{
+			Bad:  f.BadExample,
+			Good: f.GoodExample,
+		}
+	}
+
+	examples := make([]llm.QuestionExample, len(p.QuestionExamples))
+	for i, qe := range p.QuestionExamples {
+		answers := make([]llm.ExampleAnswer, len(qe.Answers))
+		for j, a := range qe.Answers {
+			answers[j] = llm.ExampleAnswer{
+				Text:      a.Text,
+				IsCorrect: a.IsCorrect,
+			}
+		}
+		examples[i] = llm.QuestionExample{
+			QuestionType: llm.QuestionType(qe.QuestionType),
+			QuestionText: qe.QuestionText,
+			Answers:      answers,
+			Explanation:  qe.Explanation,
+		}
+	}
+
+	return &llm.ProfileData{
+		Code:             code,
+		Temperature:      p.Temperature,
+		Instruction:      p.ProfileInstruction,
+		Formulations:     formulations,
+		QuestionExamples: examples,
+	}
 }

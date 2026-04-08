@@ -24,6 +24,7 @@ func TestSetupRoutes_RegistersExpectedEndpoints(t *testing.T) {
 		&handler.StatsHandler{},
 		jwtManager,
 		"token",
+		nil,
 	)
 
 	routes := app.GetRoutes()

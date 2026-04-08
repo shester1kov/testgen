@@ -120,12 +120,17 @@ func (s *YandexGPTStrategy) GenerateQuestions(ctx context.Context, params Genera
 		return nil, fmt.Errorf("yandexgpt folder ID not configured")
 	}
 
+	temperature := params.Temperature
+	if temperature == 0 {
+		temperature = 0.5 // safe default when caller does not set profile-based temperature
+	}
+
 	// Prepare the request
 	reqBody := YandexGPTRequest{
 		ModelURI: fmt.Sprintf("gpt://%s/%s", s.folderID, s.model),
 		CompletionOptions: YandexCompletionOptions{
 			Stream:      false,
-			Temperature: 0.6,
+			Temperature: temperature,
 			MaxTokens:   "8000",
 		},
 		Messages: []YandexMessage{
