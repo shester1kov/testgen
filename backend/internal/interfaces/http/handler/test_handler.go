@@ -4,6 +4,9 @@ import (
 	"github.com/shester1kov/testgen-backend/internal/domain"
 
 	"errors"
+	"net/url"
+	"regexp"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -11,6 +14,20 @@ import (
 	testuc "github.com/shester1kov/testgen-backend/internal/application/usecase/test"
 	"github.com/shester1kov/testgen-backend/internal/infrastructure/llm"
 )
+
+var filenameSanitizeRe = regexp.MustCompile(`[\\/:*?"<>|\r\n\t]+`)
+
+// sanitizeFilename returns a filesystem-safe base filename derived from the test title.
+// Falls back to "test" if the result is empty.
+func sanitizeFilename(title string) string {
+	cleaned := filenameSanitizeRe.ReplaceAllString(title, "_")
+	cleaned = strings.TrimSpace(cleaned)
+	cleaned = strings.Trim(cleaned, ".")
+	if cleaned == "" {
+		return "test"
+	}
+	return cleaned
+}
 
 type TestHandler struct {
 	createUseCase         *testuc.CreateUseCase
@@ -529,9 +546,11 @@ func (h *TestHandler) handleExport(c *fiber.Ctx, format string) error {
 		)
 	}
 
-	filename := result.Title + "." + result.FileExt
+	baseName := sanitizeFilename(result.Title)
+	filename := baseName + "." + result.FileExt
+	encodedFilename := url.PathEscape(filename)
 	c.Set("Content-Type", result.ContentType)
-	c.Set("Content-Disposition", "attachment; filename="+filename)
+	c.Set("Content-Disposition", `attachment; filename="`+filename+`"; filename*=UTF-8''`+encodedFilename)
 
 	return c.SendString(result.Content)
 }

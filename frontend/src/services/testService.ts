@@ -74,11 +74,30 @@ export const testService = {
 
     // Get filename from Content-Disposition header
     const disposition = response.headers.get('Content-Disposition')
-    let filename = `test.${format}`
-    if (disposition && disposition.includes('filename=')) {
-      const filenameMatch = disposition.match(/filename=(.+)/)
-      if (filenameMatch && filenameMatch[1]) {
-        filename = filenameMatch[1].replace(/['"]/g, '')
+    const formatExtMap: Record<string, string> = {
+      json: 'json',
+      moodle_xml: 'xml',
+      stepik_csv: 'csv',
+      gift: 'txt',
+      aiken: 'txt',
+      blackboard: 'txt',
+      qti: 'xml',
+    }
+    let filename = `test.${formatExtMap[format] ?? format}`
+    if (disposition) {
+      // Prefer RFC 5987 filename* (UTF-8) over plain filename=
+      const utf8Match = disposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i)
+      if (utf8Match && utf8Match[1]) {
+        try {
+          filename = decodeURIComponent(utf8Match[1].trim())
+        } catch {
+          filename = utf8Match[1].trim()
+        }
+      } else {
+        const filenameMatch = disposition.match(/filename\s*=\s*"?([^";]+)"?/i)
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].trim()
+        }
       }
     }
 
