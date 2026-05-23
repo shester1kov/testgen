@@ -105,22 +105,6 @@ docker-compose up -d
 - Prometheus: <http://localhost:9090>
 - Grafana: <http://localhost:3000> (admin/admin123)
 
-### Быстрый старт для Windows (без Docker)
-
-Используйте готовый батник:
-
-```bash
-start-backend.bat
-```
-
-Батник автоматически:
-
-- Проверит Go и Docker
-- Установит зависимости
-- Запустит PostgreSQL в Docker
-- **Применит миграции автоматически** при старте backend
-- Сгенерирует Swagger документацию
-- Запустит backend сервер
 
 ### Локальная разработка
 
