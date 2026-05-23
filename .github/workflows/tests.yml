@@ -11,24 +11,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout repository
-      - uses: actions/checkout@v6
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: go setup
-      - uses: actions/setup-go@v6
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25'
           cache-dependency-path: backend/go.sum
 
       - name: wire generation
-      - working-directory: backend
+        working-directory: backend
         run: |
           go install github.com/google/wire/cmd/wire@latest
           (cd cmd/api && wire)
 
       - name: run tests
-      - working-directory: backend
+        working-directory: backend
         run: |
           go test ./... -v -cover -coverprofile=coverage.out
           go tool cover -func=coverage.out
@@ -37,19 +37,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout repository
-      - uses: actions/checkout@v6
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: node setup
-      - uses: actions/setup-node@v6
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      - name: setup node modules
+        working-directory: frontend
+        run: |
+          npm ci --cache .npm --prefer-offline
+
+
       - name: run tests
-      - working-directory: frontend
+        working-directory: frontend
         run: |
           npm run test -- --run
 
