@@ -73,3 +73,6 @@ moodle/local
 *.bpmn
 
 docs
+CLAUDE.md*
+# OwnYourCode - personal career tracking
+ownyourcode/career/
